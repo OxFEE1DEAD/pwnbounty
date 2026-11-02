@@ -55,6 +55,19 @@ pub struct Verdict {
     pub expires: U64,
 }
 
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct ClaimRef {
+    pub bounty: U64,
+    pub submission: String,
+}
+#[near(serializers = [json])]
+pub struct HunterCommitment {
+    pub bounty: U64,
+    pub submission: String,
+    pub commitment: Commitment,
+}
+
 #[near(serializers = [json])]
 pub struct ContractConfig {
     pub network: String,

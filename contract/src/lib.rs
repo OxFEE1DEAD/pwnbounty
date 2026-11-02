@@ -14,6 +14,15 @@ pub struct Contract {
     next_id: u64,
     bounties: LookupMap<u64, Bounty>,
     commitments: LookupMap<String, Commitment>,
+    hunters: LookupMap<AccountId, Vec<ClaimRef>>,
+}
+
+#[near(serializers = [borsh])]
+struct StateV1 {
+    network: String,
+    next_id: u64,
+    bounties: LookupMap<u64, Bounty>,
+    commitments: LookupMap<String, Commitment>,
 }
 
 #[near]
@@ -29,6 +38,20 @@ impl Contract {
             next_id: 0,
             bounties: LookupMap::new(b"b"),
             commitments: LookupMap::new(b"c"),
+            hunters: LookupMap::new(b"h"),
+        }
+    }
+
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        let old: StateV1 = env::state_read().expect("no state to migrate");
+        Self {
+            network: old.network,
+            next_id: old.next_id,
+            bounties: old.bounties,
+            commitments: old.commitments,
+            hunters: LookupMap::new(b"h"),
         }
     }
 
@@ -106,7 +129,8 @@ impl Contract {
             env::attached_deposit().as_yoctonear() == CLAIM_STORAGE,
             "attach claim storage budget exactly"
         );
-        let key = claim_key(bounty.0, &env::predecessor_account_id(), &submission);
+        let hunter = env::predecessor_account_id();
+        let key = claim_key(bounty.0, &hunter, &submission);
         require!(!self.commitments.contains_key(&key), "duplicate submission");
         let before = env::storage_usage();
         self.commitments.insert(
@@ -118,11 +142,18 @@ impl Contract {
                 settled_at: None,
             },
         );
+        let mut claims = self.hunters.get(&hunter).cloned().unwrap_or_default();
+        claims.push(ClaimRef {
+            bounty,
+            submission: submission.clone(),
+        });
+        self.hunters.insert(hunter.clone(), claims);
         self.commitments.flush();
+        self.hunters.flush();
         storage_budget(before, CLAIM_STORAGE, 1_024);
         event(
             "committed",
-            near_sdk::serde_json::json!({"bounty":bounty,"hunter":env::predecessor_account_id(),"submission":submission}),
+            near_sdk::serde_json::json!({"bounty":bounty,"hunter":hunter,"submission":submission}),
         );
     }
 
@@ -265,6 +296,34 @@ impl Contract {
         self.commitments
             .get(&claim_key(bounty.0, &hunter, &submission))
             .cloned()
+    }
+
+    pub fn get_hunter_commitments(
+        &self,
+        hunter: AccountId,
+        from_index: Option<U64>,
+        limit: Option<u32>,
+    ) -> Vec<HunterCommitment> {
+        let limit = limit.unwrap_or(20);
+        require!(limit > 0 && limit <= 50, "limit must be 1..50");
+        let Some(claims) = self.hunters.get(&hunter) else {
+            return vec![];
+        };
+        claims
+            .iter()
+            .skip(from_index.unwrap_or(U64(0)).0 as usize)
+            .take(limit as usize)
+            .filter_map(|claim| {
+                self.commitments
+                    .get(&claim_key(claim.bounty.0, &hunter, &claim.submission))
+                    .cloned()
+                    .map(|commitment| HunterCommitment {
+                        bounty: claim.bounty,
+                        submission: claim.submission.clone(),
+                        commitment,
+                    })
+            })
+            .collect()
     }
 }
 impl Contract {

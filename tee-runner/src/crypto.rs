@@ -68,3 +68,36 @@ pub fn seal(
     envelope.extend_from_slice(&body);
     Ok(envelope)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    use serde::Deserialize;
+    use sha2::Digest;
+
+    #[derive(Deserialize)]
+    struct Vector {
+        context: String,
+        plaintext: String,
+        ciphertext: String,
+    }
+
+    #[test]
+    fn opens_typescript_envelope_and_rejects_tampering() {
+        let vector: Vector =
+            serde_json::from_str(include_str!("../../fixtures/interop-report.json")).unwrap();
+        let secret: [u8; 32] =
+            Sha256::digest(b"sealed-bounty interop fixture only, never use as a real key").into();
+        let envelope = STANDARD.decode(&vector.ciphertext).unwrap();
+        assert_eq!(
+            open(&envelope, secret, &vector.context).unwrap(),
+            vector.plaintext.as_bytes()
+        );
+        assert!(open(&envelope, secret, "wrong context").is_err());
+        let mut altered = envelope;
+        let last = altered.len() - 1;
+        altered[last] ^= 1;
+        assert!(open(&altered, secret, &vector.context).is_err());
+    }
+}

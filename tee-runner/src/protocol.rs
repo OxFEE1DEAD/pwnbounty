@@ -21,6 +21,8 @@ pub struct TargetConfig {
     pub enforce_policy: bool,
     pub max_steps: u8,
     pub timeout_ms: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_policy_hash: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -139,6 +141,10 @@ impl TargetConfig {
             || self.prompt.len() > 65536
             || !(1..=20).contains(&self.max_steps)
             || !(1..=120000).contains(&self.timeout_ms)
+            || self
+                .model_policy_hash
+                .as_ref()
+                .is_some_and(|hash| hash_field(hash).is_err())
         {
             return Err("Invalid target limits".into());
         }
@@ -217,5 +223,22 @@ impl Verdict {
         ]))
         .map_err(|_| "Invalid verdict JSON")?;
         Ok(digest(&encoded))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn funded_rules_hash_matches_typescript_with_model_policy_pin() {
+        let mut config: TargetConfig =
+            serde_json::from_str(include_str!("../../fixtures/targets/vulnerable.json")).unwrap();
+        config.model_policy_hash =
+            Some("4f1190fd7dc6ed7c65e718bc85909591c7f1658512ba534871e07f4d9481b087".into());
+        assert_eq!(
+            config.rules_hash().unwrap(),
+            "2ccc7beec3839dc02622b5151c20756f731af54ee2d3f6fbbb0ae506f956a2a3"
+        );
     }
 }

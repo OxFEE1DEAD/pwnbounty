@@ -44,29 +44,27 @@ fn run() -> sealed_bounty_tee_core::Result<()> {
             config,
             sealed_state,
         } => {
-            if std::env::var("ALLOW_DEVELOPMENT_INFERENCE").as_deref() != Ok("true") {
-                return Err("Confidential model adapter is not configured".into());
-            }
             let policy_hash =
                 std::env::var("ATTESTATION_HASH").map_err(|_| "Missing runtime policy")?;
             hash_field(&policy_hash)?;
             let enclave = OutLayerEnclave::load(&sealed_state)?;
             let api_key = std::env::var("NEAR_AI_APIKEY").map_err(|_| "Missing model key")?;
-            let mut model = match std::env::var("MODEL_POLICY") {
-                Ok(policy) => {
-                    let policy: ModelPolicy =
-                        serde_json::from_str(&policy).map_err(|_| "Invalid model policy")?;
-                    if policy.model != config.model {
-                        return Err("Model policy does not match target config".into());
-                    }
-                    let random =
-                        zeroize::Zeroizing::new(wasi::random::random::get_random_bytes(64));
-                    let nonce = random[..32].try_into().map_err(|_| "Invalid entropy")?;
-                    let seed = random[32..].try_into().map_err(|_| "Invalid entropy")?;
-                    NearAiModel::attested(api_key, &policy, nonce, seed)?.0
-                }
-                Err(_) => NearAiModel::development(api_key)?,
-            };
+            let expected_policy_hash = config
+                .model_policy_hash
+                .as_ref()
+                .ok_or("OutLayer target does not pin model policy")?;
+            let policy: ModelPolicy = serde_json::from_str(
+                &std::env::var("MODEL_POLICY").map_err(|_| "Missing model policy")?,
+            )
+            .map_err(|_| "Invalid model policy")?;
+            if policy.model != config.model {
+                return Err("Model policy does not match target config".into());
+            }
+            policy.require_hash(expected_policy_hash)?;
+            let random = zeroize::Zeroizing::new(wasi::random::random::get_random_bytes(64));
+            let nonce = random[..32].try_into().map_err(|_| "Invalid entropy")?;
+            let seed = random[32..].try_into().map_err(|_| "Invalid entropy")?;
+            let mut model = NearAiModel::attested(api_key, &policy, nonce, seed)?.0;
             let result = workflow::verify(
                 VerifyRequest {
                     action: "verify".into(),

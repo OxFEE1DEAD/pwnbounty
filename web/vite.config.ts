@@ -8,13 +8,13 @@ export default defineConfig({
   root: web,
   publicDir: false,
   plugins: [react()],
-  server: {proxy: {'/v1': 'http://127.0.0.1:8787'}},
+  server: { proxy: { '/v1': 'http://127.0.0.1:8787' } },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
     target: 'es2022',
     cssCodeSplit: false,
-    modulePreload: {polyfill: false},
+    modulePreload: { polyfill: false },
     rollupOptions: {
       output: {
         entryFileNames: 'app.js',

@@ -10,26 +10,43 @@ test('attestation JSON retains the exact bytes used for its report hash', async 
 });
 
 test('attestation response rejects an oversized stream before reading the remainder', async () => {
-  let pulls = 0, cancelled = false;
-  const body = new ReadableStream<Uint8Array>({
-    pull(controller) {
-      pulls++;
-      controller.enqueue(new Uint8Array(16));
+  let pulls = 0,
+    cancelled = false;
+  const body = new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        pulls++;
+        controller.enqueue(new Uint8Array(16));
+      },
+      cancel() {
+        cancelled = true;
+      },
     },
-    cancel() { cancelled = true; },
-  }, { highWaterMark: 0 });
+    { highWaterMark: 0 },
+  );
   await assert.rejects(readAttestationJson(new Response(body), 8), /too large/);
   assert.equal(pulls, 1);
   assert.equal(cancelled, true);
 });
 
 test('attestation response rejects a declared oversized body without reading it', async () => {
-  let pulls = 0, cancelled = false;
-  const body = new ReadableStream<Uint8Array>({
-    pull() { pulls++; },
-    cancel() { cancelled = true; },
-  }, { highWaterMark: 0 });
-  await assert.rejects(readAttestationJson(new Response(body, { headers: { 'content-length': '100' } }), 8), /too large/);
+  let pulls = 0,
+    cancelled = false;
+  const body = new ReadableStream<Uint8Array>(
+    {
+      pull() {
+        pulls++;
+      },
+      cancel() {
+        cancelled = true;
+      },
+    },
+    { highWaterMark: 0 },
+  );
+  await assert.rejects(
+    readAttestationJson(new Response(body, { headers: { 'content-length': '100' } }), 8),
+    /too large/,
+  );
   assert.equal(pulls, 0);
   assert.equal(cancelled, true);
 });

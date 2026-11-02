@@ -6,6 +6,7 @@ export class RejectUnverifiedTrust implements TrustPolicy {
 }
 export class LocalDevelopmentTrust implements TrustPolicy {
   async verify(attestation: Attestation): Promise<void> {
-    if(attestation.kind!=='local'||attestation.quote.length!==0) throw new Error('Expected explicitly local development enclave');
+    if (attestation.kind !== 'local' || attestation.quote.length !== 0)
+      throw new Error('Expected explicitly local development enclave');
   }
 }

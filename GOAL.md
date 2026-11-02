@@ -3,6 +3,8 @@
 **Target:** 1st place in **AI Security & Defense** ($10K), also submitted to **Privacy & Private AI**. Grand prize is a stretch.
 What and why: [SUMMARY.md](SUMMARY.md). Judging rules: [JUDGING.md](../JUDGING.md).
 
+Execution plan and access requests: [WIN_PLAN.ru.md](WIN_PLAN.ru.md). Decision 2026-10-30: pursue the full scope below; sequence extensions behind the working core. External pilot is high priority but optional and does not block submission.
+
 Legend: **[M]** measured, **[A]** assumed, **[N]** not checked. Status: ✅ done, 🟡 partial, ⬜ not started.
 
 ## Definition of done
@@ -19,7 +21,7 @@ Legend: **[M]** measured, **[A]** assumed, **[N]** not checked. Status: ✅ done
 
 ### P2: what separates 1st from 2nd
 
-1. ⬜ **One external agent team runs the flow.** A NEAR agent/tool maintainer supplies its config and policy, funds a test bounty and decrypts the result. Record onboarding friction, an agreed next test and willingness to pay.
+1. ⬜ **One external agent team runs the flow (high priority, optional).** A NEAR agent/tool maintainer supplies its config and policy, funds a test bounty and decrypts the result. Record onboarding friction, an agreed next test and willingness to pay. Start outreach early; submission does not depend on a response.
 2. ⬜ **Two programs on the same service:** a second agent config with a different spending rule through the same encrypted submission and payout flow.
 3. ⬜ **Function-call key** (track hint): the target agent's wallet holds a NEAR function-call key + policy, and the violation is checked against it.
 4. ⬜ **Historical Intents exploit, before and after the patch.** Pin the historical code and state, reproduce the violation, reject the patched case. nearcore inside the TEE is untested **[N]**. This is neither a new vulnerability nor an Intents partnership.

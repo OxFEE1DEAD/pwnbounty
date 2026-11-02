@@ -1,0 +1,7 @@
+package outlayer:encryption-keys@0.1.0;
+interface api {
+    encrypt: func(path: string, vault: option<string>, plaintext: list<u8>, aad: list<u8>) -> result<list<u8>, string>;
+    decrypt: func(path: string, vault: option<string>, ciphertext: list<u8>, aad: list<u8>) -> result<list<u8>, string>;
+    mac: func(path: string, vault: option<string>, data: list<u8>) -> result<list<u8>, string>;
+}
+world encryption-keys-host { import api; }

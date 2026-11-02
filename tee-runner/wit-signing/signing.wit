@@ -1,0 +1,8 @@
+package outlayer:signing-keys@0.1.0;
+interface api {
+    record nep413-signature { account-id: string, public-key: string, signature: string }
+    public-key: func(path: string, vault: option<string>) -> result<list<u8>, string>;
+    sign: func(path: string, vault: option<string>, message: list<u8>) -> result<list<u8>, string>;
+    sign-nep413: func(path: string, vault: option<string>, message: string, recipient: string, nonce: list<u8>, callback-url: option<string>) -> result<nep413-signature, string>;
+}
+world signing-keys-host { import api; }

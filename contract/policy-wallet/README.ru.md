@@ -18,4 +18,4 @@
 cargo build --target wasm32-unknown-unknown --release
 ```
 
-Тесты по текущей инструкции пользователя не добавлены. Реальный testnet-прогон и настройка ключа ещё необходимы.
+`cargo test --locked` выполняет 4 native unit-теста: отказ по получателю и лимиту, резервирование средств с идемпотентным replay, возврат бюджета после неудачного callback и повтор. `cargo build --locked --target wasm32-unknown-unknown --release` собирает WASM. Реальный testnet-прогон и настройка ключа ещё необходимы.

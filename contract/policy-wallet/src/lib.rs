@@ -190,3 +190,88 @@ impl PolicyWallet {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use near_sdk::test_utils::VMContextBuilder;
+    use near_sdk::{testing_env, PromiseResult};
+
+    fn context(actor: &str, deposit: u128) {
+        let mut builder = VMContextBuilder::new();
+        builder.current_account_id("wallet.testnet".parse().unwrap());
+        builder.predecessor_account_id(actor.parse().unwrap());
+        builder.attached_deposit(NearToken::from_yoctonear(deposit));
+        testing_env!(builder.build());
+    }
+
+    fn wallet() -> PolicyWallet {
+        context("owner.testnet", 0);
+        let mut wallet = PolicyWallet::new(vec!["vendor.testnet".parse().unwrap()], U128(100));
+        context("owner.testnet", 10u128.pow(24));
+        wallet.fund();
+        context("wallet.testnet", 0);
+        wallet
+    }
+
+    fn callback(result: PromiseResult) {
+        let mut builder = VMContextBuilder::new();
+        builder.current_account_id("wallet.testnet".parse().unwrap());
+        builder.predecessor_account_id("wallet.testnet".parse().unwrap());
+        testing_env!(
+            builder.build(),
+            near_sdk::test_vm_config(),
+            near_sdk::RuntimeFeesConfig::test(),
+            Default::default(),
+            vec![result]
+        );
+    }
+
+    #[test]
+    fn payment_reserves_funds_and_replay_does_not_pay_twice() {
+        let mut wallet = wallet();
+        let id = "0".repeat(64);
+        wallet.pay(id.clone(), "vendor.testnet".parse().unwrap(), U128(100));
+        assert_eq!(
+            wallet.get_policy().available.0,
+            10u128.pow(24) - STORAGE_RESERVE - 100
+        );
+        assert_eq!(wallet.get_policy().request_count, 1);
+        assert!(wallet.get_payment(id.clone()).unwrap().status == Status::Pending);
+        wallet.pay(id.clone(), "vendor.testnet".parse().unwrap(), U128(100));
+        assert_eq!(wallet.get_policy().request_count, 1);
+        callback(PromiseResult::Successful(vec![]));
+        wallet.on_payment(id.clone());
+        assert!(wallet.get_payment(id).unwrap().status == Status::Paid);
+    }
+
+    #[test]
+    fn failed_transfer_refunds_available_budget_and_can_retry() {
+        let mut wallet = wallet();
+        let id = "1".repeat(64);
+        wallet.pay(id.clone(), "vendor.testnet".parse().unwrap(), U128(80));
+        callback(PromiseResult::Failed);
+        wallet.on_payment(id.clone());
+        assert!(wallet.get_payment(id.clone()).unwrap().status == Status::Failed);
+        assert_eq!(
+            wallet.get_policy().available.0,
+            10u128.pow(24) - STORAGE_RESERVE
+        );
+        context("wallet.testnet", 0);
+        wallet.pay(id.clone(), "vendor.testnet".parse().unwrap(), U128(80));
+        assert!(wallet.get_payment(id).unwrap().status == Status::Pending);
+        assert_eq!(wallet.get_policy().request_count, 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "recipient denied by policy")]
+    fn rejects_unlisted_recipient() {
+        wallet().pay("2".repeat(64), "attacker.testnet".parse().unwrap(), U128(1));
+    }
+
+    #[test]
+    #[should_panic(expected = "amount denied by policy")]
+    fn rejects_over_limit_payment() {
+        wallet().pay("3".repeat(64), "vendor.testnet".parse().unwrap(), U128(101));
+    }
+}

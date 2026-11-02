@@ -1,4 +1,15 @@
 import type { Context, TargetConfig, Verdict } from '../../protocol/index.ts';
+import type {
+  Call,
+  Outcome,
+  ProgramSpec,
+  ReceiptOutcome,
+  Role,
+  RunEvidence,
+  Snapshot,
+  TxAttack,
+  View,
+} from '../../protocol/program.ts';
 export type { Verdict, TargetConfig };
 export interface SealedReport extends Context {
   report_hash: string;
@@ -33,4 +44,23 @@ export interface Settler {
 }
 export interface TrustPolicy {
   verify(attestation: Attestation, program: Program): Promise<void>;
+}
+export interface WorldHandle {
+  roles: Record<string, Role>;
+  attackerKeys: string[];
+  send(attack: TxAttack): Promise<{ receipts: ReceiptOutcome[]; status: RunEvidence['status'] }>;
+  call(call: Call): Promise<ReceiptOutcome[]>;
+  view(view: View): Promise<string>;
+  snapshot(mentioned: string[]): Promise<Snapshot>;
+  forward(blocks: number): Promise<void>;
+  stop(): Promise<void>;
+}
+export interface WorldFactory {
+  create(spec: ProgramSpec): Promise<WorldHandle>;
+}
+export interface Target {
+  run(
+    program: Program,
+    attack: string,
+  ): Promise<{ valid: boolean; outcome: Outcome; trace: unknown }>;
 }

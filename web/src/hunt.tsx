@@ -14,7 +14,7 @@ import {
   type SettlementState,
   type SettlementVerdict as Verdict,
 } from './settlement.js';
-import { history, isOpen, near, type Chain, type Entry } from './chain.js';
+import { isOpen, near, type Chain, type Entry } from './chain.js';
 import {
   context,
   delay,
@@ -294,8 +294,6 @@ function useSubmission(env: Env) {
   async function confirm(pending: SealedReport, attempts: number, missing: string): Promise<void> {
     mark('commit', 'active', status.commit);
     if (!(await found(pending, attempts))) throw new Error(missing);
-    const { bounty, submission, report_hash, hunter: account } = pending;
-    history.save({ account, bounty, submission, report_hash, at: Date.now() });
     mark('commit', 'done', status.committed);
   }
 
@@ -303,7 +301,6 @@ function useSubmission(env: Env) {
     mark('sandbox', 'active', status.send);
     const created = await worker.post<{ id: string }>('/v1/submissions', pending);
     forget();
-    history.attachJob(pending.submission, created.id);
     session.set(pendingJobKey, created.id);
     await track(created.id, ++poll.current);
   }

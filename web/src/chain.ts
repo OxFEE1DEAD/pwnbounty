@@ -29,15 +29,6 @@ export interface Overview {
   paid: bigint;
   winners: number;
 }
-export interface Attempt {
-  account: string;
-  bounty: string;
-  submission: string;
-  report_hash: string;
-  jobId?: string;
-  at: number;
-}
-
 const pageSize = 50n;
 const inconsistent = 'NEAR RPC returned an inconsistent contract state';
 
@@ -192,48 +183,3 @@ export function overview(
     winners: new Set(paid.map((entry) => entry.bounty.winner)).size,
   };
 }
-
-const historyKey = 'sealed-bounty/history/1';
-const historyLimit = 100;
-
-function isAttempt(value: unknown): value is Attempt {
-  const a = value as Partial<Attempt> | null;
-  return (
-    !!a &&
-    typeof a.account === 'string' &&
-    typeof a.bounty === 'string' &&
-    typeof a.submission === 'string' &&
-    typeof a.report_hash === 'string' &&
-    typeof a.at === 'number' &&
-    (a.jobId === undefined || typeof a.jobId === 'string')
-  );
-}
-
-function readHistory(): Attempt[] {
-  try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(historyKey) ?? '[]');
-    return Array.isArray(parsed) ? parsed.filter(isAttempt) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeHistory(list: Attempt[]): void {
-  try {
-    localStorage.setItem(historyKey, JSON.stringify(list.slice(0, historyLimit)));
-  } catch {}
-}
-
-export const history = {
-  list(account: string): Attempt[] {
-    return readHistory().filter((attempt) => attempt.account === account);
-  },
-  save(attempt: Attempt): void {
-    const rest = readHistory().filter((item) => item.submission !== attempt.submission);
-    writeHistory([attempt, ...rest]);
-  },
-  attachJob(submission: string, jobId: string): void {
-    const list = readHistory();
-    writeHistory(list.map((item) => (item.submission === submission ? { ...item, jobId } : item)));
-  },
-};

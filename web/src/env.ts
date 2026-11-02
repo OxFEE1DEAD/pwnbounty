@@ -44,6 +44,7 @@ export interface Env {
   worker: Worker;
   account?: string;
   connect(): Promise<void>;
+  disconnect(): Promise<void>;
   notify(text: string, error?: boolean): void;
   team: TeamDraft;
   setTeam(draft: TeamDraft): void;

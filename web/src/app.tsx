@@ -2,16 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { digest, openDisclosure } from './crypto.js';
 import { HunterWallet } from './wallet.js';
-import {
-  Chain,
-  history,
-  near,
-  readLimited,
-  type Attempt,
-  type Bounty,
-  type Entry,
-} from './chain.js';
-import type { ChainCommitment } from './settlement.js';
+import { Chain, near, readLimited, type Entry } from './chain.js';
 import {
   context,
   EnvContext,
@@ -34,26 +25,6 @@ import '../style.css';
 const routes = ['home', 'hunt', 'me', 'team', 'coverage', 'launch'] as const;
 const anchors = ['how', 'evidence'];
 type Route = (typeof routes)[number];
-type AttemptStatus =
-  | 'not-committed'
-  | 'pending'
-  | 'no-violation'
-  | 'beaten'
-  | 'paid'
-  | 'retryable'
-  | 'payout-pending'
-  | 'unknown';
-
-const attemptLabels: Record<AttemptStatus, string> = {
-  'not-committed': 'Not on NEAR yet',
-  pending: 'Waiting for the verdict',
-  'no-violation': 'No violation, no reward',
-  beaten: 'Valid, but another hunter was first',
-  paid: 'Paid',
-  retryable: 'Payout failed - retry it under Rewards',
-  'payout-pending': 'Payout in progress',
-  unknown: 'Could not check',
-};
 const stateLabels: Record<string, string> = {
   Paid: 'Paid',
   Pending: 'Payout in progress',
@@ -85,14 +56,14 @@ function useRoute(): Route {
 }
 
 function Header({ route }: { route: Route }) {
-  const { meta, account, connect, notify } = useEnv(),
+  const { meta, account, connect, disconnect, notify } = useEnv(),
     t = useT();
   const { lang, toggle } = useLang();
   const nav: [string, string, boolean][] = [
     ['#/how', 'How it works', false],
     ['#/coverage', 'Coverage', route === 'coverage'],
     ['#/launch', 'For projects', route === 'launch'],
-    ['#/me', 'My attempts', route === 'me'],
+    ['#/me', 'My rewards', route === 'me'],
     ['#/hunt', 'Hunt a bounty', route === 'hunt'],
   ];
   const wallet = () => {
@@ -118,41 +89,22 @@ function Header({ route }: { route: Route }) {
       <button type="button" className="button secondary wallet" onClick={wallet}>
         {account ?? t('Connect wallet')}
       </button>
+      {account && (
+        <button
+          type="button"
+          className="chip"
+          onClick={() => disconnect().catch((error) => notify(errorText(error), true))}
+        >
+          {t('Log out')}
+        </button>
+      )}
     </header>
   );
 }
 
-async function attemptStatus(
-  chain: Chain,
-  attempt: Attempt,
-  bounties: Map<string, Bounty>,
-): Promise<AttemptStatus> {
-  const { account: hunter, bounty: id, submission } = attempt;
-  const { value: claim } = await chain.view<ChainCommitment>('get_commitment', {
-    bounty: id,
-    hunter,
-    submission,
-  });
-  if (!claim) return 'not-committed';
-  if (!claim.settled) return 'pending';
-  if (!claim.verdict?.valid) return 'no-violation';
-  const bounty = bounties.get(id);
-  if (bounty?.winner !== hunter) return 'beaten';
-  if (bounty.state === 'Paid') return 'paid';
-  return bounty.state === 'Retryable' ? 'retryable' : 'payout-pending';
-}
-
-async function loadMine(chain: Chain, account: string) {
+async function loadWins(chain: Chain, account: string): Promise<Entry[]> {
   const { entries } = await chain.allBounties();
-  const bounties = new Map(entries.map((entry) => [entry.id, entry.bounty]));
-  const wins = entries.filter((entry) => entry.bounty.winner === account);
-  const attempts = await Promise.all(
-    history.list(account).map(async (attempt) => ({
-      attempt,
-      status: await attemptStatus(chain, attempt, bounties).catch(() => 'unknown' as const),
-    })),
-  );
-  return { wins, attempts };
+  return entries.filter((entry) => entry.bounty.winner === account);
 }
 
 function Wins({ wins, reload }: { wins: Entry[]; reload(): void }) {
@@ -188,40 +140,18 @@ function Wins({ wins, reload }: { wins: Entry[]; reload(): void }) {
   );
 }
 
-function Attempts({ rows }: { rows: { attempt: Attempt; status: AttemptStatus }[] }) {
-  const t = useT();
-  if (!rows.length) {
-    return <p className="muted">{t('No sealed attempts from this browser yet.')}</p>;
-  }
-  return (
-    <>
-      {rows.map(({ attempt, status }) => (
-        <div key={attempt.submission} className="payout-row">
-          <span>
-            {t('Program #')}
-            {attempt.bounty}
-          </span>
-          <span className="muted">{new Date(attempt.at).toLocaleString()}</span>
-          <code title={attempt.report_hash}>{attempt.report_hash.slice(0, 12)}…</code>
-          <span className={'tag ' + status}>{t(attemptLabels[status])}</span>
-        </div>
-      ))}
-    </>
-  );
-}
-
-function MyAttempts() {
+function MyRewards() {
   const { chain, account, connect, notify } = useEnv(),
     t = useT();
   const data = useAsync(
-    () => (account ? loadMine(chain, account) : Promise.resolve(undefined)),
+    () => (account ? loadWins(chain, account) : Promise.resolve(undefined)),
     [account],
   );
   return (
     <div className="wrap">
       <div className="hunt-head">
-        <div className="eyebrow">MY ATTEMPTS</div>
-        <h1>{t('My attempts')}</h1>
+        <div className="eyebrow">{t('MY REWARDS')}</div>
+        <h1>{t('My rewards')}</h1>
         {account && (
           <p className="lead">
             <Account name={account} />
@@ -230,7 +160,7 @@ function MyAttempts() {
       </div>
       {!account && (
         <div className="card">
-          <p>{t('Your sealed attempts will appear here after you connect a wallet.')}</p>
+          <p>{t('Your rewards will appear here after you connect a wallet.')}</p>
           <button
             type="button"
             className="button"
@@ -243,16 +173,9 @@ function MyAttempts() {
       {data.loading && account && <p className="muted">{t('Loading chain data…')}</p>}
       {data.error && <p className="error-text">{t(data.error)}</p>}
       {data.value && (
-        <div className="mine">
-          <section className="card">
-            <div className="kicker">{t('REWARDS')}</div>
-            <Wins wins={data.value.wins} reload={data.reload} />
-          </section>
-          <section className="card">
-            <div className="kicker">{t('ATTEMPTS FROM THIS BROWSER')}</div>
-            <Attempts rows={data.value.attempts} />
-          </section>
-        </div>
+        <section className="card">
+          <Wins wins={data.value} reload={data.reload} />
+        </section>
       )}
     </div>
   );
@@ -428,6 +351,10 @@ function Shell({ meta }: { meta: Meta }) {
     setTeam,
     notify: (text, error = false) => setNote({ text, error }),
     connect: async () => setAccount(await services.wallet.connect()),
+    disconnect: async () => {
+      await services.wallet.disconnect();
+      setAccount(undefined);
+    },
   };
   return (
     <EnvContext.Provider value={env}>
@@ -438,7 +365,7 @@ function Shell({ meta }: { meta: Meta }) {
         <div hidden={route !== 'hunt'}>
           <Hunt visible={route === 'hunt'} />
         </div>
-        {route === 'me' && <MyAttempts />}
+        {route === 'me' && <MyRewards />}
         {route === 'team' && <TeamDecryptPanel />}
         {route === 'coverage' && <Coverage />}
         {route === 'launch' && <Launch />}

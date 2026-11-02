@@ -274,7 +274,7 @@ async function run() {
     const store=new FileJobStore(env('JOB_DIRECTORY',false)||'.jobs'); await store.acquireRecoveringStoppedWorker();
     try {
       const queue=new JobQueue(store,verifier);
-      const token=env('INGRESS_BEARER_TOKEN'); if(token.length<32) throw new Error('Ingress token must contain at least 32 characters');
+      const token=env('INGRESS_BEARER_TOKEN',false)||undefined; if(token!==undefined&&token.length<32) throw new Error('Ingress token must contain at least 32 characters');
       let wake: (()=>void)|undefined;
       const server=createServer(async(req,res)=>{
         if(await readRoute(req,res,{rpc:r,contract:env('BOUNTY_CONTRACT'),configDirectory:env('CONFIG_DIRECTORY'),webDirectory:env('WEB_DIRECTORY',false)||'web/dist',encryptionPublicKey,signingPublicKey:Buffer.from(signingKey).toString('base64'),attestationHash:env('ATTESTATION_HASH'),trustMode:mode,allowMainnetWrites:env('ALLOW_MAINNET_WRITES',false)==='true',token,store,disclosure})) return;
@@ -294,7 +294,7 @@ async function run() {
         }catch{if(!res.headersSent)res.writeHead(400).end();}
       });
       await new Promise<void>((resolveListen,reject)=>{server.once('error',reject);server.listen(Number(env('INGRESS_PORT',false)||8787),env('INGRESS_HOST',false)||'127.0.0.1',resolveListen);});
-      console.log('Encrypted submission ingress ready');
+      console.log(`Encrypted submission ingress ready (${token===undefined?'public':'bearer token required'})`);
       let stopping=false;const stop=()=>{stopping=true;wake?.();};process.once('SIGINT',stop);process.once('SIGTERM',stop);
       try { while(!stopping){const job=await queue.runNext();if(job){console.log(JSON.stringify({id:job.id,state:job.state,transaction:job.transaction,errorCode:job.errorCode}));continue;} await new Promise<void>(resolveWait=>{const timer=setTimeout(resolveWait,1000);wake=()=>{clearTimeout(timer);wake=undefined;resolveWait();};});} }
       finally {process.off('SIGINT',stop);process.off('SIGTERM',stop);await new Promise<void>(resolveClose=>server.close(()=>resolveClose()));}

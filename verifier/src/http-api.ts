@@ -14,9 +14,10 @@ export interface ReadApiOptions {
   rpc:NearRpc; contract:string; configDirectory:string; webDirectory:string;
   encryptionPublicKey:string; signingPublicKey:string; attestationHash:string; trustMode:keyof typeof PREPARE_WINDOW_BLOCKS;
   allowMainnetWrites:boolean;
-  token:string; store:FileJobStore; disclosure:FileDisclosure;
+  token:string|undefined; store:FileJobStore; disclosure:FileDisclosure;
 }
-export function authorized(req:IncomingMessage,token:string):boolean {
+export function authorized(req:IncomingMessage,token:string|undefined):boolean {
+  if(token===undefined) return true;
   const actual=Buffer.from(req.headers.authorization??''),expected=Buffer.from(`Bearer ${token}`);
   return actual.length===expected.length&&timingSafeEqual(actual,expected);
 }
@@ -49,7 +50,7 @@ export async function readRoute(req:IncomingMessage,res:ServerResponse,options:R
       const snapshot=await options.rpc.snapshot();
       const config=object(await options.rpc.view(options.contract,'get_config',{},snapshot),'contract config');
       if(config.network!==options.rpc.network||config.protocol_version!=='1'||typeof config.claim_storage_deposit!=='string'||amount(config.claim_storage_deposit)<=0n) throw new Error('Contract config mismatch');
-      json(res,200,{network:options.rpc.network,contract:options.contract,signing_public_key:options.signingPublicKey,attestation_hash:options.attestationHash,trust_mode:options.trustMode,confidential_inference_verified:false,claim_storage_deposit:config.claim_storage_deposit,min_prepare_window_blocks:PREPARE_WINDOW_BLOCKS[options.trustMode].toString(),allow_mainnet_writes:options.allowMainnetWrites}); return true;
+      json(res,200,{network:options.rpc.network,contract:options.contract,signing_public_key:options.signingPublicKey,attestation_hash:options.attestationHash,trust_mode:options.trustMode,confidential_inference_verified:false,claim_storage_deposit:config.claim_storage_deposit,min_prepare_window_blocks:PREPARE_WINDOW_BLOCKS[options.trustMode].toString(),allow_mainnet_writes:options.allowMainnetWrites,public_ingress:options.token===undefined}); return true;
     }
     if(url.pathname==='/v1/programs') {
       const from=u64(url.searchParams.get('from_index')??'0','pagination index');

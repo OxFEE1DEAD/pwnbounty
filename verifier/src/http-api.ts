@@ -40,7 +40,7 @@ export async function readRoute(req:IncomingMessage,res:ServerResponse,options:R
     try {
       const content=await readFile(join(resolve(options.webDirectory),asset.file));
       const node=options.rpc.network==='mainnet'?'https://rpc.mainnet.fastnear.com https://helper.mainnet.near.org':'https://rpc.testnet.fastnear.com https://helper.testnet.near.org';
-      res.writeHead(200,{'content-type':asset.type,'cache-control':'no-store','x-content-type-options':'nosniff','x-frame-options':'DENY','content-security-policy':`default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ${node}; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`}).end(content);
+      res.writeHead(200,{'content-type':asset.type,'cache-control':'no-store','x-content-type-options':'nosniff','x-frame-options':'DENY','content-security-policy':`default-src 'self'; script-src 'self' 'nonce-nearconnect'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://app.hot-labs.org https://raw.githubusercontent.com https://storage.herewallet.app; frame-src https://wallet.intear.tech; connect-src 'self' ${node} https://raw.githubusercontent.com https://cdn.jsdelivr.net https://wallet.intear.tech wss://logout-bridge-service.intear.tech https://h4n.app https://api0.herewallet.app https://mc.meteorwallet.app https://free.rpc.fastnear.com https://test.rpc.fastnear.com https://c1.rpc.fastnear.com https://c2.rpc.fastnear.com https://relmn.aurora.dev https://nearrpc.aurora.dev https://rpc.mainnet.near.org https://rpc.testnet.near.org; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`}).end(content);
     } catch { json(res,503,{error:'WEB_BUILD_UNAVAILABLE'}); }
     return true;
   }

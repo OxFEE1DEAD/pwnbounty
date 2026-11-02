@@ -9,7 +9,7 @@
     "check": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
     "test": "node --import tsx --test verifier/test/*.test.ts",
     "cli": "node --import tsx verifier/src/cli.ts",
-    "build:web": "tsc --noEmit -p web/tsconfig.json && esbuild web/src/app.ts --bundle --format=esm --platform=browser --target=es2022 --alias:@near-js/accounts=./node_modules/@near-js/accounts/lib/esm/account.js --outfile=web/dist/app.js && cp web/index.html web/style.css web/dist/"
+    "build:web": "tsc --noEmit -p web/tsconfig.json && esbuild web/src/app.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=web/dist/app.js && cp web/index.html web/style.css web/dist/"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -18,10 +18,7 @@
     "typescript": "~5.8.3"
   },
   "dependencies": {
-    "@near-js/accounts": "2.5.1",
-    "@near-js/transactions": "2.5.1",
-    "@near-wallet-selector/core": "10.1.4",
-    "@near-wallet-selector/my-near-wallet": "10.1.4",
+    "@hot-labs/near-connect": "0.11.4",
     "near-api-js": "^7.4.0"
   }
 }

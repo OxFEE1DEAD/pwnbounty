@@ -1,11 +1,13 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Sealed Bounty</title><link rel="stylesheet" href="/style.css"></head>
-<body><button id="lang" type="button">RU</button><main>
-<header><p class="eyebrow">NEAR · AI AGENT SECURITY</p><h1>Sealed Bounty</h1><p class="lead">Test a payment agent. Keep the attack private.</p><p id="trust" class="notice">Loading verification mode…</p></header>
-<section class="access"><label>Worker access token <input id="token" type="password" autocomplete="off" placeholder="Kept only in this tab's memory"></label><p>The token is needed to submit and view a submission. No wallet private key is required here.</p></section>
-<section><div class="section-title"><h2>1. Choose a program</h2><button id="refresh" type="button">Refresh</button></div><div id="programs" class="programs"></div><button id="more" type="button" hidden>Next programs</button><pre id="rules" hidden></pre></section>
-<section><h2>2. Prepare a private submission</h2><button id="connect-wallet" type="button">Connect My NEAR Wallet</button><p id="wallet-account" data-en="Wallet not connected.">Wallet not connected.</p><form id="seal-form"><label>Hunter account <input id="hunter" required autocomplete="off" placeholder="hunter.testnet" pattern="[a-z0-9]+([._-][a-z0-9]+)*"></label><label>Invoice - the attack surface <textarea id="attack" required rows="8" placeholder="What the payment agent will see"></textarea></label><p>The text is encrypted locally. Only ciphertext is sent to the worker. Requires a browser with WebCrypto X25519 over HTTPS or localhost.</p><button id="seal" type="submit" disabled>Encrypt in browser</button></form><div id="sealed-actions" hidden><p>Record the commitment from the hunter account. The wallet will ask to confirm the transaction and the storage deposit:</p><button id="wallet-commit" type="button">Sign commit with wallet</button><button id="check-commitment" type="button">Check commitment on NEAR</button><details><summary>CLI fallback</summary><pre>npm run cli -- commit sealed-report.json</pre></details><p>Before the wallet redirect only the encrypted report is kept in sessionStorage. After returning, enter the token again and check the commitment. The redirect status is not proof of success.</p><button id="download" type="button">Download sealed-report.json</button><label class="check"><input id="committed" type="checkbox" disabled>Commitment verified in finalized NEAR</label><button id="submit" type="button">Send ciphertext</button></div></section>
-<section><h2>3. Verification result</h2><label>Job ID <input id="job-id" autocomplete="off" placeholder="64 hex characters"></label><button id="track" type="button">View status</button><pre id="job" data-en="No submission selected yet.">No submission selected yet.</pre><a id="receipt" target="_blank" rel="noopener noreferrer" hidden>Transaction in NEAR Explorer ↗</a><button id="retry-payment" type="button" hidden>Retry payout with the winner's wallet</button></section>
-<section><h2>4. Disclosure for the team</h2><p>The team private key is read only in the browser. It is never sent to the server. The decrypted text is not saved automatically.</p><form id="decrypt-form"><label>Ciphertext hash <input id="disclosure-hash" required pattern="[a-f0-9]{64}" autocomplete="off"></label><label>Context - JSON with network, contract, bounty, hunter, submission <textarea id="context" required rows="4"></textarea></label><label>Team X25519 private key (PKCS8 DER) <input id="team-key" required type="file"></label><button type="submit">Fetch ciphertext and decrypt locally</button></form><pre id="disclosure" hidden></pre><button id="clear-disclosure" type="button" hidden>Clear disclosure</button></section>
-<p id="message" role="status" aria-live="polite"></p><footer>A local demo does not prove a TEE. Check the evidence and the worker's actual mode before sending private data.</footer>
-</main><script type="module" src="/app.js"></script></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Sealed Bounty</title>
+</head>
+<body>
+<div id="root"></div>
+<script type="module" src="/src/app.tsx"></script>
+</body>
+</html>

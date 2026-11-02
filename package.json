@@ -9,16 +9,22 @@
     "check": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
     "test": "node --import tsx --test verifier/test/*.test.ts",
     "cli": "node --import tsx verifier/src/cli.ts",
-    "build:web": "tsc --noEmit -p web/tsconfig.json && esbuild web/src/app.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=web/dist/app.js && cp web/index.html web/style.css web/dist/"
+    "build:web": "tsc --noEmit -p web/tsconfig.json && vite build --config web/vite.config.ts",
+    "dev:web": "vite --config web/vite.config.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "esbuild": "0.28.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
     "tsx": "^4.19.0",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "vite": "8.3.4"
   },
   "dependencies": {
     "@hot-labs/near-connect": "0.11.4",
-    "near-api-js": "^7.4.0"
+    "near-api-js": "^7.4.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   }
 }

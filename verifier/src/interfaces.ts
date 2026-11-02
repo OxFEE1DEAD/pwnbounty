@@ -1,43 +1,17 @@
-export type BountyId = number;
-
-export interface Verdict {
-  bounty: BountyId;
-  report_hash: string;
-  hunter: string;
-  valid: boolean;
-  disclosure_hash: string;
-}
-
-export interface SealedReport {
-  bounty: BountyId;
-  hunter: string;
-  ciphertext: Uint8Array;
-}
-
-export interface Attestation {
-  publicKey: Uint8Array;
-  quote: Uint8Array;
-}
-
+import type { Context, TargetConfig, Verdict } from '../../protocol/index.ts';
+export type { Verdict, TargetConfig };
+export interface SealedReport extends Context { report_hash: string; ciphertext: Uint8Array }
+export interface Attestation { kind: 'local' | 'tee'; publicKey: Uint8Array; encryptionKey: Uint8Array; quote: Uint8Array }
 export interface Enclave {
   attestation(): Promise<Attestation>;
-  open(report: SealedReport): Promise<Uint8Array>;
-  seal(plaintext: Uint8Array, teamKey: string): Promise<Uint8Array>;
+  open(ciphertext: Uint8Array, context: string): Promise<Uint8Array>;
   sign(verdict: Verdict): Promise<Uint8Array>;
 }
-
-export interface Judge {
-  judge(bounty: BountyId, report: Uint8Array): Promise<boolean>;
+export interface Program {
+  context: Omit<Context,'hunter'|'submission'>; config: TargetConfig; rules_hash: string;
+  teamKey: Uint8Array; verdictExpires: string;
 }
-
-export interface Disclosure {
-  publish(bounty: BountyId, sealed: Uint8Array): Promise<string>;
-}
-
-export interface Settler {
-  settle(verdict: Verdict, signature: Uint8Array): Promise<string>;
-}
-
-export interface Verifier {
-  process(report: SealedReport): Promise<Verdict>;
-}
+export interface ProgramSource { load(report: SealedReport): Promise<Program> }
+export interface Disclosure { publish(ciphertext: Uint8Array): Promise<string> }
+export interface Settler { settle(verdict: Verdict, signature: Uint8Array): Promise<string> }
+export interface TrustPolicy { verify(attestation: Attestation, program: Program): Promise<void> }

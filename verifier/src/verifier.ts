@@ -1,41 +1,35 @@
-import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, randomBytes, sign, verify, type KeyObject } from "node:crypto";
-import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import type { Attestation, BountyId, Disclosure, Enclave, Judge, SealedReport, Settler, Verdict, Verifier } from "./interfaces.ts";
-
-const X25519_SPKI = Buffer.from("302a300506032b656e032100", "hex");
-const ED25519_SPKI = Buffer.from("302a300506032b6570032100", "hex");
-
-const sha256 = (data: Uint8Array | string) => createHash("sha256").update(data).digest();
-const raw = (key: KeyObject) => key.export({ format: "der", type: "spki" }).subarray(-32);
-const x25519 = (bytes: Uint8Array) => createPublicKey({ key: Buffer.concat([X25519_SPKI, bytes]), format: "der", type: "spki" });
-
-export const verdictMessage = (verdict: Verdict) =>
-  sha256(JSON.stringify({ bounty: verdict.bounty, report_hash: verdict.report_hash, hunter: verdict.hunter, valid: verdict.valid, disclosure_hash: verdict.disclosure_hash }));
-
-export function seal(plaintext: Uint8Array, recipient: Uint8Array): Uint8Array {
-  const ephemeral = generateKeyPairSync("x25519");
-  const key = sha256(diffieHellman({ privateKey: ephemeral.privateKey, publicKey: x25519(recipient) }));
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const body = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  return Buffer.concat([raw(ephemeral.publicKey), iv, cipher.getAuthTag(), body]);
+import { canonical, commitment, digest, rulesHash, type Context, type Verdict } from '../../protocol/index.ts';
+import { seal } from './crypto.ts';
+import { checkViolation } from './checker.ts';
+import { runAgent, type Model } from './target/agent.ts';
+import type { Enclave, ProgramSource, TrustPolicy, Disclosure, Settler, SealedReport } from './interfaces.ts';
+import type { PreparedJob } from './job-store.ts';
+export class Verifier {
+  constructor(private enclave: Enclave, private programs: ProgramSource, private trust: TrustPolicy,
+    private model: Model, private disclosure: Disclosure, private settler: Settler) {}
+  async prepare(report: SealedReport): Promise<PreparedJob> {
+    const program=await this.programs.load(report);
+    const context: Context={network:report.network,contract:report.contract,bounty:report.bounty,hunter:report.hunter,submission:report.submission};
+    if(program.context.network!==report.network||program.context.contract!==report.contract||program.context.bounty!==report.bounty) throw new Error('Program context mismatch');
+    if(rulesHash(program.config)!==program.rules_hash) throw new Error('Configuration mismatch');
+    await this.trust.verify(await this.enclave.attestation(),program);
+    const decoded: unknown=JSON.parse(Buffer.from(await this.enclave.open(report.ciphertext,canonical(context))).toString('utf8'));
+    if(!decoded||typeof decoded!=='object'||!('nonce' in decoded)||!('attack' in decoded)||typeof decoded.nonce!=='string'||typeof decoded.attack!=='string') throw new Error('Invalid submission');
+    if(commitment(context,decoded.nonce,decoded.attack)!==report.report_hash) throw new Error('Commitment mismatch');
+    const trace=await runAgent(program.config,decoded.attack,this.model);
+    const valid=checkViolation(trace.operations,program.config.policy);
+    const ciphertext=seal(Buffer.from(canonical({context,attack:decoded.attack,trace})),program.teamKey,canonical(context));
+    const disclosure_hash=digest(ciphertext);
+    const location=await this.disclosure.publish(ciphertext);
+    const verdict: Verdict={...context,version:'1',rules_hash:program.rules_hash,report_hash:report.report_hash,valid,disclosure_hash,expires:program.verdictExpires};
+    const signature=await this.enclave.sign(verdict);
+    return {verdict,signature,location};
+  }
+  deliver(prepared: PreparedJob): Promise<{transaction:string}> {
+    return Verifier.deliver(this.settler,prepared);
+  }
+  static async deliver(settler: Settler, prepared: PreparedJob): Promise<{transaction:string}> {
+    return {transaction: await settler.settle(prepared.verdict,prepared.signature)};
+  }
 }
-
-export class LocalEnclave implements Enclave {
-  private readonly box = generateKeyPairSync("x25519");
-  private readonly signer: KeyObject;
-
-  constructor(signerPkcs8?: string) {
-    this.signer = signerPkcs8 ? createPrivateKey({ key: Buffer.from(signerPkcs8, "base64"), format: "der", type: "pkcs8" }) : generateKeyPairSync("ed25519").privateKey;
-  }
-
-  async attestation(): Promise<Attestation> {
-    return { publicKey: raw(createPublicKey(this.signer)), quote: new Uint8Array() };
-  }
-
-  boxKey(): Uint8Array {
-    return raw(this.box.publicKey);
-  }
-
-  async open
+export { LocalEnclave } from './enclave/local.ts';

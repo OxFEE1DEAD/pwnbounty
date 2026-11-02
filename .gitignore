@@ -15,4 +15,4 @@ node_modules/
 .runner/
 .configs/
 .e2e/
-target/
+/contract/policy-wallet/target/

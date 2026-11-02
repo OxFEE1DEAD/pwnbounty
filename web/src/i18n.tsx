@@ -185,6 +185,39 @@ const ru: Record<string, string> = {
   'No payouts yet. The first executed violation will appear here.':
     'Выплат пока нет. Первое выполненное нарушение появится здесь.',
   'Program #': 'Программа #',
+  'THE HUNT': 'ОХОТА',
+  'Pick a program. Break the rule.': 'Выберите программу. Нарушьте правило.',
+  'Each program freezes a target and a rule. A proved break pays the reward to your wallet.':
+    'Каждая программа замораживает цель и правило. Доказанный взлом платит награду на ваш кошелёк.',
+  '{open} open of {total}': 'Открыто {open} из {total}',
+  'Open for attacks': 'Открыта для атак',
+  Closed: 'Закрыта',
+  Refunding: 'Возврат',
+  'closes in {time}': 'закроется через {time}',
+  'won by {account}': 'победитель {account}',
+  'Contract, token and intents programs replay locally for now.':
+    'Программы для контрактов, токенов и intents пока прогоняются локально.',
+  'See coverage →': 'Смотреть покрытие →',
+  '← All programs': '← Все программы',
+  'PROGRAM #{id} · AI PAYMENT AGENT': 'ПРОГРАММА #{id} · ПЛАТЁЖНЫЙ AI-АГЕНТ',
+  'Make the agent pay where it must not.': 'Заставьте агента заплатить туда, куда нельзя.',
+  'FROZEN RULES': 'ЗАМОРОЖЕННЫЕ ПРАВИЛА',
+  'Rules could not be loaded: {problem}': 'Правила не загрузились: {problem}',
+  'YOUR ATTACK': 'ВАША АТАКА',
+  'Write the invoice the agent will read.': 'Напишите инвойс, который прочитает агент.',
+  'Encrypted in this browser to the verifier key frozen in program #{id}.':
+    'Шифруется в браузере ключом верификатора, замороженным в программе #{id}.',
+  'Its hash goes on NEAR from {account}. That is your claim.':
+    'Хеш уходит в NEAR от {account}. Это ваша заявка.',
+  'Its hash goes on NEAR from your wallet. That is your claim.':
+    'Хеш уходит в NEAR с вашего кошелька. Это ваша заявка.',
+  'The verifier gives your text to the agent as an invoice on a test ledger.':
+    'Верификатор отдаёт ваш текст агенту как инвойс на тестовом ledger.',
+  'A forbidden transfer gives a signed verdict, and the contract pays your wallet.':
+    'Запрещённый перевод даёт подписанный вердикт, и контракт платит на ваш кошелёк.',
+  'Open it →': 'Открыть →',
+  'This program is closed for new attacks.': 'Программа закрыта для новых атак.',
+  PROGRESS: 'ПРОГРЕСС',
   ['Current verifier: local development. Browser encryption and testnet settlement have ' +
   'been demonstrated; this mode does not establish TEE execution or confidential model ' +
   'inference. Check the mode before submitting sensitive material.']:
@@ -202,21 +235,14 @@ const ru: Record<string, string> = {
   'Inspect the contract ↗': 'Смотреть контракт ↗',
   'Read the code ↗': 'Смотреть код ↗',
   'Start hunting →': 'Начать охоту →',
-  'Find the transfer.': 'Найдите перевод.',
-  'One frozen rule. One sealed invoice. The ledger decides.':
-    'Одно закреплённое правило. Один закрытый инвойс. Решает журнал переводов.',
   'Protect your claim': 'Закрепите заявку',
   'Connect a NEAR wallet to protect your claim.':
     'Подключите кошелёк NEAR, чтобы закрепить заявку за собой.',
   'Claiming as {account}.': 'Заявка от {account}.',
-  'Open program': 'Открытая программа',
   'Loading programs…': 'Загружаем программы…',
   'THE ROUTE': 'МАРШРУТ',
   'THE CHECK': 'ПРОВЕРКА',
   'FINALIZED NEAR STATE': 'ФИНАЛИЗИРОВАННОЕ СОСТОЯНИЕ NEAR',
-  'No open funded programs right now.': 'Сейчас нет открытых программ с наградой.',
-  'Replay a contract attack locally →': 'Прогнать атаку на контракт локально →',
-  'Checking the frozen rules…': 'Проверяем закреплённые правила…',
   'The wallet did not send the commitment. Press the button to try again.':
     'Кошелёк не отправил хеш заявки. Нажмите кнопку, чтобы попробовать снова.',
   Refresh: 'Обновить',
@@ -231,15 +257,12 @@ const ru: Record<string, string> = {
   'Spending control off: a forbidden call can execute.':
     'Контроль расходов выключен: запрещённый вызов может выполниться.',
   'Raw rules': 'Исходные правила',
-  'Write what the agent will see.': 'Напишите то, что увидит агент.',
   'Over the limit · 450': 'Выше лимита · 450',
   'Wrong recipient': 'Чужой получатель',
   'Forged transcript · earns zero': 'Поддельный журнал · ноль',
   'Checker plea · earns zero': 'Просьба проверке · ноль',
   'Invoice text': 'Текст инвойса',
   'Your text is untrusted input to the agent.': 'Ваш текст - недоверенный вход для агента.',
-  'The text is encrypted in this browser before it leaves the page.':
-    'Текст шифруется в этом браузере до того, как покинет страницу.',
   'Saved encrypted invoice for program #{id}.':
     'Сохранён зашифрованный инвойс для программы #{id}.',
   'Encrypt and submit →': 'Зашифровать и отправить →',

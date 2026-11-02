@@ -51,7 +51,7 @@ interface Job {
 }
 
 const pendingKey = 'sealed-bounty/encrypted-pending/1';
-const pendingJobKey = 'sealed-bounty/job-id/1';
+const pendingJobKey = 'sealed-bounty/job/2';
 const steps: { id: Step; label: string }[] = [
   { id: 'encrypt', label: 'Encrypt' },
   { id: 'wallet', label: 'Wallet' },
@@ -161,10 +161,49 @@ async function verifiedProgram(env: Env, id: string): Promise<Program> {
   return { ...program, id: String(program.id), bounty: onchain };
 }
 
-async function openPrograms(env: Env): Promise<Entry[]> {
+type Standing = 'open' | 'closed' | 'paid' | 'pending' | 'retryable' | 'refunding';
+const standingLabels: Record<Standing, string> = {
+  open: 'Open for attacks',
+  closed: 'Closed',
+  paid: 'Paid',
+  pending: 'Payout in progress',
+  retryable: 'Payout failed',
+  refunding: 'Refunding',
+};
+
+function standing(env: Env, entry: Entry, height: bigint): Standing {
+  if (isOpen(entry, height, BigInt(env.meta.min_prepare_window_blocks))) return 'open';
+  const state = entry.bounty.state.toLowerCase();
+  return state !== 'open' && state in standingLabels ? (state as Standing) : 'closed';
+}
+
+function timeLeft(entry: Entry, height: bigint): string {
+  const minutes = (Number(BigInt(entry.bounty.expires) - height) * 1.2) / 60;
+  return minutes < 90 ? `~${Math.max(1, Math.round(minutes))} min` : `~${Math.round(minutes / 60)} h`;
+}
+
+async function catalog(env: Env) {
   const { entries, height } = await env.chain.allBounties();
-  const window = BigInt(env.meta.min_prepare_window_blocks);
-  return entries.filter((entry) => isOpen(entry, height, window));
+  return entries
+    .map((entry) => ({ entry, height, standing: standing(env, entry, height) }))
+    .sort(
+      (a, b) =>
+        Number(b.standing === 'open') - Number(a.standing === 'open') ||
+        Number(b.entry.id) - Number(a.entry.id),
+    );
+}
+
+async function loadProgram(env: Env, id: string) {
+  const { entries, height } = await env.chain.allBounties();
+  const entry = entries.find((item) => item.id === id);
+  if (!entry) throw new Error('Program not found in the contract');
+  let program: Program | undefined, problem: string | undefined;
+  try {
+    program = await verifiedProgram(env, id);
+  } catch (error) {
+    problem = errorText(error);
+  }
+  return { entry, standing: standing(env, entry, height), program, problem };
 }
 
 function canCommit(meta: Meta, program: Program): boolean {
@@ -187,6 +226,18 @@ function receipt(chain: Chain, job: Job | undefined): string | undefined {
   const pattern = /^near:(testnet|mainnet):transaction:([1-9A-HJ-NP-Za-km-z]+)$/;
   const tx = job?.transaction?.match(pattern);
   return tx && tx[1] === chain.network ? chain.txUrl(tx[2]!) : undefined;
+}
+
+function savedJob(): { id: string; bounty: string } | undefined {
+  try {
+    const value = JSON.parse(session.get(pendingJobKey) ?? 'null') as Record<string, unknown> | null;
+    const { id, bounty } = value ?? {};
+    if (typeof id === 'string' && typeof bounty === 'string' && /^[0-9]{1,20}$/.test(bounty)) {
+      return { id, bounty };
+    }
+  } catch {}
+  session.remove(pendingJobKey);
+  return undefined;
 }
 
 function useSubmission(env: Env) {
@@ -301,7 +352,7 @@ function useSubmission(env: Env) {
     mark('sandbox', 'active', status.send);
     const created = await worker.post<{ id: string }>('/v1/submissions', pending);
     forget();
-    session.set(pendingJobKey, created.id);
+    session.set(pendingJobKey, JSON.stringify({ id: created.id, bounty: pending.bounty }));
     await track(created.id, ++poll.current);
   }
 
@@ -405,23 +456,23 @@ function useSubmission(env: Env) {
 
   useEffect(() => {
     const raw = session.get(pendingKey),
-      jobId = session.get(pendingJobKey);
+      saved = savedJob();
     if (raw) {
       try {
         const pending = restoreReport(meta, raw);
         setReport(pending);
-        location.hash = '#/hunt';
+        location.hash = '#/hunt/' + pending.bounty;
         if (!new URLSearchParams(location.search).has('errorCode')) void resume(pending);
         else notify('The wallet did not send the commitment. Press the button to try again.', true);
       } catch {
         session.remove(pendingKey);
         notify('The saved submission does not match this network or is corrupted.', true);
       }
-    } else if (jobId) {
-      location.hash = '#/hunt';
+    } else if (saved) {
+      location.hash = '#/hunt/' + saved.bounty;
       for (const step of ['encrypt', 'wallet', 'commit'] as const) mark(step, 'done');
       mark('sandbox', 'active', status.sandbox);
-      track(jobId, ++poll.current).catch(fail);
+      track(saved.id, ++poll.current).catch(fail);
     }
     return () => {
       poll.current++;
@@ -508,76 +559,74 @@ function FrozenRules({ program }: { program: Program }) {
   );
 }
 
-interface PickerProps {
-  visible: boolean;
-  selected?: Program;
-  locked: boolean;
-  onSelect(program?: Program): void;
-}
-
-function ProgramPicker({ visible, selected, locked, onSelect }: PickerProps) {
+function Catalog({ visible }: { visible: boolean }) {
   const env = useEnv(),
     t = useT();
-  const list = useAsync(
-    () => (visible ? openPrograms(env) : Promise.resolve(undefined)),
-    [visible],
-  );
-  const entries = list.value ?? [];
-  const [checking, setChecking] = useState<string>();
-  const version = useRef(0);
-  const pick = (id?: string) => {
-    const current = ++version.current;
-    if (!id) return onSelect(undefined);
-    setChecking(id);
-    verifiedProgram(env, id)
-      .then(
-        (program) => current === version.current && onSelect(program),
-        (error) => {
-          if (current !== version.current) return;
-          onSelect(undefined);
-          env.notify(errorText(error), true);
-        },
-      )
-      .finally(() => current === version.current && setChecking(undefined));
-  };
-  useEffect(() => {
-    if (locked || !list.value) return;
-    const kept = list.value.find((entry) => entry.id === selected?.id);
-    pick((kept ?? list.value[0])?.id);
-  }, [list.value]);
+  const list = useAsync(() => (visible ? catalog(env) : Promise.resolve(undefined)), [visible]);
+  const rows = list.value ?? [];
+  const open = rows.filter((row) => row.standing === 'open').length;
   return (
-    <div className="card">
-      <div className="kicker">02 / PROGRAM</div>
-      <h3>{t('Open program')}</h3>
-      {list.loading && <p>{t('Loading programs…')}</p>}
-      {list.error && <p className="error-text">{t(list.error)}</p>}
-      {!list.loading && !list.error && !entries.length && (
-        <p>
-          {t('No open funded programs right now.')}{' '}
-          <a href="#/coverage">{t('Replay a contract attack locally →')}</a>
+    <div className="wrap">
+      <div className="hunt-head">
+        <div className="eyebrow">{t('THE HUNT')}</div>
+        <h1>{t('Pick a program. Break the rule.')}</h1>
+        <p className="lead">
+          {t(
+            'Each program freezes a target and a rule. A proved break pays the reward to your ' +
+              'wallet.',
+          )}
         </p>
-      )}
-      <div className="program-list">
-        {entries.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            disabled={locked || !!checking}
-            className={'program' + (selected?.id === entry.id ? ' selected' : '')}
-            onClick={() => pick(entry.id)}
-          >
-            {t('Program #')}
-            {entry.id}
-            <small>{near(entry.bounty.reward)}</small>
-          </button>
-        ))}
       </div>
-      {checking && <p>{t('Checking the frozen rules…')}</p>}
-      {selected && !checking && <FrozenRules program={selected} />}
-      <button type="button" className="chip" onClick={list.reload}>
-        {t('Refresh')}
-      </button>
+      <section className="card">
+        <div className="payout-head">
+          <h3>{t('{open} open of {total}', { open: String(open), total: String(rows.length) })}</h3>
+          <button type="button" className="chip" onClick={list.reload}>
+            {t('Refresh')}
+          </button>
+        </div>
+        {list.loading && <p>{t('Loading programs…')}</p>}
+        {list.error && <p className="error-text">{t(list.error)}</p>}
+        {rows.map(({ entry, height, standing: state }) => (
+          <a key={entry.id} className={'program-row ' + state} href={'#/hunt/' + entry.id}>
+            <strong>
+              {t('Program #')}
+              {entry.id}
+            </strong>
+            <span className="tag">{t('AI payment agent')}</span>
+            <span>{near(entry.bounty.reward)}</span>
+            <span className={'tag ' + state}>{t(standingLabels[state])}</span>
+            <span className="muted">
+              {state === 'open'
+                ? t('closes in {time}', { time: timeLeft(entry, height) })
+                : entry.bounty.winner
+                  ? t('won by {account}', { account: entry.bounty.winner })
+                  : ''}
+            </span>
+          </a>
+        ))}
+        <p className="hint">
+          {t('Contract, token and intents programs replay locally for now.')}{' '}
+          <a href="#/coverage">{t('See coverage →')}</a>
+        </p>
+      </section>
     </div>
+  );
+}
+
+function AttackRoute({ id }: { id: string }) {
+  const { account } = useEnv(),
+    t = useT();
+  return (
+    <ol className="route">
+      <li>{t('Encrypted in this browser to the verifier key frozen in program #{id}.', { id })}</li>
+      <li>
+        {account
+          ? t('Its hash goes on NEAR from {account}. That is your claim.', { account })
+          : t('Its hash goes on NEAR from your wallet. That is your claim.')}
+      </li>
+      <li>{t('The verifier gives your text to the agent as an invoice on a test ledger.')}</li>
+      <li>{t('A forbidden transfer gives a signed verdict, and the contract pays your wallet.')}</li>
+    </ol>
   );
 }
 
@@ -706,15 +755,23 @@ function VerdictCard({ outcome, job, rule, busy, onRetry, onAgain }: VerdictProp
   );
 }
 
-export function Hunt({ visible }: { visible: boolean }) {
+export function Hunt({ visible, program: id }: { visible: boolean; program?: string }) {
   const env = useEnv(),
     t = useT();
   const flow = useSubmission(env);
-  const [selected, setSelected] = useState<Program>();
   const [invoice, setInvoice] = useState('');
+  const view = useAsync(
+    () => (visible && id ? loadProgram(env, id) : Promise.resolve(undefined)),
+    [visible, id],
+  );
   const { report, busy, outcome, job } = flow;
-  const ready = !busy && !!env.account && (!!report || (!!selected && !!invoice.trim()));
+  const data = view.value?.entry.id === id ? view.value : undefined;
+  const selected = data?.standing === 'open' ? data.program : undefined;
+  const elsewhere = report && report.bounty !== id ? report.bounty : undefined;
+  const ready =
+    !busy && !!env.account && !elsewhere && (!!report || (!!selected && !!invoice.trim()));
   const rule = selected && selected.id === outcome?.bounty ? selected.config : undefined;
+  const started = Object.keys(flow.progress).length > 0 || !!outcome;
   const retry = () => {
     if (outcome?.bounty && outcome.hunter && job) {
       void flow.retry(outcome.bounty, outcome.hunter, job.id);
@@ -732,82 +789,114 @@ export function Hunt({ visible }: { visible: boolean }) {
     window.addEventListener('pagehide', clear);
     return () => window.removeEventListener('pagehide', clear);
   }, []);
+  if (!id) return <Catalog visible={visible} />;
   return (
     <div className="wrap">
       <div className="hunt-head">
-        <div className="eyebrow">THE HUNT</div>
-        <h1>{t('Find the transfer.')}</h1>
-        <p className="lead">{t('One frozen rule. One sealed invoice. The ledger decides.')}</p>
+        <a className="back" href="#/hunt">
+          {t('← All programs')}
+        </a>
+        <div className="eyebrow">{t('PROGRAM #{id} · AI PAYMENT AGENT', { id })}</div>
+        <h1>{t('Make the agent pay where it must not.')}</h1>
+        {data && (
+          <p className="lead">
+            {near(data.entry.bounty.reward)}{' '}
+            <span className={'tag ' + data.standing}>{t(standingLabels[data.standing])}</span>
+          </p>
+        )}
         <TrustNotice />
       </div>
-      <div className="hunt-grid">
-        <aside className="sidebar">
-          <WalletConnect />
-          <ProgramPicker
-            visible={visible}
-            selected={selected}
-            locked={busy || !!report}
-            onSelect={setSelected}
-          />
-        </aside>
-        <div className="workspace">
-          <section className="card">
-            <div className="kicker">03 / INVOICE</div>
-            <h2>{t('Write what the agent will see.')}</h2>
-            {report ? (
-              <p className="notice">
-                {t('Saved encrypted invoice for program #{id}.', { id: report.bounty })}
-              </p>
-            ) : (
-              <InvoiceComposer value={invoice} busy={busy} onChange={setInvoice} />
-            )}
-            <p className="hint">
-              {t('The text is encrypted in this browser before it leaves the page.')}
-            </p>
-            <div className="row">
-              <button
-                type="button"
-                className="button"
-                disabled={!ready}
-                onClick={() => void flow.start(selected, invoice)}
-              >
-                {report ? t('Continue submission →') : t('Encrypt and submit →')}
-              </button>
-              {report && !busy && (
-                <button type="button" className="chip" onClick={flow.forget}>
-                  {t('Discard saved invoice')}
-                </button>
-              )}
-              {report && (
-                <button type="button" className="link" onClick={() => download(report)}>
-                  {t('Download JSON for CLI commit')}
-                </button>
+      {!data && view.loading && <p className="muted">{t('Loading chain data…')}</p>}
+      {view.error && <p className="error-text">{t(view.error)}</p>}
+      {data && (
+        <div className="hunt-grid">
+          <aside className="sidebar">
+            {data.standing === 'open' && <WalletConnect />}
+            <div className="card">
+              <div className="kicker">02 / {t('FROZEN RULES')}</div>
+              {data.program ? (
+                <FrozenRules program={data.program} />
+              ) : (
+                <p className="muted">
+                  {t('Rules could not be loaded: {problem}', { problem: t(data.problem ?? '') })}
+                </p>
               )}
             </div>
-          </section>
-          <section className="card">
-            <div className="kicker">04 / PROGRESS</div>
-            <h3>{t('The route to a verdict')}</h3>
-            <HuntStepper progress={flow.progress} text={flow.text} />
-            {outcome && (
-              <VerdictCard
-                outcome={outcome}
-                job={job}
-                rule={rule}
-                busy={busy}
-                onRetry={retry}
-                onAgain={again}
-              />
+          </aside>
+          <div className="workspace">
+            {data.standing === 'open' || report?.bounty === id ? (
+              <section className="card">
+                <div className="kicker">03 / {t('YOUR ATTACK')}</div>
+                <h2>{t('Write the invoice the agent will read.')}</h2>
+                <AttackRoute id={id} />
+                {elsewhere ? (
+                  <p className="notice">
+                    {t('Saved encrypted invoice for program #{id}.', { id: elsewhere })}{' '}
+                    <a href={'#/hunt/' + elsewhere}>{t('Open it →')}</a>
+                  </p>
+                ) : report ? (
+                  <p className="notice">
+                    {t('Saved encrypted invoice for program #{id}.', { id: report.bounty })}
+                  </p>
+                ) : (
+                  <InvoiceComposer value={invoice} busy={busy} onChange={setInvoice} />
+                )}
+                <div className="row">
+                  <button
+                    type="button"
+                    className="button"
+                    disabled={!ready}
+                    onClick={() => void flow.start(selected, invoice)}
+                  >
+                    {report ? t('Continue submission →') : t('Encrypt and submit →')}
+                  </button>
+                  {report && !busy && (
+                    <button type="button" className="chip" onClick={flow.forget}>
+                      {t('Discard saved invoice')}
+                    </button>
+                  )}
+                  {report && (
+                    <button type="button" className="link" onClick={() => download(report)}>
+                      {t('Download JSON for CLI commit')}
+                    </button>
+                  )}
+                </div>
+              </section>
+            ) : (
+              <section className="card">
+                <div className="kicker">03 / {t('YOUR ATTACK')}</div>
+                <p>{t('This program is closed for new attacks.')}</p>
+                <a className="button secondary" href="#/hunt">
+                  {t('← All programs')}
+                </a>
+              </section>
             )}
-            {job && (
-              <details className="raw">
-                <summary>{t('Job details')}</summary>
-                <pre>{JSON.stringify(job, null, 2)}</pre>
-              </details>
+            {started && (
+              <section className="card">
+                <div className="kicker">04 / {t('PROGRESS')}</div>
+                <h3>{t('The route to a verdict')}</h3>
+                <HuntStepper progress={flow.progress} text={flow.text} />
+                {outcome && (
+                  <VerdictCard
+                    outcome={outcome}
+                    job={job}
+                    rule={rule}
+                    busy={busy}
+                    onRetry={retry}
+                    onAgain={again}
+                  />
+                )}
+                {job && (
+                  <details className="raw">
+                    <summary>{t('Job details')}</summary>
+                    <pre>{JSON.stringify(job, null, 2)}</pre>
+                  </details>
+                )}
+              </section>
             )}
-          </section>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

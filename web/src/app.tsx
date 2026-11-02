@@ -31,18 +31,19 @@ const stateLabels: Record<string, string> = {
   Retryable: 'Payout failed',
 };
 
-function readHash(): { route: Route; anchor?: string } {
-  const name = location.hash.replace(/^#\/?/, '');
+function readHash(): { route: Route; param?: string; anchor?: string } {
+  const [name = '', param] = location.hash.replace(/^#\/?/, '').split('/');
   if (anchors.includes(name)) return { route: 'home', anchor: name };
-  return { route: (routes as readonly string[]).includes(name) ? (name as Route) : 'home' };
+  if (!(routes as readonly string[]).includes(name)) return { route: 'home' };
+  return { route: name as Route, param };
 }
 
-function useRoute(): Route {
-  const [route, setRoute] = useState(() => readHash().route);
+function useRoute(): { route: Route; param?: string } {
+  const [route, setRoute] = useState(() => readHash());
   useEffect(() => {
     const change = () => {
-      const { route: next, anchor } = readHash();
-      setRoute(next);
+      const { route: next, param, anchor } = readHash();
+      setRoute({ route: next, param });
       window.requestAnimationFrame(() => {
         if (anchor) document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth' });
         else window.scrollTo(0, 0);
@@ -314,7 +315,7 @@ function Footer() {
 }
 
 function Shell({ meta }: { meta: Meta }) {
-  const route = useRoute();
+  const { route, param } = useRoute();
   const token = useRef('');
   const [tokenValue, setTokenValue] = useState('');
   const [askToken, setAskToken] = useState(meta.public_ingress === false);
@@ -363,7 +364,7 @@ function Shell({ meta }: { meta: Meta }) {
       <main>
         {route === 'home' && <Landing />}
         <div hidden={route !== 'hunt'}>
-          <Hunt visible={route === 'hunt'} />
+          <Hunt visible={route === 'hunt'} program={route === 'hunt' ? param : undefined} />
         </div>
         {route === 'me' && <MyRewards />}
         {route === 'team' && <TeamDecryptPanel />}

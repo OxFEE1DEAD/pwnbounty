@@ -89,8 +89,7 @@ export function judge(e: RunEvidence): Judgement {
     }
     if (rule.id === 'loss') {
       const t = BigInt(rule.threshold);
-      if (-delta.protected > t && delta.attacker <= t)
-        return { outcome: 'violation', rule: 'loss', deltas };
+      if (-delta.protected > t) return { outcome: 'violation', rule: 'loss', deltas };
     }
     if (rule.id === 'block') {
       const { attacked, control } = e;

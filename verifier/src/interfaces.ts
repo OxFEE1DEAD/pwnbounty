@@ -53,6 +53,7 @@ export interface WorldHandle {
   view(view: View): Promise<string>;
   snapshot(mentioned: string[]): Promise<Snapshot>;
   forward(blocks: number): Promise<void>;
+  height(): Promise<number>;
   stop(): Promise<void>;
 }
 export interface WorldFactory {

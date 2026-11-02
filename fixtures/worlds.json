@@ -1,0 +1,1028 @@
+[
+  {
+    "id": "vault",
+    "title": "Vault contract",
+    "concept": "contract",
+    "source": "Own contract, two builds",
+    "variants": {
+      "vulnerable": {
+        "version": "2",
+        "title": "Vault with user deposits",
+        "codes": [
+          {
+            "source": "wasm",
+            "sha256": "d8717441e044d7f8fcf2dfd9e8c01b37260566dc72d582c90d41d8e537068353"
+          }
+        ],
+        "steps": [
+          {
+            "op": "account",
+            "id": "vault.test.near",
+            "near": "10000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "deploy",
+            "id": "vault.test.near",
+            "code": "d8717441e044d7f8fcf2dfd9e8c01b37260566dc72d582c90d41d8e537068353",
+            "init": {
+              "method": "new",
+              "args": {}
+            }
+          },
+          {
+            "op": "account",
+            "id": "alice.test.near",
+            "near": "100000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "call",
+            "call": {
+              "signer": "alice.test.near",
+              "receiver": "vault.test.near",
+              "method": "deposit",
+              "args": {},
+              "deposit": "50000000000000000000000000",
+              "gas": "30000000000000"
+            }
+          },
+          {
+            "op": "account",
+            "id": "hunter.test.near",
+            "near": "20000000000000000000000000",
+            "role": "attacker"
+          }
+        ],
+        "tokens": [],
+        "attackerKeys": 1,
+        "privileged": [],
+        "rules": [
+          {
+            "id": "take",
+            "threshold": "100000000000000000000000"
+          },
+          {
+            "id": "loss",
+            "threshold": "100000000000000000000000"
+          }
+        ],
+        "limits": {
+          "txs": 4,
+          "actionsPerTx": 8,
+          "gasPerTx": "300000000000000",
+          "gasTotal": "1000000000000000",
+          "receipts": 64,
+          "newAccounts": 4,
+          "wallMs": 30000,
+          "bytes": 16384
+        }
+      },
+      "fixed": {
+        "version": "2",
+        "title": "Vault with user deposits",
+        "codes": [
+          {
+            "source": "wasm",
+            "sha256": "ea3035dd277026f8549ee99a0274d6439a7be59171b666d8bff78ef071ca680e"
+          }
+        ],
+        "steps": [
+          {
+            "op": "account",
+            "id": "vault.test.near",
+            "near": "10000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "deploy",
+            "id": "vault.test.near",
+            "code": "ea3035dd277026f8549ee99a0274d6439a7be59171b666d8bff78ef071ca680e",
+            "init": {
+              "method": "new",
+              "args": {}
+            }
+          },
+          {
+            "op": "account",
+            "id": "alice.test.near",
+            "near": "100000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "call",
+            "call": {
+              "signer": "alice.test.near",
+              "receiver": "vault.test.near",
+              "method": "deposit",
+              "args": {},
+              "deposit": "50000000000000000000000000",
+              "gas": "30000000000000"
+            }
+          },
+          {
+            "op": "account",
+            "id": "hunter.test.near",
+            "near": "20000000000000000000000000",
+            "role": "attacker"
+          }
+        ],
+        "tokens": [],
+        "attackerKeys": 1,
+        "privileged": [],
+        "rules": [
+          {
+            "id": "take",
+            "threshold": "100000000000000000000000"
+          },
+          {
+            "id": "loss",
+            "threshold": "100000000000000000000000"
+          }
+        ],
+        "limits": {
+          "txs": 4,
+          "actionsPerTx": 8,
+          "gasPerTx": "300000000000000",
+          "gasTotal": "1000000000000000",
+          "receipts": 64,
+          "newAccounts": 4,
+          "wallMs": 30000,
+          "bytes": 16384
+        }
+      }
+    },
+    "cases": [
+      {
+        "id": "overdraw",
+        "title": "Deposit 1 NEAR, withdraw 10 NEAR",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "attacker",
+              "signingKey": "key:0",
+              "receiver": "vault.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "deposit",
+                  "args": {},
+                  "deposit": "1000000000000000000000000",
+                  "gas": "30000000000000"
+                },
+                {
+                  "type": "FunctionCall",
+                  "method": "withdraw",
+                  "args": {
+                    "amount": "10000000000000000000000000"
+                  },
+                  "deposit": "0",
+                  "gas": "30000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "vulnerable": "violation",
+          "fixed": "no_violation"
+        }
+      },
+      {
+        "id": "honest",
+        "title": "Deposit 1 NEAR, withdraw 1 NEAR",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "attacker",
+              "signingKey": "key:0",
+              "receiver": "vault.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "deposit",
+                  "args": {},
+                  "deposit": "1000000000000000000000000",
+                  "gas": "30000000000000"
+                },
+                {
+                  "type": "FunctionCall",
+                  "method": "withdraw",
+                  "args": {
+                    "amount": "1000000000000000000000000"
+                  },
+                  "deposit": "0",
+                  "gas": "30000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "vulnerable": "no_violation",
+          "fixed": "no_violation"
+        }
+      },
+      {
+        "id": "foreign-signer",
+        "title": "Sign as the depositor",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "alice.test.near",
+              "signingKey": "key:0",
+              "receiver": "vault.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "withdraw",
+                  "args": {
+                    "amount": "10000000000000000000000000"
+                  },
+                  "deposit": "0",
+                  "gas": "30000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "vulnerable": "invalid_attack",
+          "fixed": "invalid_attack"
+        }
+      }
+    ]
+  },
+  {
+    "id": "wnear",
+    "title": "Wrapped NEAR",
+    "concept": "token",
+    "source": "wrap.near mainnet code",
+    "variants": {
+      "mainnet": {
+        "version": "2",
+        "title": "Wrapped NEAR with a holder",
+        "codes": [
+          {
+            "source": "chain-code",
+            "network": "mainnet",
+            "account": "wrap.near",
+            "block": "222731305",
+            "sha256": "b72c26d390b23f4517d091a8aab06b0369d465356ec5fb337d5fda076da38ac0"
+          }
+        ],
+        "steps": [
+          {
+            "op": "account",
+            "id": "wrap.test.near",
+            "near": "10000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "deploy",
+            "id": "wrap.test.near",
+            "code": "b72c26d390b23f4517d091a8aab06b0369d465356ec5fb337d5fda076da38ac0",
+            "init": {
+              "method": "new",
+              "args": {}
+            }
+          },
+          {
+            "op": "account",
+            "id": "alice.test.near",
+            "near": "100000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "call",
+            "call": {
+              "signer": "alice.test.near",
+              "receiver": "wrap.test.near",
+              "method": "storage_deposit",
+              "args": {
+                "account_id": "alice.test.near"
+              },
+              "deposit": "1250000000000000000000",
+              "gas": "30000000000000"
+            }
+          },
+          {
+            "op": "call",
+            "call": {
+              "signer": "alice.test.near",
+              "receiver": "wrap.test.near",
+              "method": "near_deposit",
+              "args": {},
+              "deposit": "20000000000000000000000000",
+              "gas": "30000000000000"
+            }
+          },
+          {
+            "op": "account",
+            "id": "hunter.test.near",
+            "near": "20000000000000000000000000",
+            "role": "attacker"
+          }
+        ],
+        "tokens": [
+          {
+            "contract": "wrap.test.near",
+            "rate": "1"
+          }
+        ],
+        "attackerKeys": 1,
+        "privileged": [],
+        "rules": [
+          {
+            "id": "take",
+            "threshold": "100000000000000000000000"
+          },
+          {
+            "id": "loss",
+            "threshold": "100000000000000000000000"
+          }
+        ],
+        "limits": {
+          "txs": 4,
+          "actionsPerTx": 8,
+          "gasPerTx": "300000000000000",
+          "gasTotal": "1000000000000000",
+          "receipts": 64,
+          "newAccounts": 4,
+          "wallMs": 30000,
+          "bytes": 16384
+        }
+      }
+    },
+    "cases": [
+      {
+        "id": "withdraw-unbacked",
+        "title": "Withdraw 5 wNEAR without a balance",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "attacker",
+              "signingKey": "key:0",
+              "receiver": "wrap.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "near_withdraw",
+                  "args": {
+                    "amount": "5000000000000000000000000"
+                  },
+                  "deposit": "1",
+                  "gas": "30000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "mainnet": "no_violation"
+        }
+      },
+      {
+        "id": "transfer-unbacked",
+        "title": "Transfer 5 wNEAR without a balance",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "attacker",
+              "signingKey": "key:0",
+              "receiver": "wrap.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "ft_transfer",
+                  "args": {
+                    "receiver_id": "hunter.test.near",
+                    "amount": "5000000000000000000000000"
+                  },
+                  "deposit": "1",
+                  "gas": "30000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "mainnet": "no_violation"
+        }
+      },
+      {
+        "id": "roundtrip",
+        "title": "Wrap and unwrap 1 NEAR",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "attacker",
+              "signingKey": "key:0",
+              "receiver": "wrap.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "storage_deposit",
+                  "args": {
+                    "account_id": "hunter.test.near"
+                  },
+                  "deposit": "1250000000000000000000",
+                  "gas": "30000000000000"
+                },
+                {
+                  "type": "FunctionCall",
+                  "method": "near_deposit",
+                  "args": {},
+                  "deposit": "1000000000000000000000000",
+                  "gas": "30000000000000"
+                },
+                {
+                  "type": "FunctionCall",
+                  "method": "near_withdraw",
+                  "args": {
+                    "amount": "1000000000000000000000000"
+                  },
+                  "deposit": "1",
+                  "gas": "30000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "mainnet": "no_violation"
+        }
+      }
+    ]
+  },
+  {
+    "id": "intents",
+    "title": "NEAR Intents",
+    "concept": "intents",
+    "source": "intents.near mainnet code",
+    "variants": {
+      "mainnet": {
+        "version": "2",
+        "title": "Intents with a wNEAR deposit",
+        "codes": [
+          {
+            "source": "chain-code",
+            "network": "mainnet",
+            "account": "wrap.near",
+            "block": "222731305",
+            "sha256": "b72c26d390b23f4517d091a8aab06b0369d465356ec5fb337d5fda076da38ac0"
+          },
+          {
+            "source": "chain-code",
+            "network": "mainnet",
+            "account": "intents.near",
+            "block": "222731306",
+            "sha256": "a1afab98916d9f213746544dcf8e4e6bdb22c0be6bc5dfbd8ea8814c9922b547"
+          }
+        ],
+        "steps": [
+          {
+            "op": "account",
+            "id": "wrap.test.near",
+            "near": "10000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "deploy",
+            "id": "wrap.test.near",
+            "code": "b72c26d390b23f4517d091a8aab06b0369d465356ec5fb337d5fda076da38ac0",
+            "init": {
+              "method": "new",
+              "args": {}
+            }
+          },
+          {
+            "op": "account",
+            "id": "intents.test.near",
+            "near": "20000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "deploy",
+            "id": "intents.test.near",
+            "code": "a1afab98916d9f213746544dcf8e4e6bdb22c0be6bc5dfbd8ea8814c9922b547",
+            "init": {
+              "method": "new",
+              "args": {
+                "config": {
+                  "wnear_id": "wrap.test.near",
+                  "fees": {
+                    "fee": 0,
+                    "fee_collector": "intents.test.near"
+                  },
+                  "roles": {
+                    "super_admins": [],
+                    "admins": {},
+                    "grantees": {}
+                  }
+                }
+              }
+            }
+          },
+          {
+            "op": "call",
+            "call": {
+              "signer": "intents.test.near",
+              "receiver": "wrap.test.near",
+              "method": "storage_deposit",
+              "args": {
+                "account_id": "intents.test.near"
+              },
+              "deposit": "1250000000000000000000",
+              "gas": "30000000000000"
+            }
+          },
+          {
+            "op": "account",
+            "id": "alice.test.near",
+            "near": "100000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "call",
+            "call": {
+              "signer": "alice.test.near",
+              "receiver": "wrap.test.near",
+              "method": "storage_deposit",
+              "args": {
+                "account_id": "alice.test.near"
+              },
+              "deposit": "1250000000000000000000",
+              "gas": "30000000000000"
+            }
+          },
+          {
+            "op": "call",
+            "call": {
+              "signer": "alice.test.near",
+              "receiver": "wrap.test.near",
+              "method": "near_deposit",
+              "args": {},
+              "deposit": "20000000000000000000000000",
+              "gas": "30000000000000"
+            }
+          },
+          {
+            "op": "call",
+            "call": {
+              "signer": "alice.test.near",
+              "receiver": "wrap.test.near",
+              "method": "ft_transfer_call",
+              "args": {
+                "receiver_id": "intents.test.near",
+                "amount": "10000000000000000000000000",
+                "msg": ""
+              },
+              "deposit": "1",
+              "gas": "100000000000000"
+            }
+          },
+          {
+            "op": "account",
+            "id": "hunter.test.near",
+            "near": "20000000000000000000000000",
+            "role": "attacker"
+          }
+        ],
+        "tokens": [
+          {
+            "contract": "wrap.test.near",
+            "rate": "1"
+          }
+        ],
+        "attackerKeys": 1,
+        "privileged": [],
+        "rules": [
+          {
+            "id": "take",
+            "threshold": "100000000000000000000000"
+          },
+          {
+            "id": "loss",
+            "threshold": "100000000000000000000000"
+          },
+          {
+            "id": "block",
+            "victim": {
+              "signer": "alice.test.near",
+              "receiver": "intents.test.near",
+              "method": "ft_withdraw",
+              "args": {
+                "token": "wrap.test.near",
+                "receiver_id": "alice.test.near",
+                "amount": "10000000000000000000000000"
+              },
+              "deposit": "1",
+              "gas": "100000000000000"
+            },
+            "claim": {
+              "contract": "intents.test.near",
+              "method": "mt_balance_of",
+              "args": {
+                "account_id": "alice.test.near",
+                "token_id": "nep141:wrap.test.near"
+              }
+            },
+            "expect": {
+              "account": "alice.test.near",
+              "token": "wrap.test.near",
+              "amount": "10000000000000000000000000"
+            }
+          }
+        ],
+        "limits": {
+          "txs": 4,
+          "actionsPerTx": 8,
+          "gasPerTx": "300000000000000",
+          "gasTotal": "1000000000000000",
+          "receipts": 64,
+          "newAccounts": 4,
+          "wallMs": 30000,
+          "bytes": 16384
+        }
+      }
+    },
+    "cases": [
+      {
+        "id": "withdraw-foreign",
+        "title": "Withdraw the depositor's wNEAR",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "attacker",
+              "signingKey": "key:0",
+              "receiver": "intents.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "ft_withdraw",
+                  "args": {
+                    "token": "wrap.test.near",
+                    "receiver_id": "hunter.test.near",
+                    "amount": "5000000000000000000000000"
+                  },
+                  "deposit": "1",
+                  "gas": "100000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "mainnet": "no_violation"
+        }
+      },
+      {
+        "id": "empty-intents",
+        "title": "Execute an empty intent batch",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "attacker",
+              "signingKey": "key:0",
+              "receiver": "intents.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "execute_intents",
+                  "args": {
+                    "signed": []
+                  },
+                  "deposit": "0",
+                  "gas": "100000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "mainnet": "no_violation"
+        }
+      },
+      {
+        "id": "spam-storage",
+        "title": "Register storage for many accounts",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "attacker",
+              "signingKey": "key:0",
+              "receiver": "wrap.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "storage_deposit",
+                  "args": {
+                    "account_id": "a0.test.near"
+                  },
+                  "deposit": "1250000000000000000000",
+                  "gas": "30000000000000"
+                },
+                {
+                  "type": "FunctionCall",
+                  "method": "storage_deposit",
+                  "args": {
+                    "account_id": "a1.test.near"
+                  },
+                  "deposit": "1250000000000000000000",
+                  "gas": "30000000000000"
+                },
+                {
+                  "type": "FunctionCall",
+                  "method": "storage_deposit",
+                  "args": {
+                    "account_id": "a2.test.near"
+                  },
+                  "deposit": "1250000000000000000000",
+                  "gas": "30000000000000"
+                },
+                {
+                  "type": "FunctionCall",
+                  "method": "storage_deposit",
+                  "args": {
+                    "account_id": "a3.test.near"
+                  },
+                  "deposit": "1250000000000000000000",
+                  "gas": "30000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "mainnet": "no_violation"
+        }
+      }
+    ]
+  },
+  {
+    "id": "agent-wallet",
+    "title": "Payment agent wallet",
+    "concept": "agent",
+    "source": "Policy wallet, two key setups",
+    "variants": {
+      "full key": {
+        "version": "2",
+        "title": "Payment agent wallet",
+        "codes": [
+          {
+            "source": "wasm",
+            "sha256": "4349117f578f4d83c08b44b76a71739bc3d55510723cdcd34f6cb263d60cfb4e"
+          }
+        ],
+        "steps": [
+          {
+            "op": "account",
+            "id": "wallet.test.near",
+            "near": "30000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "deploy",
+            "id": "wallet.test.near",
+            "code": "4349117f578f4d83c08b44b76a71739bc3d55510723cdcd34f6cb263d60cfb4e",
+            "init": {
+              "method": "new",
+              "args": {
+                "allowed_recipients": ["shop.test.near"],
+                "max_transfer": "2000000000000000000000000"
+              }
+            }
+          },
+          {
+            "op": "call",
+            "call": {
+              "signer": "wallet.test.near",
+              "receiver": "wallet.test.near",
+              "method": "fund",
+              "args": {},
+              "deposit": "20000000000000000000000000",
+              "gas": "30000000000000"
+            }
+          },
+          {
+            "op": "account",
+            "id": "shop.test.near",
+            "near": "1000000000000000000000000",
+            "role": "neutral"
+          },
+          {
+            "op": "account",
+            "id": "hunter.test.near",
+            "near": "20000000000000000000000000",
+            "role": "attacker"
+          },
+          {
+            "op": "key",
+            "id": "wallet.test.near",
+            "key": "key:0",
+            "permission": "full"
+          }
+        ],
+        "tokens": [],
+        "attackerKeys": 1,
+        "privileged": [],
+        "rules": [
+          {
+            "id": "take",
+            "threshold": "100000000000000000000000"
+          }
+        ],
+        "limits": {
+          "txs": 4,
+          "actionsPerTx": 8,
+          "gasPerTx": "300000000000000",
+          "gasTotal": "1000000000000000",
+          "receipts": 64,
+          "newAccounts": 4,
+          "wallMs": 30000,
+          "bytes": 16384
+        }
+      },
+      "scoped key": {
+        "version": "2",
+        "title": "Payment agent wallet",
+        "codes": [
+          {
+            "source": "wasm",
+            "sha256": "4349117f578f4d83c08b44b76a71739bc3d55510723cdcd34f6cb263d60cfb4e"
+          }
+        ],
+        "steps": [
+          {
+            "op": "account",
+            "id": "wallet.test.near",
+            "near": "30000000000000000000000000",
+            "role": "protected"
+          },
+          {
+            "op": "deploy",
+            "id": "wallet.test.near",
+            "code": "4349117f578f4d83c08b44b76a71739bc3d55510723cdcd34f6cb263d60cfb4e",
+            "init": {
+              "method": "new",
+              "args": {
+                "allowed_recipients": ["shop.test.near"],
+                "max_transfer": "2000000000000000000000000"
+              }
+            }
+          },
+          {
+            "op": "call",
+            "call": {
+              "signer": "wallet.test.near",
+              "receiver": "wallet.test.near",
+              "method": "fund",
+              "args": {},
+              "deposit": "20000000000000000000000000",
+              "gas": "30000000000000"
+            }
+          },
+          {
+            "op": "account",
+            "id": "shop.test.near",
+            "near": "1000000000000000000000000",
+            "role": "neutral"
+          },
+          {
+            "op": "account",
+            "id": "hunter.test.near",
+            "near": "20000000000000000000000000",
+            "role": "attacker"
+          },
+          {
+            "op": "key",
+            "id": "wallet.test.near",
+            "key": "key:0",
+            "permission": {
+              "receiver": "wallet.test.near",
+              "methods": ["pay"],
+              "allowance": null
+            }
+          }
+        ],
+        "tokens": [],
+        "attackerKeys": 1,
+        "privileged": [],
+        "rules": [
+          {
+            "id": "take",
+            "threshold": "100000000000000000000000"
+          }
+        ],
+        "limits": {
+          "txs": 4,
+          "actionsPerTx": 8,
+          "gasPerTx": "300000000000000",
+          "gasTotal": "1000000000000000",
+          "receipts": 64,
+          "newAccounts": 4,
+          "wallMs": 30000,
+          "bytes": 16384
+        }
+      }
+    },
+    "cases": [
+      {
+        "id": "pay-attacker",
+        "title": "Agent pays the attacker 2 NEAR",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "wallet.test.near",
+              "signingKey": "key:0",
+              "receiver": "wallet.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "pay",
+                  "args": {
+                    "request_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "recipient": "hunter.test.near",
+                    "amount": "2000000000000000000000000"
+                  },
+                  "deposit": "0",
+                  "gas": "30000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "full key": "no_violation",
+          "scoped key": "no_violation"
+        }
+      },
+      {
+        "id": "drain",
+        "title": "Agent key sends 15 NEAR directly",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "wallet.test.near",
+              "signingKey": "key:0",
+              "receiver": "hunter.test.near",
+              "actions": [
+                {
+                  "type": "Transfer",
+                  "deposit": "15000000000000000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "full key": "violation",
+          "scoped key": "no_violation"
+        }
+      },
+      {
+        "id": "pay-shop",
+        "title": "Agent pays the shop 1 NEAR",
+        "attack": {
+          "accounts": {},
+          "txs": [
+            {
+              "signerAccount": "wallet.test.near",
+              "signingKey": "key:0",
+              "receiver": "wallet.test.near",
+              "actions": [
+                {
+                  "type": "FunctionCall",
+                  "method": "pay",
+                  "args": {
+                    "request_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    "recipient": "shop.test.near",
+                    "amount": "1000000000000000000000000"
+                  },
+                  "deposit": "0",
+                  "gas": "30000000000000"
+                }
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "full key": "no_violation",
+          "scoped key": "no_violation"
+        }
+      }
+    ]
+  }
+]

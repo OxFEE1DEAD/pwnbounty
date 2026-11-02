@@ -41,6 +41,20 @@ cargo build --target wasm32-unknown-unknown --release
 
 Текущие проверки: `npm test` (21 тест очереди, recovery, escrow audit, browser/Node криптографии, ограничения ответов attestation, окна settlement, model policy, отображения payout state и вызова независимого OutLayer verifier), `cd tee-runner && cargo test` (7 тестов ledger, TypeScript→Rust envelope и хешей model policy/rules), `cd contract && cargo test` (12 тестов funding, commitment, settlement, replay, callbacks и возврата награды), `cd contract/policy-wallet && cargo test` (4 теста ограничений платежа и callback). Живой TEE, browser wallet и end-to-end сценарий автоматическими тестами пока не покрыты. Сборка не заменяет проверку корректности выплат и границ доверия.
 
+## Покрытие: контракты, токены, intents, агенты
+
+`fixtures/worlds.json` описывает программы v2 (`protocol/program.ts`): код (сборка из `fixtures/wasm` по sha256 или код аккаунта mainnet), стартовые аккаунты с ролями, правила взлома и лимиты. Каждая атака идёт на свежей локальной сети nearcore sandbox 2.13.4; `verifier/src/world/judge.ts` сравнивает ценность ролей до и после.
+
+```sh
+curl -L https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore/Darwin-arm64/2.13.4/near-sandbox.tar.gz | tar -xz
+export NEAR_SANDBOX_BIN=$PWD/near-sandbox
+npm run cli -- coverage          # все цели, результат в web/src/checks.json
+npm run cli -- coverage vault    # одна цель
+npm run cli -- world-run program.json attack.json [wasm-dir]
+```
+
+Цели: хранилище `contract/vault` (уязвимая сборка с `--features vulnerable` и исправленная), wNEAR (код `wrap.near`), NEAR Intents (код `intents.near`, правило block с контрольной копией сети), кошелёк платёжного агента `contract/policy-wallet` (полный и ограниченный ключ агента), платёжный AI-агент (`fixtures/cases.json`, модель-заглушка). Результаты на странице `#/coverage`, шаблоны для проектов на `#/launch`.
+
 ## Интерфейс демонстрации
 
 Соберите страницу командой `npm run build:web`, затем запустите настроенный worker: `npm run cli -- runner`. Страница откроется по `http://127.0.0.1:8787/` (или заданному ingress адресу). По умолчанию worker открыт: каталог, отправка отчёта и статус job работают без токена. Спам ограничен тем, что каждая отправка требует on-chain commitment со storage deposit; disclosure зашифрован ключом команды, а verdict и так публичен в сети. `INGRESS_BEARER_TOKEN` - необязательная защита для оператора: если задать его (не короче 32 символов), отправка и чтение статуса потребуют `Authorization: Bearer <token>`. Все параметры перечислены в `.env.example`; `.env` нужно загрузить в окружение процесса самостоятельно.

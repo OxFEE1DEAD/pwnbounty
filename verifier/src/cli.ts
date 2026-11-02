@@ -33,6 +33,10 @@ import { auditEscrowPolicy } from './near/escrow-policy.ts';
 import { authorized, readRoute } from './http-api.ts';
 import { runAgent, type Model } from './target/agent.ts';
 import { checkViolation } from './checker.ts';
+import { SandboxWorlds } from './world/sandbox.ts';
+import { codeLoader, runProgram } from './world/run.ts';
+import { ENGINE, programHash } from '../../protocol/program.ts';
+import type { Outcome, ProgramSpec, TxAttack } from '../../protocol/program.ts';
 
 function env(name: string, required = true): string {
   const value = process.env[name];
@@ -125,6 +129,54 @@ async function withProgramCreateLock<T>(action: () => Promise<T>): Promise<T> {
     await unlink(path).catch(() => {});
   }
 }
+async function agentCorpus(path: string, live?: Model) {
+  type Case = {
+    id: string;
+    kind: string;
+    invoice: string;
+    expected: Record<string, string>;
+    stub: {
+      calls: Array<{ recipient: string; amount: string }>;
+      vulnerable: boolean;
+      enforced: boolean;
+    };
+  };
+  const cases = JSON.parse(await readFile(path, 'utf8')) as Case[];
+  const rows = [];
+  for (const c of cases)
+    for (const name of ['vulnerable', 'enforced'] as const) {
+      const config = targetConfig(
+        JSON.parse(await readFile(`fixtures/targets/${name}.json`, 'utf8')),
+      );
+      let turn = 0;
+      const stub: Model = {
+        complete: async () =>
+          turn++ === 0
+            ? {
+                message: '',
+                calls: c.stub.calls.map((call, i) => ({ id: `call-${i}`, ...call })),
+              }
+            : { message: 'done', calls: [] },
+      };
+      const started = Date.now();
+      const trace = await runAgent(config, c.invoice, live ?? stub);
+      const violation = checkViolation(trace.operations, config.policy);
+      rows.push({
+        id: c.id,
+        kind: c.kind,
+        config: name,
+        invoice: c.invoice,
+        expected: live ? c.expected[name] : String(c.stub[name]),
+        violation,
+        transfers:
+          trace.operations
+            .map((op) => `${op.recipient} ${op.amount}${op.executed ? '' : ' blocked'}`)
+            .join(', ') || '-',
+        ms: Date.now() - started,
+      });
+    }
+  return rows;
+}
 async function run() {
   const [command, ...args] = process.argv.slice(2);
   const arg = (index: number, label: string) => {
@@ -133,52 +185,83 @@ async function run() {
     return value;
   };
   if (command === 'corpus') {
-    type Case = {
-      id: string;
-      kind: string;
-      invoice: string;
-      expected: Record<string, string>;
-      stub: {
-        calls: Array<{ recipient: string; amount: string }>;
-        vulnerable: boolean;
-        enforced: boolean;
-      };
-    };
-    const cases = JSON.parse(await readFile(args[0] ?? 'fixtures/cases.json', 'utf8')) as Case[];
     const live =
       args[1] === 'near-ai' ? new NearAiDevelopmentModel(env('NEAR_AI_APIKEY')) : undefined;
-    let mismatches = 0;
+    const rows = await agentCorpus(args[0] ?? 'fixtures/cases.json', live);
     console.log(
       `model: ${live ? 'near-ai' : 'stub (obeys the invoice; checks the checker, not the model)'}\n\n| case | kind | config | expected | violation | transfers | ms |\n|---|---|---|---|---|---|---|`,
     );
-    for (const c of cases)
-      for (const name of ['vulnerable', 'enforced'] as const) {
-        const config = targetConfig(
-          JSON.parse(await readFile(`fixtures/targets/${name}.json`, 'utf8')),
-        );
-        let turn = 0;
-        const stub: Model = {
-          complete: async () =>
-            turn++ === 0
-              ? {
-                  message: '',
-                  calls: c.stub.calls.map((call, i) => ({ id: `call-${i}`, ...call })),
-                }
-              : { message: 'done', calls: [] },
-        };
-        const started = Date.now();
-        const trace = await runAgent(config, c.invoice, live ?? stub);
-        const violation = checkViolation(trace.operations, config.policy);
-        if (!live && violation !== c.stub[name]) mismatches++;
-        const transfers =
-          trace.operations
-            .map((op) => `${op.recipient} ${op.amount}${op.executed ? '' : ' blocked'}`)
-            .join(', ') || '-';
-        console.log(
-          `| ${c.id} | ${c.kind} | ${name} | ${live ? c.expected[name] : c.stub[name]} | ${violation} | ${transfers} | ${Date.now() - started} |`,
-        );
-      }
+    for (const r of rows)
+      console.log(
+        `| ${r.id} | ${r.kind} | ${r.config} | ${r.expected} | ${r.violation} | ${r.transfers} | ${r.ms} |`,
+      );
+    const mismatches = live ? 0 : rows.filter((r) => String(r.violation) !== r.expected).length;
     if (mismatches) throw new Error(`${mismatches} corpus outcomes differ from expected`);
+    return;
+  }
+  if (command === 'coverage') {
+    const worlds = new SandboxWorlds(env('NEAR_SANDBOX_BIN'), codeLoader('fixtures/wasm'));
+    type Case = { id: string; title: string; attack: TxAttack; expect: Record<string, Outcome> };
+    type Entry = { id: string; variants: Record<string, ProgramSpec>; cases: Case[] };
+    const only = args[0];
+    const entries = JSON.parse(await readFile('fixtures/worlds.json', 'utf8')) as Entry[];
+    const targets = [];
+    let mismatches = 0;
+    for (const entry of entries.filter((e) => !only || e.id === only)) {
+      const cases = [];
+      for (const c of entry.cases) {
+        const results: Record<string, unknown> = {};
+        for (const [variant, spec] of Object.entries(entry.variants)) {
+          const started = Date.now();
+          const { judgement } = await runProgram(worlds, spec, JSON.stringify(c.attack)).catch(
+            (e: Error) => ({ judgement: { outcome: 'infra_error', error: e.message } }),
+          );
+          const expected = c.expect[variant];
+          if (judgement.outcome !== expected) mismatches++;
+          results[variant] = { expected, ...judgement, ms: Date.now() - started };
+          console.log(
+            `${entry.id} ${variant} ${c.id}: ${judgement.outcome} (expected ${expected})`,
+          );
+        }
+        cases.push({ id: c.id, title: c.title, attack: c.attack, results });
+      }
+      const hashes = Object.fromEntries(
+        Object.entries(entry.variants).map(([v, spec]) => [v, programHash(spec)]),
+      );
+      targets.push({ ...entry, hashes, cases });
+    }
+    const rows = await agentCorpus('fixtures/cases.json');
+    const agent = {
+      id: 'payment-agent',
+      variants: ['vulnerable', 'enforced'],
+      cases: rows,
+    };
+    if (only) {
+      if (mismatches) throw new Error(`${mismatches} world outcomes differ from expected`);
+      return;
+    }
+    await writeFile(
+      'web/src/checks.json',
+      `${JSON.stringify({ engine: ENGINE, measured: new Date().toISOString(), platform: `${process.platform}-${process.arch}`, agent, targets }, null, 2)}\n`,
+    );
+    if (mismatches) throw new Error(`${mismatches} world outcomes differ from expected`);
+    return;
+  }
+  if (command === 'world-run') {
+    const worlds = new SandboxWorlds(
+      env('NEAR_SANDBOX_BIN'),
+      codeLoader(args[2] ?? 'fixtures/wasm'),
+    );
+    const spec = JSON.parse(await readFile(arg(0, 'program file'), 'utf8')) as ProgramSpec;
+    const attack = await readFile(arg(1, 'attack file'), 'utf8');
+    const { judgement, evidence } = await runProgram(worlds, spec, attack);
+    console.log(
+      JSON.stringify(
+        { program: programHash(spec), ...judgement, receipts: evidence?.receipts.length ?? 0 },
+        null,
+        2,
+      ),
+    );
     return;
   }
   if (command === 'config-init') {
@@ -811,7 +894,7 @@ async function run() {
     return;
   }
   throw new Error(
-    'Commands: corpus, model-attest,outlayer-policy-audit, outlayer-provision, config-init, team-keygen, program-create, program-info, seal-report, commit, retry-payment, withdraw, submit-file, runner, decrypt-report, decrypt-disclosure',
+    'Commands: corpus, coverage, world-run, model-attest,outlayer-policy-audit, outlayer-provision, config-init, team-keygen, program-create, program-info, seal-report, commit, retry-payment, withdraw, submit-file, runner, decrypt-report, decrypt-disclosure',
   );
 }
 run().catch((error) => {

@@ -32,7 +32,8 @@ export interface View {
 export type Step =
   | { op: 'account'; id: string; near: Yocto; role: Role }
   | { op: 'deploy'; id: string; code: string; init?: { method: string; args: Json } }
-  | { op: 'call'; call: Call };
+  | { op: 'call'; call: Call }
+  | { op: 'key'; id: string; key: string; permission: KeyPermission };
 
 export interface Token {
   contract: string;
@@ -72,6 +73,9 @@ export interface ProgramSpec {
   limits: Limits;
 }
 
+export type KeyPermission =
+  'full' | { receiver: string; methods: string[]; allowance: Yocto | null };
+
 export type Action =
   | { type: 'FunctionCall'; method: string; args: Json; deposit: Yocto; gas: string }
   | { type: 'Transfer'; deposit: Yocto }
@@ -79,7 +83,7 @@ export type Action =
   | {
       type: 'AddKey';
       key: string;
-      permission: 'full' | { receiver: string; methods: string[]; allowance: Yocto | null };
+      permission: KeyPermission;
     }
   | { type: 'DeleteKey'; key: string }
   | { type: 'DeleteAccount'; beneficiary: string }
@@ -122,6 +126,7 @@ export interface ReceiptOutcome {
   receiver: string;
   ok: boolean;
   burnt: Yocto;
+  deposit: Yocto;
   created: string[];
   mentioned: string[];
 }

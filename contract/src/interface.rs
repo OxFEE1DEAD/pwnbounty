@@ -1,54 +1,72 @@
-use near_sdk::json_types::{Base64VecU8, U128};
-use near_sdk::{near, AccountId, BlockHeight};
-
-pub type BountyId = u64;
-
-#[near(serializers = [borsh, json])]
-#[derive(Clone)]
-pub struct Bounty {
-    pub owner: AccountId,
-    pub scope: String,
-    pub rules_hash: String,
-    pub team_key: String,
-    pub reward: U128,
-    pub expires: BlockHeight,
-}
-
-#[near(serializers = [borsh, json])]
-#[derive(Clone)]
-pub struct Commitment {
-    pub bounty: BountyId,
-    pub hunter: AccountId,
-    pub block: BlockHeight,
-    pub settled: bool,
-}
-
-#[near(serializers = [borsh, json])]
-#[derive(Clone)]
-pub struct Verdict {
-    pub bounty: BountyId,
-    pub report_hash: String,
-    pub hunter: AccountId,
-    pub valid: bool,
-    pub disclosure_hash: String,
-}
+use near_sdk::json_types::{Base64VecU8, U128, U64};
+use near_sdk::{near, AccountId};
 
 #[near(serializers = [borsh, json])]
 #[derive(Clone)]
 pub struct Verifier {
     pub public_key: Base64VecU8,
+    pub encryption_key: Base64VecU8,
     pub attestation_hash: String,
 }
+#[near(serializers = [borsh, json])]
+#[derive(Clone, PartialEq)]
+pub enum PaymentState {
+    Available,
+    Pending,
+    Retryable,
+    Paid,
+    Refunding,
+    Closed,
+}
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct Bounty {
+    pub owner: AccountId,
+    pub rules_hash: String,
+    pub team_key: Base64VecU8,
+    pub reward: U128,
+    pub expires: U64,
+    pub settle_until: U64,
+    pub verifier: Verifier,
+    pub state: PaymentState,
+    pub winner: Option<AccountId>,
+}
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct Commitment {
+    pub report_hash: String,
+    pub settled: bool,
+    pub verdict: Option<Verdict>,
+    pub settled_at: Option<U64>,
+}
+#[near(serializers = [borsh, json])]
+#[derive(Clone, PartialEq)]
+pub struct Verdict {
+    pub version: String,
+    pub network: String,
+    pub contract: AccountId,
+    pub bounty: U64,
+    pub hunter: AccountId,
+    pub submission: String,
+    pub rules_hash: String,
+    pub report_hash: String,
+    pub valid: bool,
+    pub disclosure_hash: String,
+    pub expires: U64,
+}
 
-pub trait SealedBounty {
-    fn create(&mut self, scope: String, rules_hash: String, team_key: String, reward: U128, expires: BlockHeight) -> BountyId;
-    fn fund(&mut self, bounty: BountyId);
-    fn commit(&mut self, bounty: BountyId, report_hash: String);
-    fn settle(&mut self, verdict: Verdict, signature: Base64VecU8) -> U128;
-    fn withdraw(&mut self, bounty: BountyId) -> U128;
-    fn set_verifier(&mut self, verifier: Verifier);
-    fn get_bounty(&self, bounty: BountyId) -> Option<Bounty>;
-    fn get_pool(&self, bounty: BountyId) -> U128;
-    fn get_commitment(&self, report_hash: String) -> Option<Commitment>;
-    fn get_verifier(&self) -> Option<Verifier>;
+#[near(serializers = [json])]
+pub struct ContractConfig {
+    pub network: String,
+    pub protocol_version: String,
+    pub bounty_count: U64,
+    pub bounty_storage_deposit: U128,
+    pub claim_storage_deposit: U128,
+    pub verifier_registration: String,
+}
+
+#[near(serializers = [json])]
+pub struct BountyEntry {
+    pub id: U64,
+    pub bounty: Bounty,
 }

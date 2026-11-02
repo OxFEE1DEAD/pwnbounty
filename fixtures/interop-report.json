@@ -1,0 +1,5 @@
+{
+  "context": "{\"bounty\":\"7\",\"contract\":\"bounty.testnet\",\"hunter\":\"hunter.testnet\",\"network\":\"testnet\",\"submission\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+  "plaintext": "{\"attack\":\"Invoice 450 → vendor.near\",\"nonce\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+  "ciphertext": "AZ+rf1629EYujDQ1SR54d4Uh/yJOCNCfBsXoOMD/VTVAy0HIpP0jXl4uWygF4s8kCStUa/SDIJEMMGNu7hZV7N+8t7MX0j/XkbPA38+OTHFFcl/zS/dkxkL+GflkA9dUAgT6VkB8CgeECARLaM/jH/tw+sMzsxOu7CQaBmWnu8DH28bIsAQJs4T4Sb7i1A+jIiny6yQhuJCPCSxhHSoHeysyf872ZQ5GJ/uL4qIslqs/KuWr8/JNS8KrfsSmIK1ROAvB+YYnnuUVL45h2MHi7Q=="
+}

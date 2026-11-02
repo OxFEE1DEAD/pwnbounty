@@ -19,6 +19,7 @@ export interface JobRecord {
   nextAttemptAt: number;
   prepareAttempts: number;
   deliveryAttempts: number;
+  externalCallId?: string;
   prepared?: StoredPrepared;
   transaction?: string;
   errorCode?: 'PREPARE_FAILED' | 'DELIVERY_FAILED' | 'ATTEMPTS_EXHAUSTED';
@@ -71,6 +72,7 @@ function parseRecord(input: unknown, expectedId: string): JobRecord {
   validateReport(r.report);
   if (r.version !== 1 || r.id !== expectedId || reportId(r.report) !== expectedId
     || !['queued','preparing','prepared','delivering','complete','failed'].includes(r.state)
+    || (r.externalCallId !== undefined && (typeof r.externalCallId !== 'string' || !/^[0-9a-f-]{36}$/i.test(r.externalCallId)))
     || ![r.createdAt,r.updatedAt,r.nextAttemptAt,r.prepareAttempts,r.deliveryAttempts].every(n => Number.isSafeInteger(n) && n >= 0)) throw new Error('Invalid job record');
   if (['prepared','delivering','complete'].includes(r.state) && !r.prepared) throw new Error('Missing durable verdict');
   if (r.prepared) {
@@ -104,6 +106,14 @@ export class FileJobStore {
       this.token=token;
     } finally { this.locking=false; }
   }
+  async acquireRecoveringStoppedWorker(): Promise<void> {
+    try { await this.acquire(); }
+    catch(error) {
+      if((error as NodeJS.ErrnoException).code!=='EEXIST') throw error;
+      await this.recoverStoppedWorker();
+      await this.acquire();
+    }
+  }
   async release(): Promise<void> {
     if (!this.token) return;
     const lock=JSON.parse(await readFile(join(this.directory,'.worker.lock'),'utf8')) as {token?:string};
@@ -113,17 +123,26 @@ export class FileJobStore {
   }
   async recoverStoppedWorker(): Promise<void> {
     if (this.token || this.locking) throw new Error('Store is active');
-    const path=join(this.directory,'.worker.lock');
-    const owner=JSON.parse(await readFile(path,'utf8')) as {host?:string;pid?:number;token?:string};
-    if (owner.host!==hostname() || !Number.isInteger(owner.pid) || owner.pid! <= 0 || typeof owner.token!=='string') throw new Error('Cannot establish local lock owner');
-    try { process.kill(owner.pid!,0); }
-    catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw new Error('Cannot prove worker stopped');
-      const current=JSON.parse(await readFile(path,'utf8')) as {token?:string};
-      if(current.token!==owner.token) throw new Error('Lock owner changed');
-      await rm(path); return;
+    const recoveryPath=join(this.directory,'.worker.recovery.lock');
+    let recovery;
+    try { recovery=await open(recoveryPath,'wx',0o600); }
+    catch(error) {
+      if((error as NodeJS.ErrnoException).code==='EEXIST') throw new Error('Another worker is recovering the job lock');
+      throw error;
     }
-    throw new Error('Worker process is still alive');
+    try {
+      const path=join(this.directory,'.worker.lock');
+      const owner=JSON.parse(await readFile(path,'utf8')) as {host?:string;pid?:number;token?:string};
+      if (owner.host!==hostname() || !Number.isInteger(owner.pid) || owner.pid! <= 0 || typeof owner.token!=='string') throw new Error('Cannot establish local lock owner');
+      try { process.kill(owner.pid!,0); }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw new Error('Cannot prove worker stopped');
+        const current=JSON.parse(await readFile(path,'utf8')) as {token?:string};
+        if(current.token!==owner.token) throw new Error('Lock owner changed');
+        await rm(path); return;
+      }
+      throw new Error('Worker process is still alive');
+    } finally { await recovery.close(); await rm(recoveryPath); }
   }
   private requireLock(): void { if(!this.token) throw new Error('Acquire job store before use'); }
   private path(id: string): string {

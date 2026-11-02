@@ -2,21 +2,23 @@ import { verify, type KeyObject } from 'node:crypto';
 import { digest, verdictMessage } from '../../../protocol/index.ts';
 import type { Disclosure, ProgramSource, SealedReport, Settler } from '../interfaces.ts';
 import type { PreparedJob } from '../job-store.ts';
-import type { JobProcessor } from '../jobs.ts';
+import { NonRetryablePrepareError, type JobProcessor } from '../jobs.ts';
 import { object, verdict as parseVerdict } from '../near/validation.ts';
 import { OutLayerClient } from './client.ts';
 import { ed25519Key } from '../crypto.ts';
 import { Verifier } from '../verifier.ts';
 
 export class OutLayerProcessor implements JobProcessor {
+  readonly nonRepeatablePrepare=true;
   private readonly signingKey:KeyObject;
   constructor(private client:OutLayerClient,private programs:ProgramSource,
     private disclosure:Disclosure,private settler:Settler,publicKey:Uint8Array) {
     this.signingKey=ed25519Key(publicKey);
   }
-  async prepare(report:SealedReport):Promise<PreparedJob> {
+  async prepare(report:SealedReport,checkpoint?:{callId?:string;accepted(callId:string):Promise<void>}):Promise<PreparedJob> {
     const program=await this.programs.load(report);
-    const execution=await this.client.executeSealed(report,program.config);
+    const execution=await this.client.executeSealed(report,program.config,checkpoint);
+    try {
     let decoded:unknown=execution.output;
     if(typeof decoded==='string') {
       try { decoded=JSON.parse(decoded); } catch { throw new Error('Invalid OutLayer runner JSON output'); }
@@ -33,6 +35,7 @@ export class OutLayerProcessor implements JobProcessor {
     if(digest(ciphertext)!==verdict.disclosure_hash) throw new Error('OutLayer disclosure hash mismatch');
     const location=await this.disclosure.publish(ciphertext);
     return {verdict,signature,location};
+    } catch(error) { throw new NonRetryablePrepareError(error instanceof Error?error.message:'OutLayer output processing failed'); }
   }
   deliver(prepared:PreparedJob):Promise<{transaction:string}> {
     return Verifier.deliver(this.settler,prepared);

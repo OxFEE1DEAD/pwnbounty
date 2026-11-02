@@ -7,7 +7,8 @@
   },
   "scripts": {
     "check": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
-    "cli": "tsx verifier/src/cli.ts",
+    "test": "node --import tsx --test verifier/test/*.test.ts",
+    "cli": "node --import tsx verifier/src/cli.ts",
     "build:web": "tsc --noEmit -p web/tsconfig.json && esbuild web/src/app.ts --bundle --format=esm --platform=browser --target=es2022 --alias:@near-js/accounts=./node_modules/@near-js/accounts/lib/esm/account.js --outfile=web/dist/app.js && cp web/index.html web/style.css web/dist/"
   },
   "devDependencies": {

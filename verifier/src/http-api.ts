@@ -6,13 +6,13 @@ import { rulesHash } from '../../protocol/index.ts';
 import { FileDisclosure } from './disclosure.ts';
 import { FileJobStore } from './job-store.ts';
 import { NearRpc } from './near/rpc.ts';
-import { getProgram, getCommitment } from './near/programs.ts';
+import { getProgram, getCommitment, PREPARE_WINDOW_BLOCKS } from './near/programs.ts';
 import { accountId, hex, object, targetConfig, u64 } from './near/validation.ts';
 import { amount } from '../../protocol/index.ts';
 
 export interface ReadApiOptions {
   rpc:NearRpc; contract:string; configDirectory:string; webDirectory:string;
-  encryptionPublicKey:string; signingPublicKey:string; attestationHash:string; trustMode:string;
+  encryptionPublicKey:string; signingPublicKey:string; attestationHash:string; trustMode:keyof typeof PREPARE_WINDOW_BLOCKS;
   allowMainnetWrites:boolean;
   token:string; store:FileJobStore; disclosure:FileDisclosure;
 }
@@ -49,7 +49,7 @@ export async function readRoute(req:IncomingMessage,res:ServerResponse,options:R
       const snapshot=await options.rpc.snapshot();
       const config=object(await options.rpc.view(options.contract,'get_config',{},snapshot),'contract config');
       if(config.network!==options.rpc.network||config.protocol_version!=='1'||typeof config.claim_storage_deposit!=='string'||amount(config.claim_storage_deposit)<=0n) throw new Error('Contract config mismatch');
-      json(res,200,{network:options.rpc.network,contract:options.contract,signing_public_key:options.signingPublicKey,attestation_hash:options.attestationHash,trust_mode:options.trustMode,confidential_inference_verified:false,claim_storage_deposit:config.claim_storage_deposit,allow_mainnet_writes:options.allowMainnetWrites}); return true;
+      json(res,200,{network:options.rpc.network,contract:options.contract,signing_public_key:options.signingPublicKey,attestation_hash:options.attestationHash,trust_mode:options.trustMode,confidential_inference_verified:false,claim_storage_deposit:config.claim_storage_deposit,min_prepare_window_blocks:PREPARE_WINDOW_BLOCKS[options.trustMode].toString(),allow_mainnet_writes:options.allowMainnetWrites}); return true;
     }
     if(url.pathname==='/v1/programs') {
       const from=u64(url.searchParams.get('from_index')??'0','pagination index');
@@ -81,7 +81,7 @@ export async function readRoute(req:IncomingMessage,res:ServerResponse,options:R
     if(job) {
       const record=await options.store.get(job[1]!);
       if(!record) { json(res,404,{error:'JOB_NOT_FOUND'}); return true; }
-      json(res,200,{id:record.id,state:record.state,transaction:record.transaction,errorCode:record.errorCode,verdict:record.prepared?.verdict,signature:record.prepared?.signature,createdAt:record.createdAt,updatedAt:record.updatedAt}); return true;
+      json(res,200,{id:record.id,state:record.state,transaction:record.transaction,errorCode:record.errorCode,outlayerCallId:record.externalCallId,verdict:record.prepared?.verdict,signature:record.prepared?.signature,createdAt:record.createdAt,updatedAt:record.updatedAt}); return true;
     }
     const disclosure=/^\/v1\/disclosures\/([a-f0-9]{64})$/.exec(url.pathname);
     if(disclosure) {

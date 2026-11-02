@@ -3,9 +3,11 @@ import type { SealedReport } from './interfaces.ts';
 import { FileJobStore, programKey, reportId, restorePrepared, restoreReport, storePrepared, storeReport, type JobRecord, type PreparedJob } from './job-store.ts';
 
 export interface JobProcessor {
-  prepare(report: SealedReport): Promise<PreparedJob>;
+  nonRepeatablePrepare?: boolean;
+  prepare(report: SealedReport, checkpoint?: {callId?:string; accepted(callId:string):Promise<void>}): Promise<PreparedJob>;
   deliver(prepared: PreparedJob): Promise<{transaction: string}>;
 }
+export class NonRetryablePrepareError extends Error {}
 export interface JobLimits {
   maxJobs: number;
   maxJobsPerProgram: number;
@@ -57,11 +59,12 @@ export class JobQueue {
       const job=next&&await this.store.get(next.id);
       if(!job) return undefined;
       if(!job.prepared) {
+        if(job.state==='preparing'&&this.processor.nonRepeatablePrepare&&!job.externalCallId) return await this.failure(job,'PREPARE_FAILED',true,'queued',new Error('Previous paid preparation outcome is unknown; reconcile manually'));
         if(job.prepareAttempts>=this.limits.maxPrepareAttempts) return await this.exhaust(job);
         job.state='preparing'; job.prepareAttempts++; await this.save(job);
         let prepared: PreparedJob;
-        try { prepared=await this.processor.prepare(restoreReport(job.report)); }
-        catch(error) { return await this.failure(job,'PREPARE_FAILED',job.prepareAttempts>=this.limits.maxPrepareAttempts,'queued',error); }
+        try { prepared=await this.processor.prepare(restoreReport(job.report),{callId:job.externalCallId,accepted:async callId=>{job.externalCallId=callId;await this.save(job);}}); }
+        catch(error) { return await this.failure(job,'PREPARE_FAILED',error instanceof NonRetryablePrepareError||job.prepareAttempts>=this.limits.maxPrepareAttempts,'queued',error); }
         job.prepared=storePrepared(prepared); job.state='prepared'; delete job.errorCode; await this.save(job);
       }
       if(job.deliveryAttempts>=this.limits.maxDeliveryAttempts) return await this.exhaust(job);

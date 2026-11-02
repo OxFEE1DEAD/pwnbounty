@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { canonical, type TargetConfig } from '../../../protocol/index.ts';
 import { storeReport } from '../job-store.ts';
 import type { SealedReport } from '../interfaces.ts';
+import { NonRetryablePrepareError } from '../jobs.ts';
 
 const execFileAsync=promisify(execFile);
 type JsonObject=Record<string,unknown>;
@@ -60,25 +61,53 @@ export class OutLayerClient {
     this.paymentKey=options.paymentKey; this.verifyBin=options.verifyBin||'outlayer-verify';
     this.evidenceDirectory=resolve(options.evidenceDirectory||'.evidence/outlayer');
   }
-  async executeSealed(report:SealedReport,config:TargetConfig):Promise<OutLayerExecution> {
+  async executeSealed(report:SealedReport,config:TargetConfig,checkpoint?:{callId?:string;accepted(callId:string):Promise<void>}):Promise<OutLayerExecution> {
     if(report.network!==this.network) throw new Error('OutLayer report network mismatch');
     if(!this.sealedState) throw new Error('OutLayer runner requires provisioned sealed state');
-    return this.execute({action:'verify',report:storeReport(report),config,sealed_state:this.sealedState});
+    return this.execute({action:'verify',report:storeReport(report),config,sealed_state:this.sealedState},checkpoint);
   }
   async provision():Promise<OutLayerExecution> { return this.execute({action:'provision'}); }
-  private async execute(input:JsonObject):Promise<OutLayerExecution> {
-    const request={input,async:false,version_key:this.versionHash,...(this.secretsRef?{secrets_ref:this.secretsRef}:{}),resource_limits:{max_instructions:100_000_000_000,max_memory_mb:512,max_execution_seconds:180}};
-    const response=await fetch(`${this.baseUrl}/call/${this.project}`,{
-      method:'POST',redirect:'error',signal:AbortSignal.timeout(190_000),
-      headers:{'Content-Type':'application/json','X-Payment-Key':this.paymentKey,'X-Compute-Limit':'100000'},
-      body:JSON.stringify(request),
-    });
-    const result=object(await readJson(response,1_500_000),'call response');
-    if(!response.ok) { await response.body?.cancel().catch(()=>{}); throw new Error(`OutLayer call failed with HTTP ${response.status}`); }
-    const callId=result.call_id;
-    if(result.status!=='completed'||typeof callId!=='string'||!/^[0-9a-f-]{36}$/i.test(callId)||!('output' in result)||typeof result.attestation_url!=='string') throw new Error('OutLayer call did not complete with an attestation');
-    const attestationUrl=new URL(result.attestation_url,this.baseUrl);
-    if(attestationUrl.origin!==this.baseUrl||attestationUrl.pathname!==`/attestations/by-call/${callId}`) throw new Error('Unexpected OutLayer attestation URL');
+  private async execute(input:JsonObject,checkpoint?:{callId?:string;accepted(callId:string):Promise<void>}):Promise<OutLayerExecution> {
+    const request={input,async:true,version_key:this.versionHash,...(this.secretsRef?{secrets_ref:this.secretsRef}:{}),resource_limits:{max_instructions:100_000_000_000,max_memory_mb:512,max_execution_seconds:180}};
+    let result:JsonObject={status:'pending'};
+    let callId=checkpoint?.callId;
+    if(!callId) {
+      let response:Response;
+      try { response=await fetch(`${this.baseUrl}/call/${this.project}`,{
+        method:'POST',redirect:'error',signal:AbortSignal.timeout(15_000),
+        headers:{'Content-Type':'application/json','X-Payment-Key':this.paymentKey,'X-Compute-Limit':'100000'},
+        body:JSON.stringify(request),
+      }); } catch { throw new NonRetryablePrepareError('OutLayer call submission outcome is unknown; reconcile manually'); }
+      try { result=object(await readJson(response,1_500_000),'call response'); }
+      catch { throw new NonRetryablePrepareError('OutLayer call response is unreadable; reconcile manually'); }
+      if(!response.ok) throw new NonRetryablePrepareError(`OutLayer call returned HTTP ${response.status}; reconcile before retry`);
+      callId=result.call_id as string;
+      if(typeof callId!=='string'||!/^[0-9a-f-]{36}$/i.test(callId)||typeof result.attestation_url!=='string') throw new NonRetryablePrepareError('OutLayer call identity is unavailable; reconcile manually');
+      const attestationUrl=new URL(result.attestation_url,this.baseUrl);
+      if(attestationUrl.origin!==this.baseUrl||attestationUrl.pathname!==`/attestations/by-call/${callId}`) throw new NonRetryablePrepareError('Unexpected OutLayer attestation URL');
+      try { await checkpoint?.accepted(callId); }
+      catch { throw new NonRetryablePrepareError(`OutLayer call ${callId} was accepted but its checkpoint could not be saved`); }
+    }
+    if(!/^[0-9a-f-]{36}$/i.test(callId)) throw new NonRetryablePrepareError('Invalid stored OutLayer call ID');
+    if(result.status==='pending') {
+      const deadline=Date.now()+195_000;
+      do {
+        await new Promise(resolveWait=>setTimeout(resolveWait,1500));
+        let polled:Response;
+        try { polled=await fetch(`${this.baseUrl}/calls/${callId}`,{headers:{'X-Payment-Key':this.paymentKey},redirect:'error',signal:AbortSignal.timeout(15_000)}); }
+        catch { if(Date.now()<deadline) continue; throw new Error(`OutLayer call ${callId} polling timed out`); }
+        if(!polled.ok) {
+          await polled.body?.cancel().catch(()=>{});
+          if([404,429,500,503].includes(polled.status)&&Date.now()<deadline) continue;
+          throw new NonRetryablePrepareError(`OutLayer call ${callId} poll returned HTTP ${polled.status}; reconcile manually`);
+        }
+        try { result=object(await readJson(polled,1_500_000),'poll response'); }
+        catch { if(Date.now()<deadline) continue; throw new Error(`OutLayer call ${callId} poll is unreadable`); }
+        if(result.call_id!==callId) throw new NonRetryablePrepareError('OutLayer poll returned another call');
+      } while(result.status==='pending'&&Date.now()<deadline);
+    }
+    if(result.status==='pending') throw checkpoint?new Error(`OutLayer call ${callId} is still pending`):new NonRetryablePrepareError(`OutLayer call ${callId} is still pending; reconcile manually`);
+    if(result.status!=='completed'||!('output' in result)) throw new NonRetryablePrepareError(`OutLayer call ${callId} did not complete; reconcile manually`);
 
     const directory=await mkdtemp(join(tmpdir(),'sealed-bounty-outlayer-'));
     try {
@@ -87,7 +116,7 @@ export class OutLayerClient {
       await writeFile(outputPath,JSON.stringify(result.output),{mode:0o600,flag:'wx'});
       let stdout:string;
       try {
-        ({stdout}=await execFileAsync(this.verifyBin,['call',callId,'--network',this.baseUrl.includes('testnet')?'testnet':'mainnet','--input',inputPath,'--output',outputPath,'--json','--bundle',temporaryBundle],{timeout:120_000,maxBuffer:2_000_000,encoding:'utf8'}));
+        ({stdout}=await execFileAsync(this.verifyBin,['call',callId,'--network',this.network,'--api',this.baseUrl,'--input',inputPath,'--output',outputPath,'--json','--bundle',temporaryBundle],{timeout:120_000,maxBuffer:2_000_000,encoding:'utf8'}));
       } catch { throw new Error('OutLayer execution proof could not be verified'); }
       const proof=object(JSON.parse(stdout),'verification result');
       if(!passed(proof.authenticity)||!passed(proof.identity)||!passed(proof.binding)||!passed(proof.input)||!passed(proof.output)) throw new Error('OutLayer execution proof did not pass every verification layer');
@@ -102,7 +131,7 @@ export class OutLayerClient {
       await rm(directory,{recursive:true,force:true});
       return {callId,output:result.output,evidenceFile,verification:proof};
     } catch(error) {
-      await rm(directory,{recursive:true,force:true}); throw error;
+      await rm(directory,{recursive:true,force:true}); throw new NonRetryablePrepareError(error instanceof Error?error.message:'OutLayer proof processing failed');
     }
   }
 }

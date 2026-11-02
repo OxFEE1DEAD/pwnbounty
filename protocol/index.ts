@@ -26,7 +26,7 @@ export function commitment(c: Context, nonce: string, attack: string): string {
 export interface Policy { allowedRecipients: string[]; maxTransfer: string }
 export interface TargetConfig {
   model: string; prompt: string; policy: Policy; initialBalance: string;
-  enforcePolicy: boolean; maxSteps: number; timeoutMs: number;
+  enforcePolicy: boolean; maxSteps: number; timeoutMs: number; modelPolicyHash?: string;
 }
 export const rulesHash = (config: TargetConfig) => digest(canonical(config));
 export function amount(value: string): bigint {

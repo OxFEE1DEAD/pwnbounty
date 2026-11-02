@@ -40,8 +40,10 @@ export function targetConfig(value: unknown): TargetConfig {
   if (typeof c.enforcePolicy !== 'boolean') throw new Error('Invalid enforcement flag');
   if (typeof c.maxSteps !== 'number' || !Number.isInteger(c.maxSteps) || c.maxSteps < 1 || c.maxSteps > 20) throw new Error('Invalid step limit');
   if (typeof c.timeoutMs !== 'number' || !Number.isInteger(c.timeoutMs) || c.timeoutMs < 1 || c.timeoutMs > 120000) throw new Error('Invalid timeout');
+  const modelPolicyHash = c.modelPolicyHash === undefined ? undefined : hex(c.modelPolicyHash, 'model policy hash');
   const result: TargetConfig = { model, prompt, policy: { allowedRecipients, maxTransfer }, initialBalance,
-    enforcePolicy: c.enforcePolicy, maxSteps: c.maxSteps, timeoutMs: c.timeoutMs };
+    enforcePolicy: c.enforcePolicy, maxSteps: c.maxSteps, timeoutMs: c.timeoutMs,
+    ...(modelPolicyHash ? { modelPolicyHash } : {}) };
   if (Object.keys(c).sort().join(',') !== Object.keys(result).sort().join(',') || Object.keys(p).sort().join(',') !== 'allowedRecipients,maxTransfer') throw new Error('Unknown config fields');
   return result;
 }

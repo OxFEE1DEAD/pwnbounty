@@ -38,7 +38,7 @@ export async function loadVerifiedProvisioning(path:string,expected:{network:'ma
     await writeFile(input,JSON.stringify(saved.input),{mode:0o600,flag:'wx'});
     await writeFile(response,JSON.stringify(saved.output),{mode:0o600,flag:'wx'});
     let stdout:string;
-    try { ({stdout}=await execute(expected.verifyBin||'outlayer-verify',['call',callId,'--network',expected.network,'--input',input,'--output',response,'--json','--bundle',fresh],{encoding:'utf8',timeout:120_000,maxBuffer:2_000_000})); }
+    try { ({stdout}=await execute(expected.verifyBin||'outlayer-verify',['call',callId,'--network',expected.network,'--api',expected.network==='mainnet'?'https://api.outlayer.ai':'https://testnet-api.outlayer.ai','--input',input,'--output',response,'--json','--bundle',fresh],{encoding:'utf8',timeout:120_000,maxBuffer:2_000_000})); }
     catch { throw new Error('Provisioning execution could not be reverified against chain approval'); }
     const proof=object(JSON.parse(stdout),'provisioning verification');
     for(const field of ['authenticity','identity','binding','input','output']) {

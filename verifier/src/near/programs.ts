@@ -5,6 +5,8 @@ import type { Program, ProgramSource, SealedReport } from '../interfaces.ts';
 import { NearRpc, type Snapshot } from './rpc.ts';
 import { accountId, bytes32, hex, object, targetConfig, text, u64, verdict } from './validation.ts';
 
+export const PREPARE_WINDOW_BLOCKS = { 'local-development': 160n, outlayer: 300n } as const;
+
 export interface ChainProgram {
   owner: string; rules_hash: string; team_key: string; reward: string; expires: string; settle_until: string;
   verifier: { public_key: string; encryption_key: string; attestation_hash: string }; state: string; winner: string | null;
@@ -37,6 +39,8 @@ export interface NearProgramOptions {
   encryptionKey: Uint8Array;
   attestationHash: string;
   verdictLifetimeBlocks?: bigint;
+  minPrepareWindowBlocks?: bigint;
+  requireModelPolicyHash?: boolean;
 }
 export class NearProgramSource implements ProgramSource {
   private configDirectory: string;
@@ -44,6 +48,7 @@ export class NearProgramSource implements ProgramSource {
     accountId(options.contract); hex(options.attestationHash, 'attestation hash');
     if (options.signingKey.length !== 32 || options.encryptionKey.length !== 32) throw new Error('Invalid runner signing key');
     if (options.verdictLifetimeBlocks !== undefined && options.verdictLifetimeBlocks < 1n) throw new Error('Invalid verdict lifetime');
+    if (options.minPrepareWindowBlocks !== undefined && options.minPrepareWindowBlocks < 20n) throw new Error('Invalid prepare window');
     this.configDirectory = resolve(options.configDirectory);
   }
   async load(report: SealedReport): Promise<Program> {
@@ -53,13 +58,14 @@ export class NearProgramSource implements ProgramSource {
     const configuration = object(await this.rpc.view(report.contract, 'get_config', {}, snapshot), 'contract config');
     if (configuration.network !== report.network || configuration.protocol_version !== '1') throw new Error('Contract protocol/network mismatch');
     const [bounty, claim] = await Promise.all([getProgram(this.rpc, report.contract, report.bounty, snapshot), getCommitment(this.rpc, report.contract, report, snapshot)]);
-    if (bounty.state !== 'Available' || snapshot.height > BigInt(bounty.settle_until)) throw new Error('Program no longer accepts verdicts');
+    if (bounty.state !== 'Available' || snapshot.height + (this.options.minPrepareWindowBlocks ?? 20n) > BigInt(bounty.settle_until)) throw new Error('Not enough time to prepare and settle a verdict');
     if (claim.settled || claim.report_hash !== report.report_hash) throw new Error('Commitment unavailable or mismatched');
     if (bounty.verifier.public_key !== Buffer.from(this.options.signingKey).toString('base64') || bounty.verifier.encryption_key !== Buffer.from(this.options.encryptionKey).toString('base64') || bounty.verifier.attestation_hash !== this.options.attestationHash) throw new Error('Program verifier policy mismatch');
     const configBytes = await readFile(join(this.configDirectory, bounty.rules_hash + '.json'));
     if (configBytes.length > 131072) throw new Error('Configuration too large');
     const config = targetConfig(JSON.parse(configBytes.toString('utf8')));
     if (rulesHash(config) !== bounty.rules_hash) throw new Error('Configuration hash mismatch');
+    if (this.options.requireModelPolicyHash && !config.modelPolicyHash) throw new Error('OutLayer program does not pin model policy');
     const deadline = BigInt(bounty.settle_until), requested = snapshot.height + (this.options.verdictLifetimeBlocks ?? 1000n);
     return { context: { network: report.network, contract: report.contract, bounty: report.bounty }, config,
       rules_hash: bounty.rules_hash, teamKey: bytes32(bounty.team_key, 'team key'), verdictExpires: (requested < deadline ? requested : deadline).toString() };

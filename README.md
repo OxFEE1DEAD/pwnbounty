@@ -35,11 +35,11 @@ cargo build --target wasm32-unknown-unknown --release
 
 Ожидается успешная проверка типов и `contract/target/wasm32-unknown-unknown/release/sealed_bounty.wasm`. Rust-команду выполнять из `contract`, чтобы применился `.cargo/config.toml`.
 
-`.env.example` содержит имя ключа NEAR AI; `.env` не публикуется. Автоматическая загрузка `.env` библиотекой не выполняется. TS-адаптер модели — development-режим без E2EE; WASI runner с `MODEL_POLICY` проверяет attestation модели и шифрует запросы, но подписи quote и NRAS внутри runner пока не проверяет.
+`.env.example` содержит имя ключа NEAR AI; `.env` не публикуется. Автоматическая загрузка `.env` библиотекой не выполняется. TS-адаптер модели — development-режим без E2EE; WASI runner требует закреплённый в bounty `modelPolicyHash`, сверяет `MODEL_POLICY` и шифрует запросы, но подписи quote и NRAS внутри runner пока не проверяет.
 
 Контракт хранит ключи подписи и шифрования runner, но не проверяет их TEE-происхождение; local enclave не выдаёт настоящую quote. Запрещающая политика доверия находится в `verifier/src/trust.ts`; локальный режим требует явного выбора. Реальные средства и production deployment не использовались.
 
-Тестов пока нет по текущему решению команды. Сборка не заменяет проверку корректности выплат и границ доверия.
+Текущие проверки: `npm test` (21 тест очереди, recovery, escrow audit, browser/Node криптографии, ограничения ответов attestation, окна settlement, model policy, отображения payout state и вызова независимого OutLayer verifier), `cd tee-runner && cargo test` (7 тестов ledger, TypeScript→Rust envelope и хешей model policy/rules), `cd contract && cargo test` (12 тестов funding, commitment, settlement, replay, callbacks и возврата награды), `cd contract/policy-wallet && cargo test` (4 теста ограничений платежа и callback). Живой TEE, browser wallet и end-to-end сценарий автоматическими тестами пока не покрыты. Сборка не заменяет проверку корректности выплат и границ доверия.
 
 ## Интерфейс демонстрации
 
@@ -54,3 +54,5 @@ Browser wallet интегрирован через [официальный Walle
 ## Восстановление выплаты
 
 `npm run cli -- retry-payment CONTRACT BOUNTY` повторяет перевод из состояния `Retryable`; нужен `RETRY_ACCOUNT` (победитель) и `RETRY_PRIVATE_KEY`. `npm run cli -- withdraw CONTRACT BOUNTY` возвращает свободный резерв владельцу после `settle_until`; нужны `SPONSOR_ACCOUNT` и `SPONSOR_PRIVATE_KEY`. Для mainnet обе команды дополнительно требуют `ALLOW_MAINNET_WRITES=true` и проверяют сеть RPC до отправки транзакции.
+
+Обновлённый контракт не разрешает спонсору выводить награду из `Retryable`: она уже присуждена победителю. Это изменение ещё не развёрнуто на testnet; адрес `sbcontract-20b45b.testnet` работает по старому правилу.

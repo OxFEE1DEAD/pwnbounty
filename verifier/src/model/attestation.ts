@@ -12,6 +12,17 @@ const INTEL_ROOT_SHA256 = '44:A0:19:6B:2B:99:F8:89:B8:E1:49:E9:5B:80:7A:35:0E:74
 const INTEL_QE_MRSIGNER = 'dc9e2a7c6f948f17474e34a7fc43ed030f7c1563f1babddf6340c82e0e54a8c5';
 const NRAS = 'https://nras.attestation.nvidia.com';
 
+export function parseModelPolicy(value: unknown): ModelPolicy {
+  require(value && typeof value === 'object' && !Array.isArray(value), 'Invalid model policy');
+  const policy = value as Record<string, unknown>;
+  const names = ['compose_hash', 'model', 'mrtd', 'os_image_hash', 'rtmr0', 'rtmr1', 'rtmr2'];
+  require(Object.keys(policy).sort().join(',') === names.join(','), 'Invalid model policy fields');
+  require(typeof policy.model === 'string' && policy.model.length > 0 && policy.model.length <= 256, 'Invalid model policy name');
+  for (const name of ['mrtd', 'rtmr0', 'rtmr1', 'rtmr2']) require(typeof policy[name] === 'string' && /^[0-9a-f]{96}$/.test(policy[name]), `Invalid ${name}`);
+  for (const name of ['os_image_hash', 'compose_hash']) require(typeof policy[name] === 'string' && /^[0-9a-f]{64}$/.test(policy[name]), `Invalid ${name}`);
+  return policy as unknown as ModelPolicy;
+}
+
 const u16 = (b: Buffer, o: number) => b.readUInt16LE(o), u32 = (b: Buffer, o: number) => b.readUInt32LE(o);
 const sha = (algorithm: string, ...parts: Uint8Array[]) => { const h = createHash(algorithm); for (const p of parts) h.update(p); return h.digest(); };
 const ecKey = (raw: Buffer, crv: 'P-256'): KeyObject => createPublicKey({ format: 'jwk', key: { kty: 'EC', crv, x: raw.subarray(0, 32).toString('base64url'), y: raw.subarray(32, 64).toString('base64url') } });
@@ -72,20 +83,48 @@ function jwt(token: string, keys: Map<string, KeyObject>, nonce: string, nowSeco
   return { kid: header.kid as string, claims };
 }
 
+export async function readAttestationJson(response: Response, max = 1_000_000): Promise<{ value: unknown; bytes: Buffer }> {
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error(`Attestation service HTTP ${response.status}`);
+  }
+  const declaredLength = response.headers.get('content-length');
+  if (declaredLength !== null && Number(declaredLength) > max) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error('Attestation response too large');
+  }
+  require(response.body, 'Empty attestation response');
+  const reader = response.body.getReader(), chunks: Uint8Array[] = [];
+  let length = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      length += value.byteLength;
+      require(length <= max, 'Attestation response too large');
+      chunks.push(value);
+    }
+  } catch (error) {
+    await reader.cancel().catch(() => undefined);
+    throw error;
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = Buffer.concat(chunks, length);
+  return { value: JSON.parse(bytes.toString('utf8')), bytes };
+}
+
 async function json(url: string, init: RequestInit, max = 1_000_000): Promise<unknown> {
   const response = await fetch(url, { ...init, redirect: 'error', signal: AbortSignal.timeout(30000) });
-  const body = Buffer.from(await response.arrayBuffer());
-  require(response.ok && body.length <= max, `Attestation service HTTP ${response.status}`);
-  return JSON.parse(body.toString('utf8'));
+  return (await readAttestationJson(response, max)).value;
 }
 
 export async function attestModel(apiKey: string, policy: ModelPolicy): Promise<{ evidence: ModelEvidence; raw: unknown }> {
   const nonce = randomBytes(32).toString('hex'), now = new Date();
   const url = `https://cloud-api.near.ai/v1/attestation/report?model=${encodeURIComponent(policy.model)}&signing_algo=ed25519&nonce=${nonce}`;
   const response = await fetch(url, { headers: { authorization: `Bearer ${apiKey}` }, redirect: 'error', signal: AbortSignal.timeout(30000) });
-  const bytes = Buffer.from(await response.arrayBuffer());
-  require(response.ok && bytes.length <= 1_000_000, `Model attestation HTTP ${response.status}`);
-  const report = JSON.parse(bytes.toString('utf8')) as { model_attestations?: Array<Record<string, any>> };
+  const { value, bytes } = await readAttestationJson(response);
+  const report = value as { model_attestations?: Array<Record<string, any>> };
   const errors: string[] = [];
   for (const a of (report.model_attestations ?? []).slice(0, 16)) {
     try {

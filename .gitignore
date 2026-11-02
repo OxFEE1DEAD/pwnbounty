@@ -16,3 +16,4 @@ node_modules/
 .configs/
 .e2e/
 /contract/policy-wallet/target/
+/contract/vault/target/

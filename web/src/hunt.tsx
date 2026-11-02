@@ -555,7 +555,10 @@ function ProgramPicker({ visible, selected, locked, onSelect }: PickerProps) {
       {list.loading && <p>{t('Loading programs…')}</p>}
       {list.error && <p className="error-text">{t(list.error)}</p>}
       {!list.loading && !list.error && !entries.length && (
-        <p>{t('No open funded programs right now.')}</p>
+        <p>
+          {t('No open funded programs right now.')}{' '}
+          <a href="#/coverage">{t('Replay a contract attack locally →')}</a>
+        </p>
       )}
       <div className="program-list">
         {entries.map((entry) => (

@@ -151,7 +151,7 @@ function HowItWorks() {
     <section id="how" className="band">
       <div className="section-head">
         <div>
-          <div className="eyebrow">01—04 / THE ROUTE</div>
+          <div className="eyebrow">01—04 / {t('THE ROUTE')}</div>
           <h2>{t('A bounty that pays for a measured result.')}</h2>
         </div>
         <p>{t(copy.intro)}</p>
@@ -227,7 +227,7 @@ function OutcomePair() {
   const t = useT();
   return (
     <section className="band">
-      <div className="eyebrow">THE CHECK</div>
+      <div className="eyebrow">{t('THE CHECK')}</div>
       <h2>{t('The replay decides.')}</h2>
       <div className="outcomes">
         <div className="card outcome paid">
@@ -310,7 +310,7 @@ function LiveEvidence() {
     <section id="evidence" className="band">
       <div className="section-head">
         <div>
-          <div className="eyebrow">FINALIZED NEAR STATE</div>
+          <div className="eyebrow">{t('FINALIZED NEAR STATE')}</div>
           <h2>{t('On-chain, not on faith.')}</h2>
         </div>
         <p>{t('Finalized NEAR state. Refreshes when the page loads.')}</p>

@@ -211,7 +211,11 @@ const ru: Record<string, string> = {
   'Claiming as {account}.': 'Заявка от {account}.',
   'Open program': 'Открытая программа',
   'Loading programs…': 'Загружаем программы…',
+  'THE ROUTE': 'МАРШРУТ',
+  'THE CHECK': 'ПРОВЕРКА',
+  'FINALIZED NEAR STATE': 'ФИНАЛИЗИРОВАННОЕ СОСТОЯНИЕ NEAR',
   'No open funded programs right now.': 'Сейчас нет открытых программ с наградой.',
+  'Replay a contract attack locally →': 'Прогнать атаку на контракт локально →',
   'Checking the frozen rules…': 'Проверяем закреплённые правила…',
   'The wallet did not send the commitment. Press the button to try again.':
     'Кошелёк не отправил хеш заявки. Нажмите кнопку, чтобы попробовать снова.',

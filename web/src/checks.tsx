@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { canonical, digest } from './crypto.js';
 import { useT } from './i18n.js';
 import data from './checks.json';
@@ -117,7 +117,7 @@ function TargetCard({ target }: { target: Target }) {
       </ul>
       <div
         className="matrix"
-        style={{ gridTemplateColumns: `1.4fr repeat(${variants.length}, 1fr)` }}
+        style={{ '--n': variants.length } as CSSProperties}
       >
         <span className="head">{t('Attack')}</span>
         {variants.map((v) => (
@@ -190,7 +190,7 @@ function AgentCard() {
             m: `${agentMatched}/${coverage.agent.cases.length}`,
           })}
         </summary>
-        <div className="matrix" style={{ gridTemplateColumns: '1.4fr 1fr 1fr' }}>
+        <div className="matrix" style={{ '--n': coverage.agent.variants.length } as CSSProperties}>
           <span className="head">{t('Invoice')}</span>
           {coverage.agent.variants.map((v) => (
             <span key={v} className="head">

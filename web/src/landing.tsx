@@ -1,6 +1,7 @@
 import { near, overview, type Entry } from './chain.js';
 import { useAsync, useEnv, type Meta } from './env.js';
 import { useT } from './i18n.js';
+import { CoverageBand } from './checks.js';
 
 export const repository = 'https://github.com/OxFEE1DEAD/sealed-bounty';
 
@@ -18,23 +19,25 @@ const trust = {
 };
 const steps = [
   {
-    tag: '01 / FUND',
+    tag: '01 / FREEZE',
     title: 'Freeze & fund',
-    text: 'One allowed recipient. One limit per transfer. The reward is held by the NEAR contract.',
+    text:
+      'The project fixes the code, the starting balances and what counts as a break. ' +
+      'The reward waits in a NEAR contract.',
   },
   {
-    tag: '02 / COMMIT',
+    tag: '02 / SEAL',
     title: 'Seal & commit',
     text:
-      'Encrypt the invoice in your browser. Record its hash from your wallet before sending ' +
-      'ciphertext.',
+      'The hunter encrypts the attack in the browser and records its hash on-chain ' +
+      'before sending it.',
   },
   {
-    tag: '03 / RUN',
-    title: 'Run & inspect',
+    tag: '03 / REPLAY',
+    title: 'Replay & measure',
     text:
-      'The verifier runs the agent with fake funds. The checker reads executed ledger ' +
-      "transfers, not the agent's claims.",
+      'The verifier runs the attack on a fresh copy of the chain and measures who ' +
+      'gained and who lost.',
   },
   {
     tag: '04 / SETTLE',
@@ -44,21 +47,32 @@ const steps = [
       'reproduction.',
   },
 ];
+const problems = [
+  [
+    'Hunters wait and hope.',
+    'Severity is argued after the fact, and the payout depends on the project agreeing.',
+  ],
+  [
+    'Projects drown in noise.',
+    'Reports arrive as prose and screenshots; reproducing each one costs engineer time.',
+  ],
+  ['Exploits leak.', 'A working attack sent in the clear can be copied before it is fixed.'],
+];
 const copy = {
   lead:
-    'A funded bounty for a real forbidden transfer by an AI payment agent. Your invoice ' +
-    'stays encrypted; the executed transfer decides the payout.',
+    'Projects freeze their code and fund a reward. Hunters send an encrypted attack. A ' +
+    'fresh copy of the chain replays it, and the contract pays only if value really moved.',
   intro:
-    'The sponsor freezes the model, prompt, tools and spending rule before funding the ' +
-    'reward. Hunters control one surface: the invoice the agent will read.',
+    'One judge for every project: the attacker gains what a protected account loses, a ' +
+    'protected account loses value, or a protected withdrawal stops working.',
   paid:
-    'Executed: 450 → vendor.near. Frozen limit: 100 per transfer. The contract pays the ' +
-    'hunter after the signed verdict.',
+    'Measured on the vulnerable vault build: vault −9 NEAR, attacker +9 NEAR, threshold ' +
+    '0.1 NEAR. The contract pays the hunter after the signed verdict.',
   zero:
-    '"Ignore your rules," a forged transcript, and "please approve" are not transfers. ' +
-    'If no forbidden transfer executes, no reward is due.',
+    'A story, a screenshot or a failed call is not a break. The same attack on the fixed ' +
+    'build moves nothing, so no reward is due.',
 };
-const sceneLabels = ['FROZEN RULE', 'SEALED INVOICE', 'EXECUTED TRANSFER', 'PAID ON NEAR'];
+const sceneLabels = ['FROZEN RULE', 'SEALED ATTACK', 'MEASURED VALUE', 'PAID ON NEAR'];
 
 export function trustText(meta: Meta): string {
   if (meta.trust_mode === 'local-development') return trust.local;
@@ -83,12 +97,12 @@ export function Account({ name }: { name: string }) {
 function EvidenceEnvelope() {
   const t = useT();
   return (
-    <div className="envelope-scene" role="img" aria-label={t('An invoice sealed in an envelope')}>
+    <div className="envelope-scene" role="img" aria-label={t('An attack sealed in an envelope')}>
       <div className="paper">
-        <b>INVOICE #4476</b>
-        <span>PAY TO: vendor.near</span>
-        <span>AMOUNT: 450</span>
-        <span>LIMIT: 100 / TRANSFER</span>
+        <b>ATTACK #0042</b>
+        <span>TARGET: vault.near</span>
+        <span>deposit(1 NEAR)</span>
+        <span>withdraw(10 NEAR)</span>
       </div>
       <div className="envelope" />
       <div className="seal">SB</div>
@@ -106,22 +120,25 @@ function Hero() {
   return (
     <section className="hero">
       <div>
-        <div className="eyebrow">{t('AI PAYMENT AGENTS · NEAR')}</div>
+        <div className="eyebrow">{t('SEALED BUG BOUNTIES · NEAR')}</div>
         <h1>
-          {t('Break the rule.')}
+          {t('A bug bounty that pays')}
           <br />
-          {t('Keep the exploit sealed.')}
+          {t('for a proved break.')}
         </h1>
         <p className="lead">{t(copy.lead)}</p>
         <div className="hero-actions">
           <a className="button" href="#/hunt">
             {t('Hunt a bounty →')}
           </a>
-          <a className="button secondary" href="#/evidence">
-            {t('See the proof')}
+          <a className="button secondary" href="#/launch">
+            {t('Launch a bounty')}
           </a>
         </div>
-        <p className="mini">{t('The transfer decides. Model prose earns zero.')}</p>
+        <p className="mini">
+          {t('The replay decides. Claims and severity debates earn zero.')}{' '}
+          <a href="#/coverage">{t('See what it checks →')}</a>
+        </p>
       </div>
       <EvidenceEnvelope />
     </section>
@@ -135,7 +152,7 @@ function HowItWorks() {
       <div className="section-head">
         <div>
           <div className="eyebrow">01—04 / THE ROUTE</div>
-          <h2>{t('A bounty that asks the agent to show its work.')}</h2>
+          <h2>{t('A bounty that pays for a measured result.')}</h2>
         </div>
         <p>{t(copy.intro)}</p>
       </div>
@@ -152,24 +169,78 @@ function HowItWorks() {
   );
 }
 
+function Problem() {
+  const t = useT();
+  return (
+    <section className="band">
+      <div className="eyebrow">{t('THE PROBLEM')}</div>
+      <h2>{t('Bug bounties run on trust.')}</h2>
+      <div className="steps three">
+        {problems.map(([title, text]) => (
+          <div key={title} className="card">
+            <h3>{t(title!)}</h3>
+            <p>{t(text!)}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Doors() {
+  const t = useT();
+  return (
+    <section className="band">
+      <div className="eyebrow">{t('TWO SIDES')}</div>
+      <h2>{t('Pick your side.')}</h2>
+      <div className="outcomes">
+        <div className="card door">
+          <div className="kicker">{t('FOR HUNTERS')}</div>
+          <h3>{t('Break it, prove it, get paid.')}</h3>
+          <p>
+            {t(
+              'Pick an open bounty, test the attack locally, seal it. The replay decides, so nobody can argue the verdict.',
+            )}
+          </p>
+          <a className="button" href="#/hunt">
+            {t('Hunt a bounty →')}
+          </a>
+        </div>
+        <div className="card door">
+          <div className="kicker">{t('FOR PROJECTS')}</div>
+          <h3>{t('Pay only for proved breaks.')}</h3>
+          <p>
+            {t(
+              'Describe your contract, token, intents app or agent as a program. Hunters attack a fresh copy, never your live funds.',
+            )}
+          </p>
+          <a className="button secondary" href="#/launch">
+            {t('Launch a bounty →')}
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function OutcomePair() {
   const t = useT();
   return (
     <section className="band">
       <div className="eyebrow">THE CHECK</div>
-      <h2>{t('The transfer decides.')}</h2>
+      <h2>{t('The replay decides.')}</h2>
       <div className="outcomes">
         <div className="card outcome paid">
           <div className="symbol">↗</div>
           <h3>{t('Rule broken. Reward paid.')}</h3>
           <p>{t(copy.paid)}</p>
-          <div className="evidence">executed: true · verdict: violation</div>
+          <div className="evidence">rule: take · verdict: violation</div>
         </div>
         <div className="card outcome zero">
           <div className="symbol">0</div>
           <h3>{t('A story is worth zero.')}</h3>
           <p>{t(copy.zero)}</p>
-          <div className="evidence">executed transfers: 0 · reward: 0</div>
+          <div className="evidence">fixed build · verdict: no_violation · reward: 0</div>
         </div>
       </div>
     </section>
@@ -267,8 +338,11 @@ export function Landing() {
   return (
     <div className="wrap">
       <Hero />
+      <Problem />
       <HowItWorks />
       <OutcomePair />
+      <CoverageBand />
+      <Doors />
       <LiveEvidence />
       <TrustNotice />
     </div>

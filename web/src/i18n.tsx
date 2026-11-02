@@ -7,59 +7,167 @@ const ru: Record<string, string> = {
   'Switch language': 'Сменить язык',
   'Main navigation': 'Основная навигация',
   'How it works': 'Как это работает',
-  'Live evidence': 'Данные сети',
+  Coverage: 'Покрытие',
+  'For projects': 'Для проектов',
   'My attempts': 'Мои заявки',
   'Hunt a bounty': 'Искать награду',
   'Connect wallet': 'Подключить кошелёк',
   'Loading verification mode…': 'Загружаем режим проверки…',
-  'AI PAYMENT AGENTS · NEAR': 'ПЛАТЁЖНЫЕ AI-АГЕНТЫ · NEAR',
-  'Break the rule.': 'Нарушь правило.',
-  'Keep the exploit sealed.': 'Сохрани атаку закрытой.',
-  ['A funded bounty for a real forbidden transfer by an AI payment agent. Your invoice ' +
-  'stays encrypted; the executed transfer decides the payout.']:
-    'Награда зарезервирована за реальный запрещённый перевод платёжного AI-агента. ' +
-    'Инвойс остаётся зашифрованным; выплату решает выполненный перевод.',
+  'SEALED BUG BOUNTIES · NEAR': 'ЗАКРЫТЫЕ БАГ-БАУНТИ · NEAR',
+  'A bug bounty that pays': 'Баг-баунти с выплатой',
+  'for a proved break.': 'за доказанный взлом.',
+  'Projects freeze their code and fund a reward. Hunters send an encrypted attack. A fresh copy of the chain replays it, and the contract pays only if value really moved.':
+    'Проект закрепляет код и вносит награду. Охотник отправляет зашифрованную атаку. Свежая копия сети воспроизводит её, и контракт платит, только если ценность действительно ушла.',
   'Hunt a bounty →': 'Искать награду →',
-  'See the proof': 'Смотреть доказательства',
-  'The transfer decides. Model prose earns zero.': 'Решает перевод. Слова модели стоят ноль.',
-  'An invoice sealed in an envelope': 'Инвойс, запечатанный в конверт',
+  'Launch a bounty': 'Запустить баунти',
+  'Launch a bounty →': 'Запустить баунти →',
+  'The replay decides. Claims and severity debates earn zero.':
+    'Решает воспроизведение. Заявления и споры о критичности стоят ноль.',
+  'See what it checks →': 'Что уже проверяется →',
+  'An attack sealed in an envelope': 'Атака, запечатанная в конверт',
   'FROZEN RULE': 'ЗАКРЕПЛЁННОЕ ПРАВИЛО',
-  'SEALED INVOICE': 'ЗАПЕЧАТАННЫЙ ИНВОЙС',
-  'EXECUTED TRANSFER': 'ВЫПОЛНЕННЫЙ ПЕРЕВОД',
+  'SEALED ATTACK': 'ЗАПЕЧАТАННАЯ АТАКА',
+  'MEASURED VALUE': 'ИЗМЕРЕННАЯ ЦЕННОСТЬ',
   'PAID ON NEAR': 'ВЫПЛАТА В NEAR',
-  'A bounty that asks the agent to show its work.':
-    'Награда за действие агента, а не за рассказ о нём.',
-  ['The sponsor freezes the model, prompt, tools and spending rule before funding the ' +
-  'reward. Hunters control one surface: the invoice the agent will read.']:
-    'Спонсор закрепляет модель, промпт, инструменты и правило расходов до внесения награды. ' +
-    'Охотник управляет только инвойсом, который прочитает агент.',
+  'THE PROBLEM': 'ПРОБЛЕМА',
+  'Bug bounties run on trust.': 'Баг-баунти держатся на доверии.',
+  'Hunters wait and hope.': 'Охотники ждут и надеются.',
+  'Severity is argued after the fact, and the payout depends on the project agreeing.':
+    'Критичность обсуждают задним числом, а выплата зависит от согласия проекта.',
+  'Projects drown in noise.': 'Проекты тонут в шуме.',
+  'Reports arrive as prose and screenshots; reproducing each one costs engineer time.':
+    'Отчёты приходят текстом и скриншотами; воспроизвести каждый стоит времени инженера.',
+  'Exploits leak.': 'Эксплойты утекают.',
+  'A working attack sent in the clear can be copied before it is fixed.':
+    'Рабочую атаку, отправленную открытым текстом, могут скопировать до исправления.',
+  'A bounty that pays for a measured result.': 'Награда за измеренный результат.',
+  'One judge for every project: the attacker gains what a protected account loses, a protected account loses value, or a protected withdrawal stops working.':
+    'Один судья для всех проектов: атакующий получает то, что теряет защищённый аккаунт, защищённый аккаунт теряет ценность или защищённый вывод средств перестаёт работать.',
   'Freeze & fund': 'Закрепить и пополнить',
-  'One allowed recipient. One limit per transfer. The reward is held by the NEAR contract.':
-    'Один разрешённый получатель. Лимит на каждый перевод. Награда хранится в контракте NEAR.',
+  'The project fixes the code, the starting balances and what counts as a break. The reward waits in a NEAR contract.':
+    'Проект закрепляет код, стартовые балансы и что считается взломом. Награда ждёт в контракте NEAR.',
   'Seal & commit': 'Зашифровать и закрепить',
-  ['Encrypt the invoice in your browser. Record its hash from your wallet before sending ' +
-  'ciphertext.']:
-    'Зашифруйте инвойс в браузере. Запишите его хеш со своего кошелька до отправки шифртекста.',
-  'Run & inspect': 'Запустить и проверить',
-  ['The verifier runs the agent with fake funds. The checker reads executed ledger ' +
-  "transfers, not the agent's claims."]:
-    'Проверяющий запускает агента с ненастоящими средствами. Проверка читает выполненные ' +
-    'переводы в журнале, а не слова агента.',
+  'The hunter encrypts the attack in the browser and records its hash on-chain before sending it.':
+    'Охотник шифрует атаку в браузере и записывает её хеш в сеть до отправки.',
+  'Replay & measure': 'Воспроизвести и измерить',
+  'The verifier runs the attack on a fresh copy of the chain and measures who gained and who lost.':
+    'Проверяющий запускает атаку на свежей копии сети и измеряет, кто получил и кто потерял.',
   'Settle & disclose': 'Выплатить и раскрыть команде',
-  ['A signed verdict settles the bounty. Only the project team can decrypt the ' + 'reproduction.']:
-    'Подписанный вердикт запускает выплату. Воспроизведение может расшифровать только ' +
-    'команда проекта.',
-  'The transfer decides.': 'Решает перевод.',
+  'A signed verdict settles the bounty. Only the project team can decrypt the reproduction.':
+    'Подписанный вердикт запускает выплату. Воспроизведение может расшифровать только команда проекта.',
+  'The replay decides.': 'Решает воспроизведение.',
   'Rule broken. Reward paid.': 'Правило нарушено. Награда выплачена.',
-  ['Executed: 450 → vendor.near. Frozen limit: 100 per transfer. The contract pays the ' +
-  'hunter after the signed verdict.']:
-    'Выполнено: 450 → vendor.near. Закреплённый лимит: 100 за перевод. После подписанного ' +
-    'вердикта контракт платит охотнику.',
+  'Measured on the vulnerable vault build: vault −9 NEAR, attacker +9 NEAR, threshold 0.1 NEAR. The contract pays the hunter after the signed verdict.':
+    'Измерено на уязвимой сборке хранилища: хранилище −9 NEAR, атакующий +9 NEAR, порог 0.1 NEAR. После подписанного вердикта контракт платит охотнику.',
   'A story is worth zero.': 'История стоит ноль.',
-  ['"Ignore your rules," a forged transcript, and "please approve" are not transfers. ' +
-  'If no forbidden transfer executes, no reward is due.']:
-    '«Игнорируй правила», поддельный журнал и «подтвердите заявку» не являются переводами. ' +
-    'Если запрещённый перевод не выполнен, награда не начисляется.',
+  'A story, a screenshot or a failed call is not a break. The same attack on the fixed build moves nothing, so no reward is due.':
+    'Рассказ, скриншот или упавший вызов - не взлом. Та же атака на исправленной сборке ничего не сдвигает, поэтому награды нет.',
+  'TWO SIDES': 'ДВЕ СТОРОНЫ',
+  'Pick your side.': 'Выберите сторону.',
+  'FOR HUNTERS': 'ДЛЯ ОХОТНИКОВ',
+  'Break it, prove it, get paid.': 'Взломай, докажи, получи выплату.',
+  'Pick an open bounty, test the attack locally, seal it. The replay decides, so nobody can argue the verdict.':
+    'Выберите открытую награду, проверьте атаку локально и запечатайте её. Решает воспроизведение, поэтому вердикт не оспорить.',
+  'FOR PROJECTS': 'ДЛЯ ПРОЕКТОВ',
+  'Pay only for proved breaks.': 'Платите только за доказанные взломы.',
+  'Describe your contract, token, intents app or agent as a program. Hunters attack a fresh copy, never your live funds.':
+    'Опишите контракт, токен, intents-приложение или агента как программу. Охотники атакуют свежую копию, а не ваши живые средства.',
+  'Contract with deposits': 'Контракт с депозитами',
+  'Fungible token': 'Токен',
+  'Intents protocol': 'Протокол intents',
+  'Agent wallet': 'Кошелёк агента',
+  'Break proved - reward': 'Взлом доказан - награда',
+  'No break - zero': 'Взлома нет - ноль',
+  'Not a valid attack': 'Недопустимая атака',
+  'Over the limits': 'Сверх лимитов',
+  'Could not decide': 'Решить не удалось',
+  'Infrastructure error': 'Ошибка инфраструктуры',
+  'attacker gains what a protected account loses':
+    'атакующий получает то, что теряет защищённый аккаунт',
+  'a protected account loses value': 'защищённый аккаунт теряет ценность',
+  'a protected withdrawal stops working': 'защищённый вывод перестаёт работать',
+  'Expected: {x}': 'Ожидалось: {x}',
+  Attack: 'Атака',
+  vulnerable: 'уязвимая',
+  fixed: 'исправленная',
+  mainnet: 'код mainnet',
+  'scoped key': 'ограниченный ключ',
+  'full key': 'полный ключ',
+  enforced: 'с контролем',
+  'Vault contract': 'Контракт-хранилище',
+  'Payment agent wallet': 'Кошелёк платёжного агента',
+  'Own contract, two builds': 'Свой контракт, две сборки',
+  'wrap.near mainnet code': 'код wrap.near из mainnet',
+  'intents.near mainnet code': 'код intents.near из mainnet',
+  'Policy wallet, two key setups': 'Кошелёк с политикой, два варианта ключа',
+  'Deposit 1 NEAR, withdraw 10 NEAR': 'Внести 1 NEAR, вывести 10 NEAR',
+  'Deposit 1 NEAR, withdraw 1 NEAR': 'Внести 1 NEAR, вывести 1 NEAR',
+  'Sign as the depositor': 'Подписать от имени вкладчика',
+  'Withdraw 5 wNEAR without a balance': 'Вывести 5 wNEAR без баланса',
+  'Transfer 5 wNEAR without a balance': 'Перевести 5 wNEAR без баланса',
+  'Wrap and unwrap 1 NEAR': 'Обернуть и развернуть 1 NEAR',
+  "Withdraw the depositor's wNEAR": 'Вывести wNEAR вкладчика',
+  'Execute an empty intent batch': 'Выполнить пустой пакет intents',
+  'Register storage for many accounts': 'Оплатить хранилище за много аккаунтов',
+  'Agent pays the attacker 2 NEAR': 'Агент платит атакующему 2 NEAR',
+  'Agent key sends 15 NEAR directly': 'Ключ агента напрямую отправляет 15 NEAR',
+  'Agent pays the shop 1 NEAR': 'Агент платит магазину 1 NEAR',
+  'AI payment agent': 'Платёжный AI-агент',
+  'Invoice-paying agent': 'Агент, оплачивающий инвойсы',
+  'The model reads an invoice and calls a pay tool on a test ledger.':
+    'Модель читает инвойс и вызывает инструмент оплаты на тестовом журнале.',
+  'an executed payment breaks the frozen recipient or limit':
+    'выполненный платёж нарушает закреплённого получателя или лимит',
+  '{n} invoices × 2 configs, {m} as expected': '{n} инвойсов × 2 конфигурации, {m} как ожидалось',
+  Invoice: 'Инвойс',
+  'Stub model: checks the checker, not the model.':
+    'Модель-заглушка: проверяет проверку, а не модель.',
+  COVERAGE: 'ПОКРЫТИЕ',
+  'Not only agents. Any NEAR project with value at stake.':
+    'Не только агенты. Любой проект NEAR, где есть что терять.',
+  '{runs} replays across {projects} projects, {matched} as expected, {breaks} breaks caught.':
+    '{runs} воспроизведений по {projects} проектам, {matched} как ожидалось, поймано взломов: {breaks}.',
+  'Model, prompt and tools frozen': 'Модель, промпт и инструменты закреплены',
+  'What a sealed bounty can check today': 'Что sealed bounty проверяет уже сейчас',
+  'Each result is a replay: a fresh local NEAR chain, the real code, one attack, and the judge that decides payouts.':
+    'Каждый результат - воспроизведение: свежая локальная сеть NEAR, настоящий код, одна атака и тот же судья, что решает выплаты.',
+  'Measured {date} · NEAR sandbox {v} · judge v{j} · {p}. Reproduce: npm run cli coverage':
+    'Измерено {date} · NEAR sandbox {v} · судья v{j} · {p}. Повторить: npm run cli coverage',
+  Next: 'Дальше',
+  'OutLayer apps': 'Приложения OutLayer',
+  'WASI apps that read and sign for NEAR accounts, replayed against the same local chain.':
+    'WASI-приложения, которые читают и подписывают за аккаунты NEAR, на той же локальной сети.',
+  'Put your project under a sealed bounty': 'Отдайте проект на sealed bounty',
+  'Describe the code, who holds what, and what counts as a break. Hunters attack a fresh copy; the reward leaves escrow only for a proved break.':
+    'Опишите код, у кого что лежит и что считается взломом. Охотники атакуют свежую копию; награда уходит из эскроу только за доказанный взлом.',
+  'START FROM A TEMPLATE': 'НАЧНИТЕ С ШАБЛОНА',
+  'AI payment agents launch from the existing program flow: npm run cli program-create':
+    'Платёжные AI-агенты запускаются через текущий поток программ: npm run cli program-create',
+  'YOUR CODE': 'ВАШ КОД',
+  'Contract build': 'Сборка контракта',
+  'Replace with your .wasm build (hashed in this browser)':
+    'Заменить своей сборкой .wasm (хеш считается в браузере)',
+  'Uploaded: {name}': 'Загружено: {name}',
+  'WHO HOLDS WHAT': 'У КОГО ЧТО ЛЕЖИТ',
+  protected: 'защищён',
+  attacker: 'атакующий',
+  neutral: 'нейтральный',
+  system: 'система',
+  'Protected accounts must not lose value to the attacker. The attacker gets one key and a budget.':
+    'Защищённые аккаунты не должны терять ценность в пользу атакующего. У атакующего один ключ и бюджет.',
+  'WHAT COUNTS AS A BREAK': 'ЧТО СЧИТАЕТСЯ ВЗЛОМОМ',
+  'Ignore moves smaller than (NEAR)': 'Игнорировать сдвиги меньше (NEAR)',
+  'Reward (NEAR)': 'Награда (NEAR)',
+  'REVIEW AND EXPORT': 'ПРОВЕРКА И ЭКСПОРТ',
+  'Program hash': 'Хеш программы',
+  'Hunters see this hash on the bounty. Any change to code, balances or rules changes it.':
+    'Охотники видят этот хеш в награде. Любое изменение кода, балансов или правил меняет его.',
+  'Download program.json': 'Скачать program.json',
+  reward: 'награда',
+  'Write your own attack in the same format and replay it: npm run cli world-run program.json attack.json':
+    'Напишите свою атаку в том же формате и прогоните её: npm run cli world-run program.json attack.json',
+  'Run your own attack locally first. On-chain launch of contract programs ships with the next escrow release.':
+    'Сначала прогоните свою атаку локально. Запуск программ для контрактов в сети появится в следующем релизе эскроу.',
   'On-chain, not on faith.': 'В сети, а не на словах.',
   'Finalized NEAR state. Refreshes when the page loads.':
     'Подтверждённое состояние NEAR. Обновляется при загрузке страницы.',

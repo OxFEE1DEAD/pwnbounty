@@ -27,10 +27,11 @@ import {
 } from './env.js';
 import { LangProvider, useLang, useT } from './i18n.js';
 import { Hunt } from './hunt.js';
+import { Coverage, Launch } from './checks.js';
 import { Account, Landing, repository } from './landing.js';
 import '../style.css';
 
-const routes = ['home', 'hunt', 'me', 'team'] as const;
+const routes = ['home', 'hunt', 'me', 'team', 'coverage', 'launch'] as const;
 const anchors = ['how', 'evidence'];
 type Route = (typeof routes)[number];
 type AttemptStatus =
@@ -89,7 +90,8 @@ function Header({ route }: { route: Route }) {
   const { lang, toggle } = useLang();
   const nav: [string, string, boolean][] = [
     ['#/how', 'How it works', false],
-    ['#/evidence', 'Live evidence', false],
+    ['#/coverage', 'Coverage', route === 'coverage'],
+    ['#/launch', 'For projects', route === 'launch'],
     ['#/me', 'My attempts', route === 'me'],
     ['#/hunt', 'Hunt a bounty', route === 'hunt'],
   ];
@@ -382,6 +384,7 @@ function Footer() {
         {t('Read the code ↗')}
       </a>
       <a href="#/hunt">{t('Start hunting →')}</a>
+      <a href="#/launch">{t('Launch a bounty →')}</a>
       <a href="#/team">{t('For the project team')}</a>
     </footer>
   );
@@ -437,6 +440,8 @@ function Shell({ meta }: { meta: Meta }) {
         </div>
         {route === 'me' && <MyAttempts />}
         {route === 'team' && <TeamDecryptPanel />}
+        {route === 'coverage' && <Coverage />}
+        {route === 'launch' && <Launch />}
       </main>
       <Footer />
       <Toast note={note} close={() => setNote(undefined)} />

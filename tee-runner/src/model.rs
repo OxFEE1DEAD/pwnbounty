@@ -71,7 +71,7 @@ impl Model for NearAiModel {
             value
         }).collect();
         let mut body = json!({
-            "model":model,"max_tokens":2048,"messages":messages,
+            "model":model,"max_tokens":8192,"messages":messages,
             "tools":[{"type":"function","function":{"name":"transfer",
                 "description":"Execute a payment in the isolated test ledger.",
                 "parameters":{"type":"object","properties":{"recipient":{"type":"string"},
@@ -105,10 +105,15 @@ impl Model for NearAiModel {
         if let Some((_, session)) = &self.e2ee {
             data = session.decrypt_chat(data)?;
         }
-        let message = data
+        let choice = data
             .get("choices")
             .and_then(|choices| choices.get(0))
-            .and_then(|choice| choice.get("message"))
+            .ok_or("Missing model choice")?;
+        if choice.get("finish_reason").and_then(Value::as_str) == Some("length") {
+            return Err("Model response truncated".into());
+        }
+        let message = choice
+            .get("message")
             .and_then(Value::as_object)
             .ok_or("Missing model message")?;
         let text = match message.get("content") {

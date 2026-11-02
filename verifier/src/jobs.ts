@@ -61,20 +61,21 @@ export class JobQueue {
         job.state='preparing'; job.prepareAttempts++; await this.save(job);
         let prepared: PreparedJob;
         try { prepared=await this.processor.prepare(restoreReport(job.report)); }
-        catch { return await this.failure(job,'PREPARE_FAILED',job.prepareAttempts>=this.limits.maxPrepareAttempts,'queued'); }
+        catch(error) { return await this.failure(job,'PREPARE_FAILED',job.prepareAttempts>=this.limits.maxPrepareAttempts,'queued',error); }
         job.prepared=storePrepared(prepared); job.state='prepared'; delete job.errorCode; await this.save(job);
       }
       if(job.deliveryAttempts>=this.limits.maxDeliveryAttempts) return await this.exhaust(job);
       job.state='delivering'; job.deliveryAttempts++; await this.save(job);
       let transaction: string;
       try { ({transaction}=await this.processor.deliver(restorePrepared(job.prepared))); }
-      catch { return await this.failure(job,'DELIVERY_FAILED',job.deliveryAttempts>=this.limits.maxDeliveryAttempts,'prepared'); }
+      catch(error) { return await this.failure(job,'DELIVERY_FAILED',job.deliveryAttempts>=this.limits.maxDeliveryAttempts,'prepared',error); }
       if(!transaction || transaction.length>4096) return await this.failure(job,'DELIVERY_FAILED',job.deliveryAttempts>=this.limits.maxDeliveryAttempts,'prepared');
       job.transaction=transaction; job.state='complete'; delete job.errorCode;
       await this.save(job); return job;
     } finally { this.processing=false; }
   }
-  private async failure(job: JobRecord, code: 'PREPARE_FAILED'|'DELIVERY_FAILED', exhausted: boolean, retryState: 'queued'|'prepared'): Promise<JobRecord> {
+  private async failure(job: JobRecord, code: 'PREPARE_FAILED'|'DELIVERY_FAILED', exhausted: boolean, retryState: 'queued'|'prepared', error?: unknown): Promise<JobRecord> {
+    console.error(JSON.stringify({id:job.id,code,error:(error instanceof Error?error.message:'invalid result').slice(0,200)}));
     job.state=exhausted?'failed':retryState; job.errorCode=code;
     const attempts=code==='PREPARE_FAILED'?job.prepareAttempts:job.deliveryAttempts;
     job.nextAttemptAt=Date.now()+Math.min(this.limits.retryDelayMs*2**Math.min(attempts-1,10),300_000);

@@ -11,7 +11,7 @@ export class NearAiDevelopmentModel implements Model {
   async complete(model: string, messages: readonly Message[], signal: AbortSignal) {
     const response=await fetch('https://cloud-api.near.ai/v1/chat/completions',{
       method:'POST',signal,redirect:'error',headers:{'Content-Type':'application/json',Authorization:`Bearer ${this.apiKey}`},
-      body:JSON.stringify({model,max_tokens:2048,messages:messages.map(m=>({
+      body:JSON.stringify({model,max_tokens:8192,messages:messages.map(m=>({
         role:m.role,content:m.content,...(m.toolCallId?{tool_call_id:m.toolCallId}:{}),
         ...(m.calls?.length?{tool_calls:m.calls.map(c=>({id:c.id,type:'function',function:{name:'transfer',arguments:JSON.stringify({recipient:c.recipient,amount:c.amount})}}))}:{})
       })),tools:[{type:'function',function:{name:'transfer',description:'Execute a payment in the isolated test ledger.',parameters:{type:'object',properties:{recipient:{type:'string'},amount:{type:'string',description:'Positive integer units as decimal string'}},required:['recipient','amount'],additionalProperties:false}}}]})
@@ -22,6 +22,7 @@ export class NearAiDevelopmentModel implements Model {
     try { while(true) { const {done,value}=await reader.read(); if(done) break; size+=value.length; if(size>262144) throw new Error('Model response too large'); chunks.push(value); } }
     finally { await reader.cancel(); }
     const data=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if(data?.choices?.[0]?.finish_reason==='length') throw new Error('Model response truncated');
     const message=data?.choices?.[0]?.message;
     if(!message || (message.content!==null && typeof message.content!=='string')) throw new Error('Invalid model response');
     const raw=message.tool_calls??[];

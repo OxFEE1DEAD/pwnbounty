@@ -69,7 +69,7 @@ fn send(
 ) -> Result<Response> {
     if !matches!(
         host,
-        "cloud-api.near.ai" | "rpc.testnet.near.org" | "rpc.mainnet.near.org"
+        "cloud-api.near.ai" | "rpc.testnet.fastnear.com" | "rpc.mainnet.fastnear.com"
     ) || !path.starts_with('/')
     {
         return Err("HTTP destination is not allowed".into());

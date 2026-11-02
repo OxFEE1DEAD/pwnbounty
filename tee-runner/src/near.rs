@@ -70,8 +70,8 @@ pub struct NearRpc {
 impl NearRpc {
     pub fn new(network: &str) -> Result<Self> {
         let host = match network {
-            "mainnet" => "rpc.mainnet.near.org",
-            "testnet" => "rpc.testnet.near.org",
+            "mainnet" => "rpc.mainnet.fastnear.com",
+            "testnet" => "rpc.testnet.fastnear.com",
             _ => return Err("Unsupported NEAR network".into()),
         };
         Ok(Self {

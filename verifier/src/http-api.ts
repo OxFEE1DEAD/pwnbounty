@@ -38,7 +38,7 @@ export async function readRoute(req:IncomingMessage,res:ServerResponse,options:R
   if(asset) {
     try {
       const content=await readFile(join(resolve(options.webDirectory),asset.file));
-      const node=options.rpc.network==='mainnet'?'https://rpc.mainnet.near.org https://helper.mainnet.near.org':'https://rpc.testnet.near.org https://helper.testnet.near.org';
+      const node=options.rpc.network==='mainnet'?'https://rpc.mainnet.fastnear.com https://helper.mainnet.near.org':'https://rpc.testnet.fastnear.com https://helper.testnet.near.org';
       res.writeHead(200,{'content-type':asset.type,'cache-control':'no-store','x-content-type-options':'nosniff','x-frame-options':'DENY','content-security-policy':`default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ${node}; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`}).end(content);
     } catch { json(res,503,{error:'WEB_BUILD_UNAVAILABLE'}); }
     return true;

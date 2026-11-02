@@ -1,4 +1,6 @@
-import { amount, type TargetConfig, type Verdict } from '../../../protocol/index.ts';
+import { amount, rulesHash, type TargetConfig, type Verdict } from '../../../protocol/index.ts';
+import { programHash, type ProgramSpec } from '../../../protocol/program.ts';
+import type { Rules } from '../interfaces.ts';
 
 export function object(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
@@ -109,4 +111,25 @@ export function verdict(value: unknown): Verdict {
     disclosure_hash: hex(v.disclosure_hash, 'disclosure hash'),
     expires: u64(v.expires, 'verdict expiry'),
   };
+}
+export function programSpec(value: unknown): ProgramSpec {
+  const spec = object(value, 'program spec');
+  if (
+    spec.version !== '2' ||
+    typeof spec.title !== 'string' ||
+    !Number.isInteger(spec.attackerKeys) ||
+    ['codes', 'steps', 'tokens', 'privileged', 'rules'].some((key) => !Array.isArray(spec[key])) ||
+    !(spec.rules as unknown[]).length
+  )
+    throw new Error('Invalid program spec');
+  object(spec.limits, 'program limits');
+  return spec as unknown as ProgramSpec;
+}
+export function rules(value: unknown): Rules & { hash: string } {
+  if (object(value, 'program rules').version === '2') {
+    const spec = programSpec(value);
+    return { kind: 'world', spec, hash: programHash(spec) };
+  }
+  const config = targetConfig(value);
+  return { kind: 'agent', config, hash: rulesHash(config) };
 }

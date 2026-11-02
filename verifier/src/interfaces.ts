@@ -26,13 +26,13 @@ export interface Enclave {
   open(ciphertext: Uint8Array, context: string): Promise<Uint8Array>;
   sign(verdict: Verdict): Promise<Uint8Array>;
 }
-export interface Program {
+export type Rules = { kind: 'agent'; config: TargetConfig } | { kind: 'world'; spec: ProgramSpec };
+export type Program = Rules & {
   context: Omit<Context, 'hunter' | 'submission'>;
-  config: TargetConfig;
   rules_hash: string;
   teamKey: Uint8Array;
   verdictExpires: string;
-}
+};
 export interface ProgramSource {
   load(report: SealedReport): Promise<Program>;
 }

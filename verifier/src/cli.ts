@@ -22,7 +22,7 @@ import { Verifier } from './verifier.ts';
 import { FileJobStore } from './job-store.ts';
 import type { SealedReport } from './interfaces.ts';
 import { JobQueue } from './jobs.ts';
-import { targetConfig, accountId, u64, bytes32 } from './near/validation.ts';
+import { targetConfig, rules, accountId, u64, bytes32 } from './near/validation.ts';
 import { Account, JsonRpcProvider, actions, type KeyPairString } from 'near-api-js';
 import { createServer } from 'node:http';
 import { OutLayerClient } from './outlayer/client.ts';
@@ -357,25 +357,28 @@ async function run() {
   }
   if (command === 'program-create') {
     const configPath = resolve(arg(0, 'config path'));
-    const config = targetConfig(JSON.parse(await readFile(configPath, 'utf8')));
-    const hash = rulesHash(config);
+    const program = rules(JSON.parse(await readFile(configPath, 'utf8')));
+    const { hash } = program;
     await mkdir(resolve(env('CONFIG_DIRECTORY')), { recursive: true });
     const configFile = join(resolve(env('CONFIG_DIRECTORY')), hash + '.json');
     try {
       await access(configFile);
-      const saved = targetConfig(JSON.parse(await readFile(configFile, 'utf8')));
-      if (rulesHash(saved) !== hash) throw new Error('Stored config mismatch');
+      if (rules(JSON.parse(await readFile(configFile, 'utf8'))).hash !== hash)
+        throw new Error('Stored config mismatch');
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT')
-        await writeFile(configFile, JSON.stringify(config), { flag: 'wx', mode: 0o600 });
+        await writeFile(configFile, await readFile(configPath, 'utf8'), {
+          flag: 'wx',
+          mode: 0o600,
+        });
       else throw error;
     }
     const teamKey = key32((await readFile(env('TEAM_X25519_PUBLIC_KEY_FILE'), 'utf8')).trim());
     const mode = env('TRUST_MODE');
     if (mode !== 'local-development' && mode !== 'outlayer')
       throw new Error('Unsupported TRUST_MODE');
-    if (mode === 'outlayer' && !config.modelPolicyHash)
-      throw new Error('OutLayer bounty must pin MODEL_POLICY in its rules hash');
+    if (mode === 'outlayer' && (program.kind !== 'agent' || !program.config.modelPolicyHash))
+      throw new Error('OutLayer bounty must be an agent program that pins MODEL_POLICY');
     const provisioned = mode === 'outlayer' ? await verifiedProvisioning() : undefined;
     const local =
       mode === 'local-development'
@@ -610,7 +613,7 @@ async function run() {
   if (command === 'seal-report') {
     if (args.length !== 3)
       throw new Error('Usage: seal-report PROGRAM.json ATTACK.txt OUTPUT.json');
-    const config = targetConfig(JSON.parse(await readFile(arg(0, 'config path'), 'utf8')));
+    const { hash } = rules(JSON.parse(await readFile(arg(0, 'config path'), 'utf8')));
     const attacker = env('HUNTER_ACCOUNT');
     accountId(attacker);
     const context = {
@@ -621,8 +624,7 @@ async function run() {
       submission: randomBytes(32).toString('hex'),
     };
     const bounty = await getProgram(rpc(), context.contract, context.bounty);
-    if (bounty.rules_hash !== rulesHash(config))
-      throw new Error('Program rules do not match config');
+    if (bounty.rules_hash !== hash) throw new Error('Program rules do not match config');
     const runnerKey = key32(bounty.verifier.encryption_key);
     const attack = await readFile(arg(1, 'attack path'), 'utf8'),
       nonce = randomBytes(32).toString('hex');
@@ -642,7 +644,7 @@ async function run() {
       JSON.stringify({
         submission: context.submission,
         report_hash,
-        config_hash: rulesHash(config),
+        config_hash: hash,
       }),
     );
     return;
@@ -749,6 +751,12 @@ async function run() {
           new NearAiDevelopmentModel(env('NEAR_AI_APIKEY')),
           disclosure,
           settler,
+          env('NEAR_SANDBOX_BIN', false)
+            ? new SandboxWorlds(
+                env('NEAR_SANDBOX_BIN'),
+                codeLoader(env('WASM_DIRECTORY', false) || 'fixtures/wasm'),
+              )
+            : undefined,
         )
       : new OutLayerProcessor(
           outlayerClient(provisioned?.sealed_state),

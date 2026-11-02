@@ -9,7 +9,11 @@ import {
 import { seal } from './crypto.ts';
 import { checkViolation } from './checker.ts';
 import { runAgent, type Model } from './target/agent.ts';
+import { runProgram } from './world/run.ts';
+import { programHash, type ProgramSpec } from '../../protocol/program.ts';
 import type {
+  WorldFactory,
+  TargetConfig,
   Enclave,
   ProgramSource,
   TrustPolicy,
@@ -26,6 +30,7 @@ export class Verifier {
     private model: Model,
     private disclosure: Disclosure,
     private settler: Settler,
+    private worlds?: WorldFactory,
   ) {}
   async prepare(report: SealedReport): Promise<PreparedJob> {
     const program = await this.programs.load(report);
@@ -42,7 +47,8 @@ export class Verifier {
       program.context.bounty !== report.bounty
     )
       throw new Error('Program context mismatch');
-    if (rulesHash(program.config) !== program.rules_hash) throw new Error('Configuration mismatch');
+    const hash = program.kind === 'agent' ? rulesHash(program.config) : programHash(program.spec);
+    if (hash !== program.rules_hash) throw new Error('Configuration mismatch');
     await this.trust.verify(await this.enclave.attestation(), program);
     const decoded: unknown = JSON.parse(
       Buffer.from(await this.enclave.open(report.ciphertext, canonical(context))).toString('utf8'),
@@ -58,8 +64,10 @@ export class Verifier {
       throw new Error('Invalid submission');
     if (commitment(context, decoded.nonce, decoded.attack) !== report.report_hash)
       throw new Error('Commitment mismatch');
-    const trace = await runAgent(program.config, decoded.attack, this.model);
-    const valid = checkViolation(trace.operations, program.config.policy);
+    const { valid, trace } =
+      program.kind === 'agent'
+        ? await this.agent(program.config, decoded.attack)
+        : await this.world(program.spec, decoded.attack);
     const ciphertext = seal(
       Buffer.from(canonical({ context, attack: decoded.attack, trace })),
       program.teamKey,
@@ -78,6 +86,20 @@ export class Verifier {
     };
     const signature = await this.enclave.sign(verdict);
     return { verdict, signature, location };
+  }
+  private async agent(config: TargetConfig, attack: string) {
+    const trace = await runAgent(config, attack, this.model);
+    return { valid: checkViolation(trace.operations, config.policy), trace };
+  }
+  private async world(spec: ProgramSpec, attack: string) {
+    if (!this.worlds) throw new Error('Contract programs need NEAR_SANDBOX_BIN');
+    const { judgement, evidence } = await runProgram(this.worlds, spec, attack);
+    if (judgement.outcome === 'infra_error' || judgement.outcome === 'inconclusive')
+      throw new Error('Replay ' + judgement.outcome);
+    return {
+      valid: judgement.outcome === 'violation',
+      trace: { judgement, receipts: evidence?.receipts, status: evidence?.status },
+    };
   }
   deliver(prepared: PreparedJob): Promise<{ transaction: string }> {
     return Verifier.deliver(this.settler, prepared);

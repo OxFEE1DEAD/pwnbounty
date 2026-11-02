@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
-import { rulesHash, amount, type Verdict } from '../../../protocol/index.ts';
-import type { Program, ProgramSource, SealedReport } from '../interfaces.ts';
+import { amount, type Verdict } from '../../../protocol/index.ts';
+import type { Program, ProgramSource, Rules, SealedReport } from '../interfaces.ts';
 import { NearRpc, type Snapshot } from './rpc.ts';
-import { accountId, bytes32, hex, object, targetConfig, text, u64, verdict } from './validation.ts';
+import { accountId, bytes32, hex, object, rules, text, u64, verdict } from './validation.ts';
 
 export const PREPARE_WINDOW_BLOCKS = { 'local-development': 160n, outlayer: 300n } as const;
 
@@ -55,6 +55,13 @@ export async function getProgram(
     state,
     winner: raw.winner === null ? null : accountId(raw.winner),
   };
+}
+export async function storedRules(directory: string, hash: string): Promise<Rules> {
+  const bytes = await readFile(join(resolve(directory), hash + '.json'));
+  if (bytes.length > 131072) throw new Error('Configuration too large');
+  const { hash: actual, ...stored } = rules(JSON.parse(bytes.toString('utf8')));
+  if (actual !== hash) throw new Error('Configuration hash mismatch');
+  return stored;
 }
 export async function getCommitment(
   rpc: NearRpc,
@@ -141,17 +148,17 @@ export class NearProgramSource implements ProgramSource {
       bounty.verifier.attestation_hash !== this.options.attestationHash
     )
       throw new Error('Program verifier policy mismatch');
-    const configBytes = await readFile(join(this.configDirectory, bounty.rules_hash + '.json'));
-    if (configBytes.length > 131072) throw new Error('Configuration too large');
-    const config = targetConfig(JSON.parse(configBytes.toString('utf8')));
-    if (rulesHash(config) !== bounty.rules_hash) throw new Error('Configuration hash mismatch');
-    if (this.options.requireModelPolicyHash && !config.modelPolicyHash)
+    const stored = await storedRules(this.configDirectory, bounty.rules_hash);
+    if (
+      this.options.requireModelPolicyHash &&
+      (stored.kind !== 'agent' || !stored.config.modelPolicyHash)
+    )
       throw new Error('OutLayer program does not pin model policy');
     const deadline = BigInt(bounty.settle_until),
       requested = snapshot.height + (this.options.verdictLifetimeBlocks ?? 1000n);
     return {
+      ...stored,
       context: { network: report.network, contract: report.contract, bounty: report.bounty },
-      config,
       rules_hash: bounty.rules_hash,
       teamKey: bytes32(bounty.team_key, 'team key'),
       verdictExpires: (requested < deadline ? requested : deadline).toString(),

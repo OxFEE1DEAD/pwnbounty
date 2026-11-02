@@ -2,11 +2,10 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
-import { rulesHash } from '../../protocol/index.ts';
 import { FileDisclosure } from './disclosure.ts';
 import { FileJobStore } from './job-store.ts';
 import { NearRpc } from './near/rpc.ts';
-import { getProgram, getCommitment, PREPARE_WINDOW_BLOCKS } from './near/programs.ts';
+import { getProgram, getCommitment, storedRules, PREPARE_WINDOW_BLOCKS } from './near/programs.ts';
 import { accountId, hex, object, targetConfig, u64 } from './near/validation.ts';
 import { amount } from '../../protocol/index.ts';
 
@@ -113,13 +112,25 @@ export async function readRoute(
     if (url.pathname === '/v1/programs') {
       const from = u64(url.searchParams.get('from_index') ?? '0', 'pagination index');
       const snapshot = await options.rpc.snapshot();
-      const entries = await options.rpc.view(
+      const entries = (await options.rpc.view(
         options.contract,
         'get_bounties',
         { from_index: from, limit: 50 },
         snapshot,
+      )) as { id: string; bounty: { rules_hash: string } }[];
+      const kinds = await Promise.all(
+        entries.map((entry) =>
+          storedRules(options.configDirectory, entry.bounty.rules_hash).then(
+            (stored) => stored.kind,
+            () => null,
+          ),
+        ),
       );
-      json(res, 200, entries);
+      json(
+        res,
+        200,
+        entries.map((entry, index) => ({ ...entry, kind: kinds[index] })),
+      );
       return true;
     }
     const program = /^\/v1\/programs\/(0|[1-9][0-9]{0,19})$/.exec(url.pathname);
@@ -135,13 +146,8 @@ export async function readRoute(
         json(res, 409, { error: 'PROGRAM_USES_ANOTHER_VERIFIER' });
         return true;
       }
-      const bytes = await readFile(
-        join(resolve(options.configDirectory), bounty.rules_hash + '.json'),
-      );
-      if (bytes.length > 131072) throw new Error('Config too large');
-      const config = targetConfig(JSON.parse(bytes.toString('utf8')));
-      if (rulesHash(config) !== bounty.rules_hash) throw new Error('Config mismatch');
-      json(res, 200, { id, bounty, config, finalized_height: snapshot.height.toString() });
+      const stored = await storedRules(options.configDirectory, bounty.rules_hash);
+      json(res, 200, { id, bounty, ...stored, finalized_height: snapshot.height.toString() });
       return true;
     }
     if (!authorized(req, options.token)) {

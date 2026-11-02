@@ -25,6 +25,7 @@ export class OutLayerProcessor implements JobProcessor {
     checkpoint?: { callId?: string; accepted(callId: string): Promise<void> },
   ): Promise<PreparedJob> {
     const program = await this.programs.load(report);
+    if (program.kind !== 'agent') throw new Error('OutLayer runs agent programs only');
     const execution = await this.client.executeSealed(report, program.config, checkpoint);
     try {
       let decoded: unknown = execution.output;

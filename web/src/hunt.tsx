@@ -29,6 +29,7 @@ import {
 } from './env.js';
 import { useT } from './i18n.js';
 import { TrustNotice } from './landing.js';
+import { attackSamples, Holders, programDigest, RuleList } from './checks.js';
 
 type Step = 'encrypt' | 'wallet' | 'commit' | 'sandbox' | 'check' | 'payout';
 type StepState = 'active' | 'done' | 'error';
@@ -90,7 +91,7 @@ const samples = [
 ];
 const verdicts: Record<Outcome['kind'], string> = {
   paid: 'Rule broken. {amount} paid to {account}.',
-  'no-reward': 'No forbidden transfer executed. Reward: 0 NEAR.',
+  'no-reward': 'No rule broken. Reward: 0 NEAR.',
   retryable:
     'You won. The reward transfer failed; the reserved payout can be retried by your ' + 'wallet.',
   pending: 'Rule broken. The payout is on its way.',
@@ -103,8 +104,8 @@ const status = {
   commit: 'Waiting for the commitment in finalized NEAR…',
   committed: 'Commitment confirmed in finalized NEAR. Your claim is linked to this account.',
   send: 'Sending the encrypted invoice to the verifier…',
-  sandbox: 'Agent running with fake funds…',
-  check: 'Reading executed transfers…',
+  sandbox: 'Replaying with fake funds…',
+  check: 'Checking the signed verdict…',
   payout: 'Signed verdict accepted. Checking payout in finalized NEAR…',
 };
 
@@ -152,7 +153,11 @@ function restoreReport(meta: Meta, raw: string): SealedReport {
 async function verifiedProgram(env: Env, id: string): Promise<Program> {
   const program = await env.worker.get<Program>('/v1/programs/' + encodeURIComponent(id));
   const onchain = await env.chain.bounty(id);
-  if ((await digest(canonical(program.config))) !== onchain.rules_hash) {
+  const hash =
+    program.kind === 'world'
+      ? await programDigest(program.spec)
+      : await digest(canonical(program.config));
+  if (hash !== onchain.rules_hash) {
     throw new Error('Config hash does not match the program');
   }
   if (onchain.verifier.public_key !== env.meta.signing_public_key) {
@@ -183,9 +188,20 @@ function timeLeft(entry: Entry, height: bigint): string {
 }
 
 async function catalog(env: Env) {
-  const { entries, height } = await env.chain.allBounties();
+  const [{ entries, height }, kinds] = await Promise.all([
+    env.chain.allBounties(),
+    env.worker
+      .get<{ id: string; kind: Program['kind'] | null }[]>('/v1/programs')
+      .catch(() => []),
+  ]);
+  const kind = new Map(kinds.map((item) => [String(item.id), item.kind]));
   return entries
-    .map((entry) => ({ entry, height, standing: standing(env, entry, height) }))
+    .map((entry) => ({
+      entry,
+      height,
+      standing: standing(env, entry, height),
+      kind: kind.get(entry.id),
+    }))
     .sort(
       (a, b) =>
         Number(b.standing === 'open') - Number(a.standing === 'open') ||
@@ -507,7 +523,28 @@ function WalletConnect() {
   );
 }
 
+function WorldRules({ program }: { program: Extract<Program, { kind: 'world' }> }) {
+  const t = useT();
+  return (
+    <>
+      <p className="rule-line">{t(program.spec.title)}</p>
+      <Holders spec={program.spec} />
+      <RuleList spec={program.spec} />
+      <div className="reward">{near(program.bounty.reward)}</div>
+      <details>
+        <summary>{t('Raw rules')}</summary>
+        <pre>{JSON.stringify(program.spec, null, 2)}</pre>
+      </details>
+    </>
+  );
+}
+
 function FrozenRules({ program }: { program: Program }) {
+  if (program.kind === 'world') return <WorldRules program={program} />;
+  return <AgentRules program={program} />;
+}
+
+function AgentRules({ program }: { program: Extract<Program, { kind: 'agent' }> }) {
   const t = useT(),
     { config, bounty } = program;
   const recipients = config.policy.allowedRecipients.join(', ');
@@ -586,13 +623,17 @@ function Catalog({ visible }: { visible: boolean }) {
         </div>
         {list.loading && <p>{t('Loading programs…')}</p>}
         {list.error && <p className="error-text">{t(list.error)}</p>}
-        {rows.map(({ entry, height, standing: state }) => (
+        {rows.map(({ entry, height, standing: state, kind }) => (
           <a key={entry.id} className={'program-row ' + state} href={'#/hunt/' + entry.id}>
             <strong>
               {t('Program #')}
               {entry.id}
             </strong>
-            <span className="tag">{t('AI payment agent')}</span>
+            <span>
+              {kind && (
+                <span className="tag">{t(kind === 'world' ? 'Contract' : 'AI payment agent')}</span>
+              )}
+            </span>
             <span>{near(entry.bounty.reward)}</span>
             <span className={'tag ' + state}>{t(standingLabels[state])}</span>
             <span className="muted">
@@ -605,15 +646,14 @@ function Catalog({ visible }: { visible: boolean }) {
           </a>
         ))}
         <p className="hint">
-          {t('Contract, token and intents programs replay locally for now.')}{' '}
-          <a href="#/coverage">{t('See coverage →')}</a>
+          {t('Want your contract here?')} <a href="#/launch">{t('Launch a bounty →')}</a>
         </p>
       </section>
     </div>
   );
 }
 
-function AttackRoute({ id }: { id: string }) {
+function AttackRoute({ id, world }: { id: string; world: boolean }) {
   const { account } = useEnv(),
     t = useT();
   return (
@@ -624,8 +664,16 @@ function AttackRoute({ id }: { id: string }) {
           ? t('Its hash goes on NEAR from {account}. That is your claim.', { account })
           : t('Its hash goes on NEAR from your wallet. That is your claim.')}
       </li>
-      <li>{t('The verifier gives your text to the agent as an invoice on a test ledger.')}</li>
-      <li>{t('A forbidden transfer gives a signed verdict, and the contract pays your wallet.')}</li>
+      <li>
+        {world
+          ? t('The verifier replays your transactions on a fresh copy of the chain.')
+          : t('The verifier gives your text to the agent as an invoice on a test ledger.')}
+      </li>
+      <li>
+        {world
+          ? t('If a protected account loses value, a signed verdict makes the contract pay you.')
+          : t('A forbidden transfer gives a signed verdict, and the contract pays your wallet.')}
+      </li>
     </ol>
   );
 }
@@ -633,15 +681,17 @@ function AttackRoute({ id }: { id: string }) {
 interface ComposerProps {
   value: string;
   busy: boolean;
+  world: boolean;
+  hash: string;
   onChange(value: string): void;
 }
 
-function InvoiceComposer({ value, busy, onChange }: ComposerProps) {
+function InvoiceComposer({ value, busy, world, hash, onChange }: ComposerProps) {
   const t = useT();
   return (
     <>
       <div className="samples">
-        {samples.map((sample) => (
+        {(world ? attackSamples(hash) : samples).map((sample) => (
           <button
             key={sample.label}
             type="button"
@@ -654,7 +704,7 @@ function InvoiceComposer({ value, busy, onChange }: ComposerProps) {
         ))}
       </div>
       <label className="field" htmlFor="invoice-text">
-        {t('Invoice text')}
+        {t(world ? 'Transactions (JSON)' : 'Invoice text')}
       </label>
       <textarea
         id="invoice-text"
@@ -665,7 +715,11 @@ function InvoiceComposer({ value, busy, onChange }: ComposerProps) {
         spellCheck={false}
         onChange={(e) => onChange(e.target.value)}
       />
-      <p className="hint">{t('Your text is untrusted input to the agent.')}</p>
+      <p className="hint">
+        {world
+          ? t('Signed with the attacker key inside the replay. Examples are on the Coverage page.')
+          : t('Your text is untrusted input to the agent.')}
+      </p>
     </>
   );
 }
@@ -770,7 +824,9 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
   const elsewhere = report && report.bounty !== id ? report.bounty : undefined;
   const ready =
     !busy && !!env.account && !elsewhere && (!!report || (!!selected && !!invoice.trim()));
-  const rule = selected && selected.id === outcome?.bounty ? selected.config : undefined;
+  const world = data?.program?.kind === 'world';
+  const rule =
+    selected?.kind === 'agent' && selected.id === outcome?.bounty ? selected.config : undefined;
   const started = Object.keys(flow.progress).length > 0 || !!outcome;
   const retry = () => {
     if (outcome?.bounty && outcome.hunter && job) {
@@ -796,8 +852,14 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
         <a className="back" href="#/hunt">
           {t('← All programs')}
         </a>
-        <div className="eyebrow">{t('PROGRAM #{id} · AI PAYMENT AGENT', { id })}</div>
-        <h1>{t('Make the agent pay where it must not.')}</h1>
+        <div className="eyebrow">
+          {t(world ? 'PROGRAM #{id} · CONTRACT' : 'PROGRAM #{id} · AI PAYMENT AGENT', { id })}
+        </div>
+        <h1>
+          {world
+            ? t('Make a protected account lose value.')
+            : t('Make the agent pay where it must not.')}
+        </h1>
         {data && (
           <p className="lead">
             {near(data.entry.bounty.reward)}{' '}
@@ -827,8 +889,12 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
             {data.standing === 'open' || report?.bounty === id ? (
               <section className="card">
                 <div className="kicker">03 / {t('YOUR ATTACK')}</div>
-                <h2>{t('Write the invoice the agent will read.')}</h2>
-                <AttackRoute id={id} />
+                <h2>
+                  {world
+                    ? t('Write the transactions to replay.')
+                    : t('Write the invoice the agent will read.')}
+                </h2>
+                <AttackRoute id={id} world={world} />
                 {elsewhere ? (
                   <p className="notice">
                     {t('Saved encrypted invoice for program #{id}.', { id: elsewhere })}{' '}
@@ -839,7 +905,13 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                     {t('Saved encrypted invoice for program #{id}.', { id: report.bounty })}
                   </p>
                 ) : (
-                  <InvoiceComposer value={invoice} busy={busy} onChange={setInvoice} />
+                  <InvoiceComposer
+                    value={invoice}
+                    busy={busy}
+                    world={world}
+                    hash={data.entry.bounty.rules_hash}
+                    onChange={setInvoice}
+                  />
                 )}
                 <div className="row">
                   <button

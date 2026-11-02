@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { digest, openDisclosure } from './crypto.js';
 import { HunterWallet } from './wallet.js';
-import { Chain, near, readLimited, type Entry } from './chain.js';
+import { Chain, near, readLimited, type Bounty, type Entry } from './chain.js';
+import type { ChainCommitment } from './settlement.js';
 import {
   context,
   EnvContext,
@@ -64,7 +65,7 @@ function Header({ route }: { route: Route }) {
     ['#/how', 'How it works', false],
     ['#/coverage', 'Coverage', route === 'coverage'],
     ['#/launch', 'For projects', route === 'launch'],
-    ['#/me', 'My rewards', route === 'me'],
+    ['#/me', 'My attempts', route === 'me'],
     ['#/hunt', 'Hunt a bounty', route === 'hunt'],
   ];
   const wallet = () => {
@@ -103,9 +104,32 @@ function Header({ route }: { route: Route }) {
   );
 }
 
-async function loadWins(chain: Chain, account: string): Promise<Entry[]> {
-  const { entries } = await chain.allBounties();
-  return entries.filter((entry) => entry.bounty.winner === account);
+interface Claim {
+  bounty: string;
+  submission: string;
+  commitment: ChainCommitment;
+}
+
+function claimStatus({ commitment }: Claim, bounty: Bounty | undefined, hunter: string): string {
+  if (!commitment.settled) return 'Waiting for the verdict';
+  if (!commitment.verdict?.valid) return 'No break, no reward';
+  if (bounty?.winner !== hunter) return 'Valid, but another hunter was first';
+  return stateLabels[bounty.state] ?? bounty.state;
+}
+
+async function loadMine(chain: Chain, account: string) {
+  const [{ entries }, { value: claims }] = await Promise.all([
+    chain.allBounties(),
+    chain.view<Claim[]>('get_hunter_commitments', { hunter: account, from_index: '0', limit: 50 }),
+  ]);
+  const bounties = new Map(entries.map((entry) => [entry.id, entry.bounty]));
+  return {
+    wins: entries.filter((entry) => entry.bounty.winner === account),
+    attempts: (claims ?? [])
+      .map((claim) => ({ ...claim, bounty: String(claim.bounty) }))
+      .map((claim) => ({ claim, status: claimStatus(claim, bounties.get(claim.bounty), account) }))
+      .reverse(),
+  };
 }
 
 function Wins({ wins, reload }: { wins: Entry[]; reload(): void }) {
@@ -141,18 +165,39 @@ function Wins({ wins, reload }: { wins: Entry[]; reload(): void }) {
   );
 }
 
-function MyRewards() {
+function Attempts({ rows }: { rows: { claim: Claim; status: string }[] }) {
+  const t = useT();
+  if (!rows.length) return <p className="muted">{t('No attempts yet.')}</p>;
+  return (
+    <>
+      {rows.map(({ claim, status }) => (
+        <div key={claim.submission} className="payout-row">
+          <a href={'#/hunt/' + claim.bounty}>
+            {t('Program #')}
+            {claim.bounty}
+          </a>
+          <code title={claim.commitment.report_hash}>
+            {claim.commitment.report_hash.slice(0, 12)}…
+          </code>
+          <span className="tag">{t(status)}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function MyAttempts() {
   const { chain, account, connect, notify } = useEnv(),
     t = useT();
   const data = useAsync(
-    () => (account ? loadWins(chain, account) : Promise.resolve(undefined)),
+    () => (account ? loadMine(chain, account) : Promise.resolve(undefined)),
     [account],
   );
   return (
     <div className="wrap">
       <div className="hunt-head">
-        <div className="eyebrow">{t('MY REWARDS')}</div>
-        <h1>{t('My rewards')}</h1>
+        <div className="eyebrow">{t('MY ATTEMPTS')}</div>
+        <h1>{t('My attempts')}</h1>
         {account && (
           <p className="lead">
             <Account name={account} />
@@ -161,7 +206,7 @@ function MyRewards() {
       </div>
       {!account && (
         <div className="card">
-          <p>{t('Your rewards will appear here after you connect a wallet.')}</p>
+          <p>{t('Your attempts and rewards will appear here after you connect a wallet.')}</p>
           <button
             type="button"
             className="button"
@@ -174,9 +219,16 @@ function MyRewards() {
       {data.loading && account && <p className="muted">{t('Loading chain data…')}</p>}
       {data.error && <p className="error-text">{t(data.error)}</p>}
       {data.value && (
-        <section className="card">
-          <Wins wins={data.value} reload={data.reload} />
-        </section>
+        <div className="mine">
+          <section className="card">
+            <div className="kicker">{t('REWARDS')}</div>
+            <Wins wins={data.value.wins} reload={data.reload} />
+          </section>
+          <section className="card">
+            <div className="kicker">{t('ATTEMPTS')}</div>
+            <Attempts rows={data.value.attempts} />
+          </section>
+        </div>
       )}
     </div>
   );
@@ -366,7 +418,7 @@ function Shell({ meta }: { meta: Meta }) {
         <div hidden={route !== 'hunt'}>
           <Hunt visible={route === 'hunt'} program={route === 'hunt' ? param : undefined} />
         </div>
-        {route === 'me' && <MyRewards />}
+        {route === 'me' && <MyAttempts />}
         {route === 'team' && <TeamDecryptPanel />}
         {route === 'coverage' && <Coverage />}
         {route === 'launch' && <Launch />}

@@ -7,7 +7,8 @@ type Outcome =
   'violation' | 'no_violation' | 'limit' | 'invalid_attack' | 'inconclusive' | 'infra_error';
 type Delta = { account: string; token: string; amount: string };
 type Result = { expected: Outcome; outcome: Outcome; rule?: string; deltas?: Delta[]; ms: number };
-type Spec = {
+export type Spec = {
+  title: string;
   steps: { op: string; id?: string; near?: string; role?: string; code?: string }[];
   codes: { source: string; sha256: string; account?: string; block?: string }[];
   rules: { id: string; threshold?: string }[];
@@ -60,6 +61,46 @@ export const near = (yocto: string | bigint) => {
   const fraction = (abs(value) % YOCTO).toString().padStart(24, '0').slice(0, 4).replace(/0+$/, '');
   return `${sign}${abs(value) / YOCTO}${fraction ? '.' + fraction : ''}`;
 };
+
+export const programDigest = (spec: Spec) => digest(canonical({ spec, engine: coverage.engine }));
+
+export function attackSamples(hash: string) {
+  const target = coverage.targets.find((t) => Object.values(t.hashes).includes(hash));
+  return (target?.cases ?? []).map((c) => ({
+    label: c.title,
+    text: JSON.stringify(c.attack, null, 1),
+  }));
+}
+
+export function Holders({ spec }: { spec: Spec }) {
+  const t = useT();
+  return (
+    <>
+      {spec.steps
+        .filter((s) => s.op === 'account')
+        .map((a) => (
+          <div key={a.id} className="payout-row">
+            <span>{a.id}</span>
+            <span className={'tag ' + a.role}>{t(a.role!)}</span>
+            <strong>{near(a.near!).replace('+', '')} NEAR</strong>
+          </div>
+        ))}
+    </>
+  );
+}
+
+export function RuleList({ spec }: { spec: Spec }) {
+  const t = useT();
+  return (
+    <ul className="rule-list">
+      {spec.rules.map((r) => (
+        <li key={r.id}>
+          <b>{r.id}</b> {t(ruleNames[r.id] ?? r.id)}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 const agentMatched = coverage.agent.cases.filter((r) => String(r.violation) === r.expected).length;
 const results = coverage.targets.flatMap((t) => t.cases.flatMap((c) => Object.values(c.results)));
@@ -338,7 +379,7 @@ export function Launch() {
   const program = JSON.stringify(spec, null, 2);
   useEffect(() => {
     let current = true;
-    digest(canonical({ spec, engine: coverage.engine })).then(
+    programDigest(spec).then(
       (hash) => current && setHashed({ program, hash }),
       () => undefined,
     );
@@ -347,7 +388,6 @@ export function Launch() {
     };
   }, [program]);
   const hash = hashed.program === program ? hashed.hash : '…';
-  const accounts = spec.steps.filter((s) => s.op === 'account');
   return (
     <div className="wrap">
       <div className="hunt-head">
@@ -422,13 +462,7 @@ export function Launch() {
         </section>
         <section className="card">
           <div className="kicker">3 · {t('WHO HOLDS WHAT')}</div>
-          {accounts.map((a) => (
-            <div key={a.id} className="payout-row">
-              <span>{a.id}</span>
-              <span className={'tag ' + a.role}>{t(a.role!)}</span>
-              <strong>{near(a.near!).replace('+', '')} NEAR</strong>
-            </div>
-          ))}
+          <Holders spec={spec} />
           <p className="hint">
             {t(
               'Protected accounts must not lose value to the attacker. The attacker gets one key and a budget.',
@@ -437,13 +471,7 @@ export function Launch() {
         </section>
         <section className="card">
           <div className="kicker">4 · {t('WHAT COUNTS AS A BREAK')}</div>
-          <ul className="rule-list">
-            {spec.rules.map((r) => (
-              <li key={r.id}>
-                <b>{r.id}</b> {t(ruleNames[r.id] ?? r.id)}
-              </li>
-            ))}
-          </ul>
+          <RuleList spec={spec} />
           <label className="field">
             {t('Ignore moves smaller than (NEAR)')}
             <input
@@ -477,11 +505,11 @@ export function Launch() {
             </button>
           </div>
           <pre>
-            {`npm run cli world-run ${target.id}.program.json attack.json\n# ${t('reward')}: ${reward} NEAR`}
+            {`npm run cli world-run ${target.id}.program.json attack.json\nnpm run cli program-create ${target.id}.program.json\n# ${t('reward')}: ${reward} NEAR`}
           </pre>
           <p className="hint">
             {t(
-              'Run your own attack locally first. On-chain launch of contract programs ships with the next escrow release.',
+              'Replay your own attack locally first, then program-create funds the bounty on NEAR and hunters see it in the hunt.',
             )}
           </p>
         </section>

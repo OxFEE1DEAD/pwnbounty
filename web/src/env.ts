@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { Context } from './crypto.js';
 import type { HunterWallet } from './wallet.js';
 import type { Bounty, Chain, Network } from './chain.js';
+import type { Spec } from './checks.js';
 
 export interface Meta {
   network: Network;
@@ -23,12 +24,11 @@ export interface TargetConfig {
   maxSteps: number;
   timeoutMs: number;
 }
-export interface Program {
+export type Program = {
   id: string;
   bounty: Bounty;
-  config: TargetConfig;
   finalized_height?: string;
-}
+} & ({ kind: 'agent'; config: TargetConfig } | { kind: 'world'; spec: Spec });
 export interface TeamDraft {
   hash: string;
   context: string;

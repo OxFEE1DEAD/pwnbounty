@@ -396,7 +396,7 @@ pre {
 .hunt-head h1 { font-size: clamp(40px, 6vw, 68px); margin: 12px 0; }
 .hunt-head .lead a { color: var(--seal); text-decoration: none; }
 .hunt-grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
-.sidebar, .workspace { display: grid; gap: 16px; }
+.sidebar, .workspace, .mine { display: grid; gap: 16px; }
 
 .program-row {
   display: grid;

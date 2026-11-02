@@ -55,6 +55,8 @@ npm run cli -- world-run program.json attack.json [wasm-dir]
 
 Цели: хранилище `contract/vault` (уязвимая сборка с `--features vulnerable` и исправленная), wNEAR (код `wrap.near`), NEAR Intents (код `intents.near`, правило block с контрольной копией сети), кошелёк платёжного агента `contract/policy-wallet` (полный и ограниченный ключ агента), платёжный AI-агент (`fixtures/cases.json`, модель-заглушка). Результаты на странице `#/coverage`, шаблоны для проектов на `#/launch`.
 
+`program-create program.json` принимает и программу v2: её хеш становится `rules_hash` награды. Runner прогоняет такие атаки в песочнице, если задан `NEAR_SANDBOX_BIN`. Проверено на testnet 02.11.2026: программа #7 (уязвимый vault), атака overdraw от `sbhunter-20b45b.testnet`, вердикт `valid=true`, выплата 0.5 NEAR (tx `HfbZpodACi7mqcebipQx2tpKP5KBsU9xJKJ6dPbJCbVu`). Заявки охотника читаются из контракта: `get_hunter_commitments(hunter, from_index, limit)`.
+
 ## Интерфейс демонстрации
 
 Соберите страницу командой `npm run build:web`, затем запустите настроенный worker: `npm run cli -- runner`. Страница откроется по `http://127.0.0.1:8787/` (или заданному ingress адресу). По умолчанию worker открыт: каталог, отправка отчёта и статус job работают без токена. Спам ограничен тем, что каждая отправка требует on-chain commitment со storage deposit; disclosure зашифрован ключом команды, а verdict и так публичен в сети. `INGRESS_BEARER_TOKEN` - необязательная защита для оператора: если задать его (не короче 32 символов), отправка и чтение статуса потребуют `Authorization: Bearer <token>`. Все параметры перечислены в `.env.example`; `.env` нужно загрузить в окружение процесса самостоятельно.
@@ -69,4 +71,4 @@ Browser wallet интегрирован через [официальный Walle
 
 `npm run cli -- retry-payment CONTRACT BOUNTY` повторяет перевод из состояния `Retryable`; нужен `RETRY_ACCOUNT` (победитель) и `RETRY_PRIVATE_KEY`. `npm run cli -- withdraw CONTRACT BOUNTY` возвращает свободный резерв владельцу после `settle_until`; нужны `SPONSOR_ACCOUNT` и `SPONSOR_PRIVATE_KEY`. Для mainnet обе команды дополнительно требуют `ALLOW_MAINNET_WRITES=true` и проверяют сеть RPC до отправки транзакции.
 
-Обновлённый контракт не разрешает спонсору выводить награду из `Retryable`: она уже присуждена победителю. Это изменение ещё не развёрнуто на testnet; адрес `sbcontract-20b45b.testnet` работает по старому правилу.
+Контракт не разрешает спонсору выводить награду из `Retryable`: она уже присуждена победителю. На `sbcontract-20b45b.testnet` это правило действует с деплоя 02.11.2026 (tx `9jweRwfjoiD4sFW3umyEMDyRNkptgSQab4GzcnG7bUE3`).

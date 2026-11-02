@@ -9,7 +9,7 @@ const ru: Record<string, string> = {
   'How it works': 'Как это работает',
   Coverage: 'Покрытие',
   'For projects': 'Для проектов',
-  'My rewards': 'Мои награды',
+  'My attempts': 'Мои заявки',
   'Hunt a bounty': 'Искать награду',
   'Connect wallet': 'Подключить кошелёк',
   'Loading verification mode…': 'Загружаем режим проверки…',
@@ -166,8 +166,8 @@ const ru: Record<string, string> = {
   reward: 'награда',
   'Write your own attack in the same format and replay it: npm run cli world-run program.json attack.json':
     'Напишите свою атаку в том же формате и прогоните её: npm run cli world-run program.json attack.json',
-  'Run your own attack locally first. On-chain launch of contract programs ships with the next escrow release.':
-    'Сначала прогоните свою атаку локально. Запуск программ для контрактов в сети появится в следующем релизе эскроу.',
+  'Replay your own attack locally first, then program-create funds the bounty on NEAR and hunters see it in the hunt.':
+    'Сначала прогоните свою атаку локально, затем program-create фондирует награду в NEAR, и охотники видят её в каталоге.',
   'On-chain, not on faith.': 'В сети, а не на словах.',
   'Finalized NEAR state. Refreshes when the page loads.':
     'Подтверждённое состояние NEAR. Обновляется при загрузке страницы.',
@@ -195,9 +195,7 @@ const ru: Record<string, string> = {
   Refunding: 'Возврат',
   'closes in {time}': 'закроется через {time}',
   'won by {account}': 'победитель {account}',
-  'Contract, token and intents programs replay locally for now.':
-    'Программы для контрактов, токенов и intents пока прогоняются локально.',
-  'See coverage →': 'Смотреть покрытие →',
+  'Want your contract here?': 'Хотите сюда свой контракт?',
   '← All programs': '← Все программы',
   'PROGRAM #{id} · AI PAYMENT AGENT': 'ПРОГРАММА #{id} · ПЛАТЁЖНЫЙ AI-АГЕНТ',
   'Make the agent pay where it must not.': 'Заставьте агента заплатить туда, куда нельзя.',
@@ -288,15 +286,14 @@ const ru: Record<string, string> = {
   'Commitment confirmed in finalized NEAR. Your claim is linked to this account.':
     'Хеш заявки подтверждён в NEAR. Заявка закреплена за этим аккаунтом.',
   'Sending the encrypted invoice to the verifier…': 'Отправляем зашифрованный инвойс проверяющему…',
-  'Agent running with fake funds…': 'Агент работает с ненастоящими средствами…',
-  'Reading executed transfers…': 'Проверяем выполненные переводы…',
+  'Replaying with fake funds…': 'Прогон на ненастоящих средствах…',
+  'Checking the signed verdict…': 'Проверяем подписанный вердикт…',
   'Signed verdict accepted. Checking payout in finalized NEAR…':
     'Подписанный вердикт принят. Проверяем выплату в подтверждённом состоянии NEAR…',
   'EVIDENCE / VERDICT': 'ДОКАЗАТЕЛЬСТВО / ВЕРДИКТ',
   'Rule broken. {amount} paid to {account}.':
     'Правило нарушено. {amount} выплачено аккаунту {account}.',
-  'No forbidden transfer executed. Reward: 0 NEAR.':
-    'Запрещённый перевод не выполнен. Награда: 0 NEAR.',
+  'No rule broken. Reward: 0 NEAR.': 'Правило не нарушено. Награда: 0 NEAR.',
   'You won. The reward transfer failed; the reserved payout can be retried by your wallet.':
     'Вы победили. Перевод награды не прошёл; повторить зарезервированную выплату можно ' +
     'своим кошельком.',
@@ -306,9 +303,26 @@ const ru: Record<string, string> = {
   'Retry payout': 'Повторить выплату',
   'Try another invoice': 'Попробовать другой инвойс',
   'Job details': 'Детали задачи',
-  'Your rewards will appear here after you connect a wallet.':
-    'Ваши награды появятся здесь после подключения кошелька.',
-  'MY REWARDS': 'МОИ НАГРАДЫ',
+  'Your attempts and rewards will appear here after you connect a wallet.':
+    'Ваши заявки и награды появятся здесь после подключения кошелька.',
+  'MY ATTEMPTS': 'МОИ ЗАЯВКИ',
+  REWARDS: 'НАГРАДЫ',
+  ATTEMPTS: 'ЗАЯВКИ',
+  'No attempts yet.': 'Заявок пока нет.',
+  'Waiting for the verdict': 'Ждём вердикт',
+  'No break, no reward': 'Взлома нет, награды нет',
+  'Valid, but another hunter was first': 'Засчитано, но другой охотник был первым',
+  Contract: 'Контракт',
+  'PROGRAM #{id} · CONTRACT': 'ПРОГРАММА #{id} · КОНТРАКТ',
+  'Make a protected account lose value.': 'Заставьте защищённый аккаунт потерять ценность.',
+  'Write the transactions to replay.': 'Напишите транзакции для прогона.',
+  'The verifier replays your transactions on a fresh copy of the chain.':
+    'Верификатор прогоняет ваши транзакции на свежей копии сети.',
+  'If a protected account loses value, a signed verdict makes the contract pay you.':
+    'Если защищённый аккаунт теряет ценность, подписанный вердикт заставляет контракт заплатить вам.',
+  'Transactions (JSON)': 'Транзакции (JSON)',
+  'Signed with the attacker key inside the replay. Examples are on the Coverage page.':
+    'Подписываются ключом атакующего внутри прогона. Примеры - на странице покрытия.',
   'Log out': 'Выйти',
   'No rewards yet.': 'Наград пока нет.',
   Paid: 'Выплачено',

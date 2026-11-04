@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { digest, openDisclosure } from './crypto.js';
 import { HunterWallet } from './wallet.js';
-import { Chain, near, readLimited, type Bounty, type Entry } from './chain.js';
-import type { ChainCommitment } from './settlement.js';
+import { Chain, near, type Bounty, type Entry } from './chain.js';
 import {
   context,
   EnvContext,
@@ -17,36 +16,79 @@ import {
   type Note,
   type TeamDraft,
 } from './env.js';
+import type { ChainReader, HunterClaim, VerifierApi } from './ports.js';
+import { Icon, type IconName } from './icons.js';
 import { LangProvider, useLang, useT } from './i18n.js';
 import { Hunt } from './hunt.js';
 import { Coverage, Launch } from './checks.js';
 import { Account, Landing, repository } from './landing.js';
 import '../style.css';
 
-const routes = ['home', 'hunt', 'me', 'team', 'coverage', 'launch'] as const;
-const anchors = ['how', 'evidence'];
-type Route = (typeof routes)[number];
+type Route = 'home' | 'programs' | 'program' | 'me' | 'projects' | 'launch';
+interface Place {
+  route: Route;
+  id?: string;
+  anchor?: string;
+}
+interface Side {
+  label: string;
+  title: string;
+  icon: IconName;
+  href: string;
+  path: string;
+  links: [string, string, Route[]][];
+}
 const stateLabels: Record<string, string> = {
   Paid: 'Paid',
   Pending: 'Payout in progress',
   Retryable: 'Payout failed',
 };
+const sides: Side[] = [
+  {
+    label: 'For hackers',
+    title: 'FOR HACKERS',
+    icon: 'bug',
+    href: '#/programs',
+    path: 'find a program → send a sealed attack → get paid',
+    links: [
+      ['#/programs', 'Programs', ['programs', 'program']],
+      ['#/me', 'My claims', ['me']],
+    ],
+  },
+  {
+    label: 'For projects',
+    title: 'FOR PROJECTS',
+    icon: 'tools',
+    href: '#/projects',
+    path: 'describe → test run → fund → read reports',
+    links: [
+      ['#/projects', 'Overview', ['projects']],
+      ['#/projects/mine', 'My programs', []],
+      ['#/projects/new', 'Launch a program', ['launch']],
+    ],
+  },
+];
+const sideOf = (route: Route) =>
+  sides.find((side) => side.links.some(([, , r]) => r.includes(route)));
 
-function readHash(): { route: Route; param?: string; anchor?: string } {
-  const [name = '', param] = location.hash.replace(/^#\/?/, '').split('/');
-  if (anchors.includes(name)) return { route: 'home', anchor: name };
-  if (!(routes as readonly string[]).includes(name)) return { route: 'home' };
-  return { route: name as Route, param };
+function readHash(): Place {
+  const [name = '', sub] = location.hash.replace(/^#\/?/, '').split('/');
+  if (name === 'programs') return sub ? { route: 'program', id: sub } : { route: 'programs' };
+  if (name === 'projects')
+    return sub === 'new' ? { route: 'launch' } : { route: 'projects', anchor: sub };
+  if (name === 'me') return { route: 'me' };
+  return { route: 'home', anchor: name || undefined };
 }
 
-function useRoute(): { route: Route; param?: string } {
-  const [route, setRoute] = useState(() => readHash());
+function useRoute(): Place {
+  const [place, setPlace] = useState(() => readHash());
   useEffect(() => {
     const change = () => {
-      const { route: next, param, anchor } = readHash();
-      setRoute({ route: next, param });
+      const next = readHash();
+      setPlace(next);
       window.requestAnimationFrame(() => {
-        if (anchor) document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth' });
+        const target = next.anchor && document.getElementById(next.anchor);
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
         else window.scrollTo(0, 0);
       });
     };
@@ -54,79 +96,91 @@ function useRoute(): { route: Route; param?: string } {
     window.addEventListener('hashchange', change);
     return () => window.removeEventListener('hashchange', change);
   }, []);
-  return route;
+  return place;
+}
+
+function Brand() {
+  return (
+    <a className="brand" href="#/">
+      <Icon name="lock" size={22} />
+      PWNBOUNTY
+    </a>
+  );
 }
 
 function Header({ route }: { route: Route }) {
   const { meta, account, connect, disconnect, notify } = useEnv(),
     t = useT();
   const { lang, toggle } = useLang();
-  const nav: [string, string, boolean][] = [
-    ['#/how', 'How it works', false],
-    ['#/coverage', 'Coverage', route === 'coverage'],
-    ['#/launch', 'For projects', route === 'launch'],
-    ['#/me', 'My attempts', route === 'me'],
-    ['#/hunt', 'Hunt a bounty', route === 'hunt'],
-  ];
+  const side = sideOf(route);
   const wallet = () => {
     if (account) location.hash = '#/me';
     else connect().catch((error) => notify(errorText(error), true));
   };
   return (
-    <header className="top wrap">
-      <button type="button" className="lang" onClick={toggle} aria-label={t('Switch language')}>
-        {lang === 'en' ? 'EN / RU' : 'RU / EN'}
-      </button>
-      <a className="brand" href="#/">
-        SEALED <mark>BOUNTY</mark>
-      </a>
-      <nav aria-label={t('Main navigation')}>
-        {nav.map(([href, label, current]) => (
-          <a key={href} href={href} className={current ? 'current' : ''}>
-            {t(label)}
-          </a>
-        ))}
-      </nav>
-      <span className="badge">{meta.network}</span>
-      <button type="button" className="button secondary wallet" onClick={wallet}>
-        {account ?? t('Connect wallet')}
-      </button>
-      {account && (
-        <button
-          type="button"
-          className="chip"
-          onClick={() => disconnect().catch((error) => notify(errorText(error), true))}
-        >
-          {t('Log out')}
+    <>
+      <header className="top wrap">
+        <Brand />
+        <nav aria-label={t('Main navigation')}>
+          {sides.map((item) => (
+            <a key={item.href} href={item.href} className={item === side ? 'current' : ''}>
+              <Icon name={item.icon} />
+              {t(item.label)}
+            </a>
+          ))}
+        </nav>
+        <span className="badge">{meta.network}</span>
+        <button type="button" className="lang" onClick={toggle} aria-label={t('Switch language')}>
+          {lang === 'en' ? 'EN / RU' : 'RU / EN'}
         </button>
+        <button type="button" className="button wallet" onClick={wallet}>
+          {account ?? t('Connect wallet')}
+        </button>
+        {account && (
+          <button
+            type="button"
+            className="chip"
+            onClick={() => disconnect().catch((error) => notify(errorText(error), true))}
+          >
+            {t('Log out')}
+          </button>
+        )}
+      </header>
+      {side && (
+        <nav className="subnav wrap" aria-label={t(side.label)}>
+          <span className="pixel">{t(side.title)}</span>
+          {side.links.map(([href, label, routes]) => (
+            <a key={href} href={href} className={routes.includes(route) ? 'current' : ''}>
+              {t(label)}
+            </a>
+          ))}
+          <span className="route-line">{t(side.path)}</span>
+        </nav>
       )}
-    </header>
+    </>
   );
 }
 
-interface Claim {
-  bounty: string;
-  submission: string;
-  commitment: ChainCommitment;
-}
-
-function claimStatus({ commitment }: Claim, bounty: Bounty | undefined, hunter: string): string {
+function claimStatus(
+  { commitment }: HunterClaim,
+  bounty: Bounty | undefined,
+  hunter: string,
+): string {
   if (!commitment.settled) return 'Waiting for the verdict';
   if (!commitment.verdict?.valid) return 'No break, no reward';
   if (bounty?.winner !== hunter) return 'Valid, but another hunter was first';
   return stateLabels[bounty.state] ?? bounty.state;
 }
 
-async function loadMine(chain: Chain, account: string) {
-  const [{ entries }, { value: claims }] = await Promise.all([
+async function loadMine(chain: ChainReader, account: string) {
+  const [{ entries }, claims] = await Promise.all([
     chain.allBounties(),
-    chain.view<Claim[]>('get_hunter_commitments', { hunter: account, from_index: '0', limit: 50 }),
+    chain.hunterClaims(account, 0, 50),
   ]);
   const bounties = new Map(entries.map((entry) => [entry.id, entry.bounty]));
   return {
     wins: entries.filter((entry) => entry.bounty.winner === account),
-    attempts: (claims ?? [])
-      .map((claim) => ({ ...claim, bounty: String(claim.bounty) }))
+    attempts: claims
       .map((claim) => ({ claim, status: claimStatus(claim, bounties.get(claim.bounty), account) }))
       .reverse(),
   };
@@ -165,14 +219,14 @@ function Wins({ wins, reload }: { wins: Entry[]; reload(): void }) {
   );
 }
 
-function Attempts({ rows }: { rows: { claim: Claim; status: string }[] }) {
+function Attempts({ rows }: { rows: { claim: HunterClaim; status: string }[] }) {
   const t = useT();
   if (!rows.length) return <p className="muted">{t('No attempts yet.')}</p>;
   return (
     <>
       {rows.map(({ claim, status }) => (
         <div key={claim.submission} className="payout-row">
-          <a href={'#/hunt/' + claim.bounty}>
+          <a href={'#/programs/' + claim.bounty}>
             {t('Program #')}
             {claim.bounty}
           </a>
@@ -196,8 +250,8 @@ function MyAttempts() {
   return (
     <div className="wrap">
       <div className="hunt-head">
-        <div className="eyebrow">{t('MY ATTEMPTS')}</div>
-        <h1>{t('My attempts')}</h1>
+        <div className="eyebrow">{t('MY CLAIMS')}</div>
+        <h1>{t('My claims')}</h1>
         {account && (
           <p className="lead">
             <Account name={account} />
@@ -234,12 +288,15 @@ function MyAttempts() {
   );
 }
 
-async function decrypt(worker: Worker, draft: TeamDraft, file: File | undefined): Promise<string> {
+async function decrypt(
+  worker: VerifierApi,
+  draft: TeamDraft,
+  file: File | undefined,
+): Promise<string> {
   if (!/^[a-f0-9]{64}$/.test(draft.hash)) throw new Error('Invalid disclosure hash');
   if (!file || file.size > 4096) throw new Error('Choose the team PKCS8 DER private key');
   const c = context(JSON.parse(draft.context));
-  const response = await worker.fetch('/v1/disclosures/' + draft.hash, true);
-  const ciphertext = await readLimited(response, 1_048_576);
+  const ciphertext = await worker.disclosure(draft.hash);
   if ((await digest(ciphertext)) !== draft.hash) throw new Error('Ciphertext hash mismatch');
   try {
     return await openDisclosure(ciphertext, await file.arrayBuffer(), c);
@@ -273,7 +330,7 @@ function TeamDecryptPanel() {
       });
   };
   return (
-    <div className="wrap team">
+    <div id="mine" className="wrap team">
       <details open>
         <summary>{t('For the project team')}</summary>
         <p>{t('Upload your team key to decrypt locally. The key never leaves this browser.')}</p>
@@ -359,15 +416,15 @@ function Footer() {
       <a href={repository} {...external}>
         {t('Read the code ↗')}
       </a>
-      <a href="#/hunt">{t('Start hunting →')}</a>
-      <a href="#/launch">{t('Launch a bounty →')}</a>
-      <a href="#/team">{t('For the project team')}</a>
+      <a href="#/programs">{t('Start hunting →')}</a>
+      <a href="#/projects/new">{t('Launch a bounty →')}</a>
     </footer>
   );
 }
 
 function Shell({ meta }: { meta: Meta }) {
-  const { route, param } = useRoute();
+  const { route, id } = useRoute();
+  const hunting = route === 'programs' || route === 'program';
   const token = useRef('');
   const [tokenValue, setTokenValue] = useState('');
   const [askToken, setAskToken] = useState(meta.public_ingress === false);
@@ -415,12 +472,16 @@ function Shell({ meta }: { meta: Meta }) {
       {askToken && <Operator token={tokenValue} setToken={setToken} />}
       <main>
         {route === 'home' && <Landing />}
-        <div hidden={route !== 'hunt'}>
-          <Hunt visible={route === 'hunt'} program={route === 'hunt' ? param : undefined} />
+        <div hidden={!hunting}>
+          <Hunt visible={hunting} program={route === 'program' ? id : undefined} />
         </div>
         {route === 'me' && <MyAttempts />}
-        {route === 'team' && <TeamDecryptPanel />}
-        {route === 'coverage' && <Coverage />}
+        {route === 'projects' && (
+          <>
+            <Coverage />
+            <TeamDecryptPanel />
+          </>
+        )}
         {route === 'launch' && <Launch />}
       </main>
       <Footer />
@@ -439,9 +500,7 @@ function App() {
   if (meta) return <Shell meta={meta} />;
   return (
     <main className="splash">
-      <a className="brand" href="#/">
-        SEALED <mark>BOUNTY</mark>
-      </a>
+      <Brand />
       <p className={error ? 'error-text' : 'muted'}>
         {error ? t(error) : t('Loading verification mode…')}
       </p>

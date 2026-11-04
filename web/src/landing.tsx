@@ -128,16 +128,16 @@ function Hero() {
         </h1>
         <p className="lead">{t(copy.lead)}</p>
         <div className="hero-actions">
-          <a className="button" href="#/hunt">
+          <a className="button" href="#/programs">
             {t('Hunt a bounty →')}
           </a>
-          <a className="button secondary" href="#/launch">
+          <a className="button secondary" href="#/projects/new">
             {t('Launch a bounty')}
           </a>
         </div>
         <p className="mini">
           {t('The replay decides. Claims and severity debates earn zero.')}{' '}
-          <a href="#/coverage">{t('See what it checks →')}</a>
+          <a href="#/projects">{t('See what it checks →')}</a>
         </p>
       </div>
       <EvidenceEnvelope />
@@ -202,7 +202,7 @@ function Doors() {
               'Pick an open bounty, test the attack locally, seal it. The replay decides, so nobody can argue the verdict.',
             )}
           </p>
-          <a className="button" href="#/hunt">
+          <a className="button" href="#/programs">
             {t('Hunt a bounty →')}
           </a>
         </div>
@@ -214,7 +214,7 @@ function Doors() {
               'Describe your contract, token, intents app or agent as a program. Hunters attack a fresh copy, never your live funds.',
             )}
           </p>
-          <a className="button secondary" href="#/launch">
+          <a className="button secondary" href="#/projects/new">
             {t('Launch a bounty →')}
           </a>
         </div>

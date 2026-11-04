@@ -1,5 +1,6 @@
 import { NearConnector, type NearWalletBase } from '@hot-labs/near-connect';
 import type { SealedReport } from './crypto.js';
+import type { Wallet } from './ports.js';
 
 const GAS = '100000000000000';
 const WALLETS_OUTSIDE_CSP = [
@@ -11,7 +12,7 @@ const WALLETS_OUTSIDE_CSP = [
   'near-cli',
 ];
 
-export class HunterWallet {
+export class HunterWallet implements Wallet {
   private connector: NearConnector;
   constructor(
     private network: 'mainnet' | 'testnet',
@@ -55,13 +56,22 @@ export class HunterWallet {
     );
   }
   async retryPayment(bounty: string, hunter: string): Promise<void> {
-    this.assertWritable();
-    if (!/^(0|[1-9][0-9]{0,19})$/.test(bounty) || BigInt(bounty) > (1n << 64n) - 1n)
-      throw new Error('Invalid program number');
+    this.assertProgram(bounty);
     const signer = await this.signer();
     if (!signer || signer.account !== hunter)
       throw new Error("Only the winner's wallet can retry the transfer");
     await this.call(signer, 'retry_payment', { bounty }, '0');
+  }
+  async withdraw(bounty: string): Promise<void> {
+    this.assertProgram(bounty);
+    const signer = await this.signer();
+    if (!signer) throw new Error("Connect the program owner's wallet");
+    await this.call(signer, 'withdraw', { bounty }, '0');
+  }
+  private assertProgram(bounty: string): void {
+    this.assertWritable();
+    if (!/^(0|[1-9][0-9]{0,19})$/.test(bounty) || BigInt(bounty) > (1n << 64n) - 1n)
+      throw new Error('Invalid program number');
   }
   private assertWritable(): void {
     if (this.network === 'mainnet' && !this.allowMainnetWrites)

@@ -10,11 +10,11 @@ import {
 } from './crypto.js';
 import {
   settlementState,
-  type ChainCommitment,
   type SettlementState,
   type SettlementVerdict as Verdict,
 } from './settlement.js';
-import { isOpen, near, type Chain, type Entry } from './chain.js';
+import { isOpen, near, type Entry } from './chain.js';
+import type { ChainReader, Job } from './ports.js';
 import {
   context,
   delay,
@@ -40,15 +40,6 @@ interface Outcome {
   reward?: string;
   reportHash?: string;
   detail?: string;
-}
-interface Job {
-  id: string;
-  state: string;
-  transaction?: string;
-  errorCode?: string;
-  outlayerCallId?: string;
-  verdict?: Verdict;
-  signature?: string;
 }
 
 const pendingKey = 'sealed-bounty/encrypted-pending/1';
@@ -151,7 +142,7 @@ function restoreReport(meta: Meta, raw: string): SealedReport {
 }
 
 async function verifiedProgram(env: Env, id: string): Promise<Program> {
-  const program = await env.worker.get<Program>('/v1/programs/' + encodeURIComponent(id));
+  const program = await env.worker.program(id);
   const onchain = await env.chain.bounty(id);
   const hash =
     program.kind === 'world'
@@ -184,15 +175,15 @@ function standing(env: Env, entry: Entry, height: bigint): Standing {
 
 function timeLeft(entry: Entry, height: bigint): string {
   const minutes = (Number(BigInt(entry.bounty.expires) - height) * 1.2) / 60;
-  return minutes < 90 ? `~${Math.max(1, Math.round(minutes))} min` : `~${Math.round(minutes / 60)} h`;
+  return minutes < 90
+    ? `~${Math.max(1, Math.round(minutes))} min`
+    : `~${Math.round(minutes / 60)} h`;
 }
 
 async function catalog(env: Env) {
   const [{ entries, height }, kinds] = await Promise.all([
     env.chain.allBounties(),
-    env.worker
-      .get<{ id: string; kind: Program['kind'] | null }[]>('/v1/programs')
-      .catch(() => []),
+    env.worker.programs().catch(() => []),
   ]);
   const kind = new Map(kinds.map((item) => [String(item.id), item.kind]));
   return entries
@@ -238,7 +229,7 @@ function download(report: SealedReport): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function receipt(chain: Chain, job: Job | undefined): string | undefined {
+function receipt(chain: ChainReader, job: Job | undefined): string | undefined {
   const pattern = /^near:(testnet|mainnet):transaction:([1-9A-HJ-NP-Za-km-z]+)$/;
   const tx = job?.transaction?.match(pattern);
   return tx && tx[1] === chain.network ? chain.txUrl(tx[2]!) : undefined;
@@ -246,7 +237,10 @@ function receipt(chain: Chain, job: Job | undefined): string | undefined {
 
 function savedJob(): { id: string; bounty: string } | undefined {
   try {
-    const value = JSON.parse(session.get(pendingJobKey) ?? 'null') as Record<string, unknown> | null;
+    const value = JSON.parse(session.get(pendingJobKey) ?? 'null') as Record<
+      string,
+      unknown
+    > | null;
     const { id, bounty } = value ?? {};
     if (typeof id === 'string' && typeof bounty === 'string' && /^[0-9]{1,20}$/.test(bounty)) {
       return { id, bounty };
@@ -334,19 +328,16 @@ function useSubmission(env: Env) {
 
   async function found(pending: SealedReport, attempts: number): Promise<boolean> {
     const { bounty, hunter, submission } = pending;
-    const query = new URLSearchParams({ bounty, hunter, submission });
     for (let attempt = 0; attempt < attempts; attempt++) {
       if (attempt) await delay(3000);
-      const claim = await worker
-        .get<{ report_hash: string; settled: boolean }>('/v1/commitments?' + query, true)
-        .catch((error) => {
-          const transient =
-            error instanceof HttpError
-              ? error.status !== 401
-              : error instanceof TypeError || error instanceof DOMException;
-          if (!transient) throw error;
-          return undefined;
-        });
+      const claim = await worker.claim(bounty, hunter, submission).catch((error) => {
+        const transient =
+          error instanceof HttpError
+            ? error.status !== 401
+            : error instanceof TypeError || error instanceof DOMException;
+        if (!transient) throw error;
+        return undefined;
+      });
       if (!claim) continue;
       if (claim.report_hash !== pending.report_hash || claim.settled) {
         throw new Error(
@@ -366,7 +357,7 @@ function useSubmission(env: Env) {
 
   async function send(pending: SealedReport): Promise<void> {
     mark('sandbox', 'active', status.send);
-    const created = await worker.post<{ id: string }>('/v1/submissions', pending);
+    const created = await worker.submit(pending);
     forget();
     session.set(pendingJobKey, JSON.stringify({ id: created.id, bounty: pending.bounty }));
     await track(created.id, ++poll.current);
@@ -374,8 +365,11 @@ function useSubmission(env: Env) {
 
   async function verified(current: Job & { verdict: Verdict }) {
     const v = current.verdict;
-    const args = { bounty: v.bounty, hunter: v.hunter, submission: v.submission };
-    const { value: claim, blockHash } = await chain.view<ChainCommitment>('get_commitment', args);
+    const { commitment: claim, blockHash } = await chain.commitment(
+      v.bounty,
+      v.hunter,
+      v.submission,
+    );
     const bounty = await chain.bounty(v.bounty, blockHash);
     if (
       v.network !== meta.network ||
@@ -403,7 +397,7 @@ function useSubmission(env: Env) {
 
   async function track(id: string, version: number): Promise<void> {
     if (!/^[a-f0-9]{64}$/.test(id)) throw new Error('Job ID must be 64 hex characters');
-    const current = await worker.get<Job>('/v1/jobs/' + id, true);
+    const current = await worker.job(id);
     if (version !== poll.current) return;
     setJob(current);
     if (current.state === 'failed') {
@@ -477,7 +471,7 @@ function useSubmission(env: Env) {
       try {
         const pending = restoreReport(meta, raw);
         setReport(pending);
-        location.hash = '#/hunt/' + pending.bounty;
+        location.hash = '#/programs/' + pending.bounty;
         if (!new URLSearchParams(location.search).has('errorCode')) void resume(pending);
         else notify('The wallet did not send the commitment. Press the button to try again.', true);
       } catch {
@@ -485,7 +479,7 @@ function useSubmission(env: Env) {
         notify('The saved submission does not match this network or is corrupted.', true);
       }
     } else if (saved) {
-      location.hash = '#/hunt/' + saved.bounty;
+      location.hash = '#/programs/' + saved.bounty;
       for (const step of ['encrypt', 'wallet', 'commit'] as const) mark(step, 'done');
       mark('sandbox', 'active', status.sandbox);
       track(saved.id, ++poll.current).catch(fail);
@@ -624,7 +618,7 @@ function Catalog({ visible }: { visible: boolean }) {
         {list.loading && <p>{t('Loading programs…')}</p>}
         {list.error && <p className="error-text">{t(list.error)}</p>}
         {rows.map(({ entry, height, standing: state, kind }) => (
-          <a key={entry.id} className={'program-row ' + state} href={'#/hunt/' + entry.id}>
+          <a key={entry.id} className={'program-row ' + state} href={'#/programs/' + entry.id}>
             <strong>
               {t('Program #')}
               {entry.id}
@@ -646,7 +640,7 @@ function Catalog({ visible }: { visible: boolean }) {
           </a>
         ))}
         <p className="hint">
-          {t('Want your contract here?')} <a href="#/launch">{t('Launch a bounty →')}</a>
+          {t('Want your contract here?')} <a href="#/projects/new">{t('Launch a bounty →')}</a>
         </p>
       </section>
     </div>
@@ -849,7 +843,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
   return (
     <div className="wrap">
       <div className="hunt-head">
-        <a className="back" href="#/hunt">
+        <a className="back" href="#/programs">
           {t('← All programs')}
         </a>
         <div className="eyebrow">
@@ -898,7 +892,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                 {elsewhere ? (
                   <p className="notice">
                     {t('Saved encrypted invoice for program #{id}.', { id: elsewhere })}{' '}
-                    <a href={'#/hunt/' + elsewhere}>{t('Open it →')}</a>
+                    <a href={'#/programs/' + elsewhere}>{t('Open it →')}</a>
                   </p>
                 ) : report ? (
                   <p className="notice">
@@ -938,7 +932,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
               <section className="card">
                 <div className="kicker">03 / {t('YOUR ATTACK')}</div>
                 <p>{t('This program is closed for new attacks.')}</p>
-                <a className="button secondary" href="#/hunt">
+                <a className="button secondary" href="#/programs">
                   {t('← All programs')}
                 </a>
               </section>

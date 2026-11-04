@@ -1,4 +1,4 @@
-import type { Bounty, Entry, Network, Snapshot, Verifier } from './chain.js';
+import type { Bounty, Entry, Network, Snapshot } from './chain.js';
 import type { SealedReport } from './crypto.js';
 import type { Meta, Program } from './env.js';
 import type { ChainCommitment, SettlementVerdict } from './settlement.js';
@@ -9,6 +9,7 @@ export interface ContractConfig {
   bounty_count: string;
   bounty_storage_deposit: string;
   claim_storage_deposit: string;
+  verifier_registration: string;
 }
 
 export interface HunterClaim {
@@ -24,7 +25,11 @@ export interface ChainReader {
   config(): Promise<ContractConfig>;
   bounty(id: string, blockHash?: string): Promise<Bounty>;
   allBounties(): Promise<{ entries: Entry[]; height: bigint }>;
-  commitment(bounty: string, hunter: string, submission: string): Promise<ChainCommitment | null>;
+  commitment(
+    bounty: string,
+    hunter: string,
+    submission: string,
+  ): Promise<{ commitment: ChainCommitment | null; blockHash: string }>;
   hunterClaims(hunter: string, fromIndex: number, limit: number): Promise<HunterClaim[]>;
   accountUrl(account: string): string;
   txUrl(hash: string): string;
@@ -45,22 +50,19 @@ export interface Job {
   signature?: string;
 }
 
+export interface WorkerClaim {
+  report_hash: string;
+  settled: boolean;
+}
+
 export interface VerifierApi {
   readonly meta: Meta;
   programs(): Promise<ProgramSummary[]>;
   program(id: string): Promise<Program>;
+  claim(bounty: string, hunter: string, submission: string): Promise<WorkerClaim>;
   submit(report: SealedReport): Promise<{ id: string }>;
   job(id: string): Promise<Job>;
   disclosure(hash: string): Promise<Uint8Array>;
-}
-
-export interface CreateArgs {
-  rules_hash: string;
-  team_key: string;
-  reward: string;
-  expires: string;
-  settle_until: string;
-  verifier: Verifier;
 }
 
 export interface Wallet {
@@ -69,12 +71,11 @@ export interface Wallet {
   disconnect(): Promise<void>;
   commit(report: SealedReport, deposit: string): Promise<void>;
   retryPayment(bounty: string, hunter: string): Promise<void>;
-  create(args: CreateArgs, deposit: string): Promise<string>;
   withdraw(bounty: string): Promise<void>;
 }
 
 export interface Ports {
   chain: ChainReader;
-  verifier: VerifierApi;
+  worker: VerifierApi;
   wallet: Wallet;
 }

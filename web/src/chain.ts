@@ -1,3 +1,6 @@
+import type { ChainReader, ContractConfig, HunterClaim } from './ports.js';
+import type { ChainCommitment } from './settlement.js';
+
 export type Network = 'mainnet' | 'testnet';
 export interface Verifier {
   public_key: string;
@@ -68,7 +71,7 @@ export function near(value: string | bigint): string {
   }
 }
 
-export class Chain {
+export class Chain implements ChainReader {
   constructor(
     readonly network: Network,
     readonly contract: string,
@@ -123,6 +126,24 @@ export class Chain {
     const { value } = await this.view<Bounty>('get_bounty', { bounty: id }, blockHash);
     if (!value) throw new Error('Program not found in the contract');
     return value;
+  }
+
+  async config(): Promise<ContractConfig> {
+    const { value } = await this.view<ContractConfig>('get_config', {});
+    if (!value) throw new Error(inconsistent);
+    return value;
+  }
+
+  async commitment(bounty: string, hunter: string, submission: string) {
+    const args = { bounty, hunter, submission };
+    const { value, blockHash } = await this.view<ChainCommitment>('get_commitment', args);
+    return { commitment: value, blockHash };
+  }
+
+  async hunterClaims(hunter: string, fromIndex: number, limit: number): Promise<HunterClaim[]> {
+    const args = { hunter, from_index: String(fromIndex), limit };
+    const { value } = await this.view<HunterClaim[]>('get_hunter_commitments', args);
+    return (value ?? []).map((claim) => ({ ...claim, bounty: String(claim.bounty) }));
   }
 
   async allBounties(): Promise<{ entries: Entry[]; height: bigint }> {

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { Context } from './crypto.js';
-import type { HunterWallet } from './wallet.js';
-import type { Bounty, Chain, Network } from './chain.js';
+import type { Context, SealedReport } from './crypto.js';
+import { readLimited, type Bounty, type Network } from './chain.js';
+import type { Job, Ports, ProgramSummary, VerifierApi, WorkerClaim } from './ports.js';
 import type { Spec } from './checks.js';
 
 export interface Meta {
@@ -37,11 +37,8 @@ export interface Note {
   text: string;
   error: boolean;
 }
-export interface Env {
+export interface Env extends Ports {
   meta: Meta;
-  chain: Chain;
-  wallet: HunterWallet;
-  worker: Worker;
   account?: string;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
@@ -72,14 +69,14 @@ const requestOptions = () => ({
   signal: AbortSignal.timeout(30000),
 });
 
-export class Worker {
+export class Worker implements VerifierApi {
   constructor(
-    private meta: Meta,
+    readonly meta: Meta,
     private token: () => string,
     private unauthorized: () => void,
   ) {}
 
-  async fetch(path: string, auth: boolean, init: RequestInit = {}): Promise<Response> {
+  private async fetch(path: string, auth: boolean, init: RequestInit = {}): Promise<Response> {
     const headers = new Headers(init.headers);
     const token = this.token();
     if (auth && !token && this.meta.public_ingress === false) {
@@ -95,14 +92,38 @@ export class Worker {
     return response;
   }
 
-  async get<T>(path: string, auth = false): Promise<T> {
+  private async get<T>(path: string, auth = false): Promise<T> {
     return (await this.fetch(path, auth)).json() as Promise<T>;
   }
 
-  async post<T>(path: string, body: unknown): Promise<T> {
+  private async post<T>(path: string, body: unknown): Promise<T> {
     const headers = { 'content-type': 'application/json' };
     const init = { method: 'POST', headers, body: JSON.stringify(body) };
     return (await this.fetch(path, true, init)).json() as Promise<T>;
+  }
+
+  programs(): Promise<ProgramSummary[]> {
+    return this.get('/v1/programs');
+  }
+
+  program(id: string): Promise<Program> {
+    return this.get('/v1/programs/' + encodeURIComponent(id));
+  }
+
+  claim(bounty: string, hunter: string, submission: string): Promise<WorkerClaim> {
+    return this.get('/v1/commitments?' + new URLSearchParams({ bounty, hunter, submission }), true);
+  }
+
+  submit(report: SealedReport): Promise<{ id: string }> {
+    return this.post('/v1/submissions', report);
+  }
+
+  job(id: string): Promise<Job> {
+    return this.get('/v1/jobs/' + id, true);
+  }
+
+  async disclosure(hash: string): Promise<Uint8Array> {
+    return readLimited(await this.fetch('/v1/disclosures/' + hash, true), 1_048_576);
   }
 }
 

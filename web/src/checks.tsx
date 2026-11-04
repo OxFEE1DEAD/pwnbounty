@@ -283,13 +283,13 @@ export function CoverageBand() {
       </div>
       <div className="tiles">
         {coverage.targets.map((target) => (
-          <a key={target.id} className="card tile" href="#/coverage">
+          <a key={target.id} className="card tile" href="#/projects">
             <span className="kicker">{t(concepts[target.concept] ?? target.concept)}</span>
             <strong>{t(target.title)}</strong>
             <span className="muted">{t(target.source)}</span>
           </a>
         ))}
-        <a className="card tile" href="#/coverage">
+        <a className="card tile" href="#/projects">
           <span className="kicker">{t('AI payment agent')}</span>
           <strong>{t('Invoice-paying agent')}</strong>
           <span className="muted">{t('Model, prompt and tools frozen')}</span>

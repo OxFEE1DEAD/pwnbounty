@@ -186,6 +186,11 @@ async function loadMine(chain: ChainReader, account: string) {
   };
 }
 
+const earned = (wins: Entry[]) =>
+  wins
+    .filter((entry) => entry.bounty.state === 'Paid')
+    .reduce((sum, entry) => sum + BigInt(entry.bounty.reward), 0n);
+
 function Wins({ wins, reload }: { wins: Entry[]; reload(): void }) {
   const { wallet, account, notify } = useEnv(),
     t = useT();
@@ -234,6 +239,9 @@ function Attempts({ rows }: { rows: { claim: HunterClaim; status: string }[] }) 
             {claim.commitment.report_hash.slice(0, 12)}…
           </code>
           <span className="tag">{t(status)}</span>
+          {status === 'Waiting for the verdict' && (
+            <a href={'#/programs/' + claim.bounty}>{t('Resubmit →')}</a>
+          )}
         </div>
       ))}
     </>
@@ -251,7 +259,7 @@ function MyAttempts() {
     <div className="wrap">
       <div className="hunt-head">
         <div className="eyebrow">{t('MY CLAIMS')}</div>
-        <h1>{t('My claims')}</h1>
+        <h1>{t('Every claim, read from the contract.')}</h1>
         {account && (
           <p className="lead">
             <Account name={account} />
@@ -272,6 +280,18 @@ function MyAttempts() {
       )}
       {data.loading && account && <p className="muted">{t('Loading chain data…')}</p>}
       {data.error && <p className="error-text">{t(data.error)}</p>}
+      {data.value && (
+        <section className="stats">
+          <div className="stat">
+            <strong>{near(earned(data.value.wins))}</strong>
+            <span>{t('earned, paid only')}</span>
+          </div>
+          <div className="stat">
+            <strong>{data.value.wins.length}</strong>
+            <span>{t('wins')}</span>
+          </div>
+        </section>
+      )}
       {data.value && (
         <div className="mine">
           <section className="card">

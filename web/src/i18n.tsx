@@ -531,6 +531,43 @@ const ru: Record<string, string> = {
     'Каждый из них уже прошёл через нашего судью на известных атаках. Ниже то, что он нашёл.',
   'Full results, case by case →': 'Все результаты по кейсам →',
   'Verifier key': 'Ключ верификатора',
+  'Sealed. Save the file, then commit it on NEAR.':
+    'Запечатано. Сохраните файл, затем запишите заявку в NEAR.',
+  'Save sealed-report-{id}.json': 'Сохранить sealed-report-{id}.json',
+  'I saved sealed-report-{id}.json. It cannot be recreated after the deadline.':
+    'Я сохранил sealed-report-{id}.json. После срока его не восстановить.',
+  'Commit on NEAR · {deposit}': 'Записать в NEAR · {deposit}',
+  'Encrypt in this browser →': 'Зашифровать в этом браузере →',
+  'Already committed? Load your sealed report': 'Заявка уже записана? Загрузите запечатанный отчёт',
+  'Only when the verifier never received it and the claim can still settle. The file must match the claim on NEAR.':
+    'Только если верификатор его не получил, а заявку ещё можно рассчитать. Файл должен совпадать с заявкой в NEAR.',
+  '{deposit} claim storage, not refundable. The attack leaves this browser only after the commit is final. Deadlines are best effort on this test worker: if it is down, a claim can miss settlement.':
+    '{deposit} за хранение заявки, не возвращается. Атака покидает браузер только после финализации записи. Сроки на этом тестовом воркере не гарантированы: если он недоступен, заявка может не успеть к расчёту.',
+  'Choose a sealed-report.json file': 'Выберите файл sealed-report.json',
+  All: 'Все',
+  'AI agent': 'AI-агент',
+  'Any state': 'Любой статус',
+  'Contract with value at stake': 'Контракт с ценностями под риском',
+  'Break = a protected account loses value to the attacker':
+    'Взлом = защищённый аккаунт теряет ценность в пользу атакующего',
+  'Break = the agent executes a transfer its policy forbids':
+    'Взлом = агент выполняет перевод, который запрещает его политика',
+  PROGRAMS: 'ПРОГРАММЫ',
+  'Each program says exactly what counts as a break and how much the contract pays for it. The first valid break wins the reward.':
+    'Каждая программа точно говорит, что считается взломом и сколько за него платит контракт. Награду получает первый настоящий взлом.',
+  'No programs match.': 'Подходящих программ нет.',
+  'run on OutLayer': 'запуск в OutLayer',
+  'replayed on the operator machine': 'повтор на машине оператора',
+  Program: 'Программа',
+  'no winner': 'без победителя',
+  'by {owner} · {where}': 'от {owner} · {where}',
+  'Have a contract or an agent you want hackers to attack?':
+    'Есть контракт или агент, который стоит атаковать хакерам?',
+  'For projects →': 'Для проектов →',
+  'Resubmit →': 'Отправить снова →',
+  'Every claim, read from the contract.': 'Все заявки, прочитанные из контракта.',
+  'earned, paid only': 'получено, только выплаченное',
+  wins: 'побед',
 };
 const prefixes = Object.keys(ru).filter((key) => /[ #]$/.test(key));
 const storageKey = 'sealed-bounty/lang/1';

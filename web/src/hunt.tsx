@@ -91,6 +91,7 @@ const verdicts: Record<Outcome['kind'], string> = {
 };
 const status = {
   encrypt: 'Sealing the invoice in this browser…',
+  sealed: 'Sealed. Save the file, then commit it on NEAR.',
   wallet: 'Confirm the commitment in your wallet. A storage deposit may be required.',
   commit: 'Waiting for the commitment in finalized NEAR…',
   committed: 'Commitment confirmed in finalized NEAR. Your claim is linked to this account.',
@@ -224,7 +225,7 @@ function download(report: SealedReport): void {
   const url = URL.createObjectURL(blob),
     link = document.createElement('a');
   link.href = url;
-  link.download = 'sealed-report.json';
+  link.download = `sealed-report-${report.bounty}.json`;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -258,6 +259,7 @@ function useSubmission(env: Env) {
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>();
   const [job, setJob] = useState<Job>();
+  const [saved, setSaved] = useState(false);
   const active = useRef<Step | undefined>(undefined);
   const running = useRef(false);
   const poll = useRef(0);
@@ -281,6 +283,7 @@ function useSubmission(env: Env) {
   };
   const forget = () => {
     setReport(undefined);
+    setSaved(false);
     session.remove(pendingKey);
   };
 
@@ -424,6 +427,28 @@ function useSubmission(env: Env) {
     if (state === 'unconfirmed' || state === 'pending') later(id, version, 5000);
   }
 
+  const seal = (program: Program | undefined, invoice: string) =>
+    guarded(async () => {
+      if (!env.account) throw new Error('Connect your wallet first');
+      if (!program) throw new Error('Choose a program');
+      reset();
+      setSaved(false);
+      await encrypt(program, invoice, env.account);
+      mark('encrypt', 'done', status.sealed);
+    }).catch(fail);
+
+  const load = (file: File | undefined) =>
+    guarded(async () => {
+      if (!file || file.size > 1_048_576) throw new Error('Choose a sealed-report.json file');
+      const pending = restoreReport(meta, await file.text());
+      if (pending.hunter !== env.account) {
+        throw new Error("Connect the wallet of this submission's hunter account");
+      }
+      session.set(pendingKey, JSON.stringify(pending));
+      setReport(pending);
+      setSaved(true);
+    }).catch(fail);
+
   const start = (program: Program | undefined, invoice: string) =>
     guarded(async () => {
       if (!env.account) throw new Error('Connect your wallet first');
@@ -471,6 +496,7 @@ function useSubmission(env: Env) {
       try {
         const pending = restoreReport(meta, raw);
         setReport(pending);
+        setSaved(true);
         location.hash = '#/programs/' + pending.bounty;
         if (!new URLSearchParams(location.search).has('errorCode')) void resume(pending);
         else notify('The wallet did not send the commitment. Press the button to try again.', true);
@@ -489,7 +515,22 @@ function useSubmission(env: Env) {
     };
   }, []);
 
-  return { report, progress, text, busy, outcome, job, start, retry, forget, reset };
+  return {
+    report,
+    progress,
+    text,
+    busy,
+    outcome,
+    job,
+    saved,
+    setSaved,
+    seal,
+    load,
+    start,
+    retry,
+    forget,
+    reset,
+  };
 }
 
 function WalletConnect() {
@@ -590,59 +631,140 @@ function AgentRules({ program }: { program: Extract<Program, { kind: 'agent' }> 
   );
 }
 
+function LoadReport({ busy, load }: { busy: boolean; load(file?: File): Promise<void> }) {
+  const t = useT();
+  return (
+    <details className="raw">
+      <summary>{t('Already committed? Load your sealed report')}</summary>
+      <input
+        type="file"
+        accept="application/json,.json"
+        disabled={busy}
+        onChange={(e) => void load(e.target.files?.[0])}
+      />
+      <p className="hint">
+        {t(
+          'Only when the verifier never received it and the claim can still settle. The file must match the claim on NEAR.',
+        )}
+      </p>
+    </details>
+  );
+}
+
+type KindFilter = 'all' | 'world' | 'agent';
+type StateFilter = 'any' | 'open' | 'closed';
+const kindFilters: [KindFilter, string][] = [
+  ['all', 'All'],
+  ['world', 'Contract'],
+  ['agent', 'AI agent'],
+];
+const stateFilters: [StateFilter, string][] = [
+  ['any', 'Any state'],
+  ['open', 'Open'],
+  ['closed', 'Closed'],
+];
+const kinds = {
+  world: {
+    tag: 'CONTRACT',
+    title: 'Contract with value at stake',
+    rule: 'Break = a protected account loses value to the attacker',
+  },
+  agent: {
+    tag: 'AI AGENT',
+    title: 'Payment agent with a model',
+    rule: 'Break = the agent executes a transfer its policy forbids',
+  },
+};
+
 function Catalog({ visible }: { visible: boolean }) {
   const env = useEnv(),
     t = useT();
+  const [kind, setKind] = useState<KindFilter>('all');
+  const [state, setState] = useState<StateFilter>('any');
   const list = useAsync(() => (visible ? catalog(env) : Promise.resolve(undefined)), [visible]);
-  const rows = list.value ?? [];
-  const open = rows.filter((row) => row.standing === 'open').length;
+  const rows = (list.value ?? []).filter(
+    (row) =>
+      (kind === 'all' || row.kind === kind) &&
+      (state === 'any' || (state === 'open') === (row.standing === 'open')),
+  );
+  const local = env.meta.trust_mode === 'local-development';
   return (
     <div className="wrap">
       <div className="hunt-head">
-        <div className="eyebrow">{t('THE HUNT')}</div>
+        <div className="eyebrow">{t('PROGRAMS')}</div>
         <h1>{t('Pick a program. Break the rule.')}</h1>
         <p className="lead">
           {t(
-            'Each program freezes a target and a rule. A proved break pays the reward to your ' +
-              'wallet.',
+            'Each program says exactly what counts as a break and how much the contract pays for it. The first valid break wins the reward.',
           )}
         </p>
       </div>
-      <section className="card">
-        <div className="payout-head">
-          <h3>{t('{open} open of {total}', { open: String(open), total: String(rows.length) })}</h3>
-          <button type="button" className="chip" onClick={list.reload}>
-            {t('Refresh')}
+      <div className="filters">
+        {kindFilters.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            className={'chip' + (kind === value ? ' current' : '')}
+            onClick={() => setKind(value)}
+          >
+            {t(label)}
           </button>
-        </div>
-        {list.loading && <p>{t('Loading programs…')}</p>}
-        {list.error && <p className="error-text">{t(list.error)}</p>}
-        {rows.map(({ entry, height, standing: state, kind }) => (
-          <a key={entry.id} className={'program-row ' + state} href={'#/programs/' + entry.id}>
-            <strong>
-              {t('Program #')}
-              {entry.id}
-            </strong>
-            <span>
-              {kind && (
-                <span className="tag">{t(kind === 'world' ? 'Contract' : 'AI payment agent')}</span>
-              )}
-            </span>
-            <span>{near(entry.bounty.reward)}</span>
-            <span className={'tag ' + state}>{t(standingLabels[state])}</span>
-            <span className="muted">
-              {state === 'open'
-                ? t('closes in {time}', { time: timeLeft(entry, height) })
-                : entry.bounty.winner
-                  ? t('won by {account}', { account: entry.bounty.winner })
-                  : ''}
-            </span>
-          </a>
         ))}
-        <p className="hint">
-          {t('Want your contract here?')} <a href="#/projects/new">{t('Launch a bounty →')}</a>
-        </p>
-      </section>
+        <span className="gap" />
+        {stateFilters.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            className={'chip' + (state === value ? ' current' : '')}
+            onClick={() => setState(value)}
+          >
+            {t(label)}
+          </button>
+        ))}
+        <button type="button" className="link" onClick={list.reload}>
+          {t('Refresh')}
+        </button>
+      </div>
+      {list.loading && <p className="muted">{t('Loading programs…')}</p>}
+      {list.error && <p className="error-text">{t(list.error)}</p>}
+      {list.value && !rows.length && <p className="muted">{t('No programs match.')}</p>}
+      <div className="programs">
+        {rows.map(({ entry, height, standing: current, kind: type }) => {
+          const info = type ? kinds[type] : undefined;
+          const where =
+            type === 'agent' && !local ? 'run on OutLayer' : 'replayed on the operator machine';
+          return (
+            <a key={entry.id} className={'card program ' + current} href={'#/programs/' + entry.id}>
+              <span className="program-head">
+                <span className="pixel">
+                  #{entry.id}
+                  {info && ' · ' + t(info.tag)}
+                </span>
+                <span className={'tag ' + current}>{t(standingLabels[current])}</span>
+              </span>
+              <strong>{t(info?.title ?? 'Program')}</strong>
+              <span className="reward">{near(entry.bounty.reward)}</span>
+              <span>
+                {current === 'open'
+                  ? t('closes in {time}', { time: timeLeft(entry, height) })
+                  : entry.bounty.winner
+                    ? t('won by {account}', { account: entry.bounty.winner })
+                    : t('no winner')}
+              </span>
+              {info && <span className="muted">{t(info.rule)}</span>}
+              <span className="muted">
+                {t('by {owner} · {where}', { owner: entry.bounty.owner, where: t(where) })}
+              </span>
+            </a>
+          );
+        })}
+      </div>
+      <div className="card invite">
+        <span>{t('Have a contract or an agent you want hackers to attack?')}</span>
+        <a className="button secondary" href="#/projects">
+          {t('For projects →')}
+        </a>
+      </div>
     </div>
   );
 }
@@ -816,8 +938,8 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
   const data = view.value?.entry.id === id ? view.value : undefined;
   const selected = data?.standing === 'open' ? data.program : undefined;
   const elsewhere = report && report.bounty !== id ? report.bounty : undefined;
-  const ready =
-    !busy && !!env.account && !elsewhere && (!!report || (!!selected && !!invoice.trim()));
+  const ready = !busy && !!env.account && !elsewhere;
+  const deposit = near(env.meta.claim_storage_deposit);
   const world = data?.program?.kind === 'world';
   const rule =
     selected?.kind === 'agent' && selected.id === outcome?.bounty ? selected.config : undefined;
@@ -907,31 +1029,72 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                     onChange={setInvoice}
                   />
                 )}
-                <div className="row">
-                  <button
-                    type="button"
-                    className="button"
-                    disabled={!ready}
-                    onClick={() => void flow.start(selected, invoice)}
-                  >
-                    {report ? t('Continue submission →') : t('Encrypt and submit →')}
-                  </button>
-                  {report && !busy && (
-                    <button type="button" className="chip" onClick={flow.forget}>
-                      {t('Discard saved invoice')}
-                    </button>
+                {report ? (
+                  <>
+                    <div className="row">
+                      <button
+                        type="button"
+                        className="button secondary"
+                        onClick={() => download(report)}
+                      >
+                        {t('Save sealed-report-{id}.json', { id: report.bounty })}
+                      </button>
+                    </div>
+                    <label className="check">
+                      <input
+                        type="checkbox"
+                        checked={flow.saved}
+                        disabled={busy}
+                        onChange={(e) => flow.setSaved(e.target.checked)}
+                      />
+                      {t(
+                        'I saved sealed-report-{id}.json. It cannot be recreated after the deadline.',
+                        { id: report.bounty },
+                      )}
+                    </label>
+                    <div className="row">
+                      <button
+                        type="button"
+                        className="button"
+                        disabled={!ready || !flow.saved}
+                        onClick={() => void flow.start(undefined, '')}
+                      >
+                        {t('Commit on NEAR · {deposit}', { deposit })}
+                      </button>
+                      {!busy && (
+                        <button type="button" className="chip" onClick={flow.forget}>
+                          {t('Discard saved invoice')}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="row">
+                      <button
+                        type="button"
+                        className="button"
+                        disabled={!ready || !selected || !invoice.trim()}
+                        onClick={() => void flow.seal(selected, invoice)}
+                      >
+                        {t('Encrypt in this browser →')}
+                      </button>
+                    </div>
+                    <LoadReport busy={busy} load={flow.load} />
+                  </>
+                )}
+                <p className="hint">
+                  {t(
+                    '{deposit} claim storage, not refundable. The attack leaves this browser only after the commit is final. Deadlines are best effort on this test worker: if it is down, a claim can miss settlement.',
+                    { deposit },
                   )}
-                  {report && (
-                    <button type="button" className="link" onClick={() => download(report)}>
-                      {t('Download JSON for CLI commit')}
-                    </button>
-                  )}
-                </div>
+                </p>
               </section>
             ) : (
               <section className="card">
                 <div className="kicker">03 / {t('YOUR ATTACK')}</div>
                 <p>{t('This program is closed for new attacks.')}</p>
+                {!report && <LoadReport busy={busy} load={flow.load} />}
                 <a className="button secondary" href="#/programs">
                   {t('← All programs')}
                 </a>

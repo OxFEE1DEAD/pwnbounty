@@ -1,88 +1,142 @@
 import { near, overview, type Entry } from './chain.js';
 import { useAsync, useEnv, type Meta } from './env.js';
 import { useT } from './i18n.js';
-import { CoverageBand } from './checks.js';
+import { Icon, type IconName } from './icons.js';
 
 export const repository = 'https://github.com/OxFEE1DEAD/sealed-bounty';
 
-const trust = {
-  local:
-    'Current verifier: local development. Browser encryption and testnet settlement have ' +
-    'been demonstrated; this mode does not establish TEE execution or confidential model ' +
-    'inference. Check the mode before submitting sensitive material.',
+const lead =
+  'Bug bounties today end in weeks of triage and arguments about severity. Here the rule of a ' +
+  'break is frozen up front, every attack is replayed by a machine, and the contract pays on ' +
+  'the verdict.';
+const notes = {
+  testnet: 'Testnet only: rewards are test NEAR, not real money.',
+  operator: 'Attacks are replayed on an operator machine. The operator can read your attack.',
+  key: 'The operator holds the verdict key, so this page cannot prove a replay happened.',
   confirmed:
-    'Current verifier: OutLayer worker. Inference confidentiality is confirmed by the ' +
-    'worker. Check the evidence before a private submission.',
+    'The verifier runs on OutLayer and reports confidential model inference as confirmed. ' +
+    'Check the evidence before a private submission.',
   unconfirmed:
-    'Current verifier: OutLayer worker. Inference confidentiality is not confirmed ' +
-    'yet. Check the evidence before a private submission.',
+    'The verifier runs on OutLayer. Confidential model inference is not confirmed yet. ' +
+    'Check the evidence before a private submission.',
 };
-const steps = [
-  {
-    tag: '01 / FREEZE',
-    title: 'Freeze & fund',
-    text:
-      'The project fixes the code, the starting balances and what counts as a break. ' +
-      'The reward waits in a NEAR contract.',
-  },
-  {
-    tag: '02 / SEAL',
-    title: 'Seal & commit',
-    text:
-      'The hunter encrypts the attack in the browser and records its hash on-chain ' +
-      'before sending it.',
-  },
-  {
-    tag: '03 / REPLAY',
-    title: 'Replay & measure',
-    text:
-      'The verifier runs the attack on a fresh copy of the chain and measures who ' +
-      'gained and who lost.',
-  },
-  {
-    tag: '04 / SETTLE',
-    title: 'Settle & disclose',
-    text:
-      'A signed verdict settles the bounty. Only the project team can decrypt the ' +
-      'reproduction.',
-  },
-];
-const problems = [
+const steps: [IconName, string, string][] = [
   [
-    'Hunters wait and hope.',
-    'Severity is argued after the fact, and the payout depends on the project agreeing.',
+    'lock',
+    '01 FREEZE',
+    'The project pins code, starting state and the rule of a break, and reserves the reward ' +
+      'in escrow. Its hash is on chain.',
   ],
   [
-    'Projects drown in noise.',
-    'Reports arrive as prose and screenshots; reproducing each one costs engineer time.',
+    'mail',
+    '02 SEAL',
+    'The hacker encrypts the attack in the browser and commits its hash on NEAR. Nobody sees ' +
+      'the attack before the commit is final.',
   ],
-  ['Exploits leak.', 'A working attack sent in the clear can be copied before it is fixed.'],
+  [
+    'play',
+    '03 REPLAY',
+    'The verifier replays it on a fresh sandbox chain, or runs the agent on a test ledger. ' +
+      'The judge checks the frozen rule.',
+  ],
+  [
+    'coins',
+    '04 SETTLE',
+    'A signed verdict reaches the contract. The first valid break is paid automatically; ' +
+      'anything else earns zero.',
+  ],
 ];
-const copy = {
-  lead:
-    'Projects freeze their code and fund a reward. Hunters send an encrypted attack. A ' +
-    'fresh copy of the chain replays it, and the contract pays only if value really moved.',
-  intro:
-    'One judge for every project: the attacker gains what a protected account loses, a ' +
-    'protected account loses value, or a protected withdrawal stops working.',
-  paid:
-    'Measured on the vulnerable vault build: vault −9 NEAR, attacker +9 NEAR, threshold ' +
-    '0.1 NEAR. The contract pays the hunter after the signed verdict.',
-  zero:
-    'A story, a screenshot or a failed call is not a break. The same attack on the fixed ' +
-    'build moves nothing, so no reward is due.',
-};
-const sceneLabels = ['FROZEN RULE', 'SEALED ATTACK', 'MEASURED VALUE', 'PAID ON NEAR'];
+const sides: {
+  icon: IconName;
+  kicker: string;
+  title: string;
+  items: string[];
+  links: [string, string][];
+}[] = [
+  {
+    icon: 'bug',
+    kicker: 'FOR HACKERS',
+    title: 'Break it. Prove it. Get paid.',
+    items: [
+      'Pick an open program. What counts as a break is written down and frozen.',
+      'Write the attack, test it on your machine, seal it in the browser.',
+      'The contract pays the first valid break. Nobody triages your report.',
+    ],
+    links: [
+      ['#/programs', 'Browse programs →'],
+      ['#/me', 'My claims'],
+    ],
+  },
+  {
+    icon: 'tools',
+    kicker: 'FOR PROJECTS',
+    title: 'Pay only for a proved break.',
+    items: [
+      'Upload your contract, point to its code on mainnet, or describe your AI agent.',
+      'Set the starting state and what counts as a break. A test run checks it before you pay.',
+      'Reserve the reward. If nobody breaks it, take it back after the deadline.',
+    ],
+    links: [
+      ['#/projects/new', 'Launch a program →'],
+      ['#/projects', 'How it works for projects'],
+    ],
+  },
+];
+const targets = [
+  [
+    'CONTRACT',
+    'Vault with user deposits',
+    "A contract that holds other people's money.",
+    'Broken build: caught (deposit 1, withdraw 10). Fixed build: passed.',
+  ],
+  [
+    'TOKEN',
+    'Wrapped NEAR',
+    'The real wrap.near code, copied from mainnet.',
+    '3 known attacks, no break found.',
+  ],
+  [
+    'INTENTS',
+    'NEAR Intents',
+    'The real intents.near code. Also checks that a user is not blocked from their funds.',
+    '3 known attacks, no break found.',
+  ],
+  [
+    'AGENT WALLET',
+    'Payment agent wallet',
+    'The on-chain wallet an AI agent pays from.',
+    'Full-access key: drained. Limited key: held.',
+  ],
+  [
+    'AI AGENT',
+    'Payment agent with a model',
+    'An agent that reads invoices and pays them. Runs on OutLayer or on an operator machine.',
+    'Crafted invoice on testnet: the weak agent paid 1 NEAR, the guarded one 0.',
+  ],
+];
 
-export function trustText(meta: Meta): string {
-  if (meta.trust_mode === 'local-development') return trust.local;
-  return meta.confidential_inference_verified ? trust.confirmed : trust.unconfirmed;
+export function trustNotes(meta: Meta): string[] {
+  const list = meta.network === 'testnet' ? [notes.testnet] : [];
+  if (meta.trust_mode === 'local-development') return [...list, notes.operator, notes.key];
+  return [...list, meta.confidential_inference_verified ? notes.confirmed : notes.unconfirmed];
 }
 
 export function TrustNotice() {
   const { meta } = useEnv(),
     t = useT();
-  return <p className="notice">{t(trustText(meta))}</p>;
+  return (
+    <div className="notice">
+      <div className="notice-head">
+        <Icon name="warn" size={18} />
+        {t(meta.network === 'testnet' ? 'TEST MODE' : 'BEFORE YOU SEND')}
+      </div>
+      <ul>
+        {trustNotes(meta).map((note) => (
+          <li key={note}>{t(note)}</li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 export function Account({ name }: { name: string }) {
@@ -94,54 +148,108 @@ export function Account({ name }: { name: string }) {
   );
 }
 
-function EvidenceEnvelope() {
+function LastVerdict({ entries }: { entries?: Entry[] }) {
   const t = useT();
+  const last = entries?.filter((entry) => entry.bounty.state === 'Paid').at(-1);
+  if (!last) {
+    return (
+      <div className="verdict-card">
+        <div className="verdict-bar">{t('LAST VERDICT')}</div>
+        <p className="muted">
+          {t(entries ? 'No payouts yet. The first proved break will appear here.' : 'Loading…')}
+        </p>
+      </div>
+    );
+  }
   return (
-    <div className="envelope-scene" role="img" aria-label={t('An attack sealed in an envelope')}>
-      <div className="paper">
-        <b>ATTACK #0042</b>
-        <span>TARGET: vault.near</span>
-        <span>deposit(1 NEAR)</span>
-        <span>withdraw(10 NEAR)</span>
+    <div className="verdict-card">
+      <div className="verdict-bar">
+        <span>
+          {t('VERDICT · PROGRAM #')}
+          {last.id}
+        </span>
+        <span>{t('VALID')}</span>
       </div>
-      <div className="envelope" />
-      <div className="seal">SB</div>
-      <div className="scene-label">
-        {sceneLabels.map((label) => (
-          <span key={label}>{t(label)}</span>
-        ))}
-      </div>
+      <dl>
+        <dt>{t('payout')}</dt>
+        <dd>
+          {near(last.bounty.reward)} → <Account name={last.bounty.winner!} />
+        </dd>
+        <dt>{t('rule hash')}</dt>
+        <dd>
+          <code>{last.bounty.rules_hash.slice(0, 16)}…</code>
+        </dd>
+        <dt>{t('state')}</dt>
+        <dd>{t('Paid by the contract')}</dd>
+      </dl>
+      <a href={'#/programs/' + last.id}>{t('Open the program →')}</a>
     </div>
   );
 }
 
-function Hero() {
+function Hero({ entries }: { entries?: Entry[] }) {
   const t = useT();
   return (
     <section className="hero">
-      <div>
-        <div className="eyebrow">{t('SEALED BUG BOUNTIES · NEAR')}</div>
-        <h1>
-          {t('A bug bounty that pays')}
-          <br />
-          {t('for a proved break.')}
-        </h1>
-        <p className="lead">{t(copy.lead)}</p>
-        <div className="hero-actions">
-          <a className="button" href="#/programs">
-            {t('Hunt a bounty →')}
-          </a>
-          <a className="button secondary" href="#/projects/new">
-            {t('Launch a bounty')}
-          </a>
+      <div className="eyebrow">{t('AUTOMATED BUG BOUNTY ON NEAR')}</div>
+      <h1>
+        <span>{t('If it breaks,')}</span>
+        <span>{t('it pays.')}</span>
+      </h1>
+      <div className="hero-grid">
+        <div className="hero-copy">
+          <p className="lead">{t(lead)}</p>
+          <div className="doors">
+            <a className="door-button" href="#/programs">
+              <Icon name="bug" size={32} />
+              <span>
+                <b>{t('I HACK')}</b>
+                {t('find a program →')}
+              </span>
+            </a>
+            <a className="door-button secondary" href="#/projects">
+              <Icon name="tools" size={32} />
+              <span>
+                <b>{t('I BUILD')}</b>
+                {t('launch a bounty →')}
+              </span>
+            </a>
+          </div>
+          <TrustNotice />
         </div>
-        <p className="mini">
-          {t('The replay decides. Claims and severity debates earn zero.')}{' '}
-          <a href="#/projects">{t('See what it checks →')}</a>
-        </p>
+        <LastVerdict entries={entries} />
       </div>
-      <EvidenceEnvelope />
     </section>
+  );
+}
+
+function Numbers({ entries, height }: { entries: Entry[]; height: bigint }) {
+  const { meta } = useEnv(),
+    t = useT();
+  const stats = overview(entries, height, BigInt(meta.min_prepare_window_blocks));
+  const items: [string, string][] = [
+    [String(stats.total), 'programs launched'],
+    [String(stats.open), 'open right now'],
+    [near(stats.paid), 'paid to hackers'],
+    [String(stats.breaks), 'breaks proved'],
+  ];
+  return (
+    <>
+      <section className="stats" aria-label={t('Live numbers')}>
+        {items.map(([value, label]) => (
+          <div key={label} className="stat">
+            <strong>{value}</strong>
+            <span>{t(label)}</span>
+          </div>
+        ))}
+      </section>
+      <p className="hint">
+        {t('{network} · read from {contract} at the last final block', {
+          network: meta.network,
+          contract: meta.contract,
+        })}
+      </p>
+    </>
   );
 }
 
@@ -149,19 +257,14 @@ function HowItWorks() {
   const t = useT();
   return (
     <section id="how" className="band">
-      <div className="section-head">
-        <div>
-          <div className="eyebrow">01—04 / {t('THE ROUTE')}</div>
-          <h2>{t('A bounty that pays for a measured result.')}</h2>
-        </div>
-        <p>{t(copy.intro)}</p>
-      </div>
+      <div className="eyebrow">{t('HOW IT WORKS')}</div>
+      <h2>{t('Four steps. One frozen rule.')}</h2>
       <div className="steps">
-        {steps.map((step) => (
-          <div key={step.tag} className="card">
-            <div className="step-number">{step.tag}</div>
-            <h3>{t(step.title)}</h3>
-            <p>{t(step.text)}</p>
+        {steps.map(([icon, tag, text]) => (
+          <div key={tag} className="card">
+            <Icon name={icon} size={32} />
+            <div className="step-number">{t(tag)}</div>
+            <p>{t(text)}</p>
           </div>
         ))}
       </div>
@@ -169,153 +272,70 @@ function HowItWorks() {
   );
 }
 
-function Problem() {
+function Sides() {
   const t = useT();
   return (
-    <section className="band">
-      <div className="eyebrow">{t('THE PROBLEM')}</div>
-      <h2>{t('Bug bounties run on trust.')}</h2>
-      <div className="steps three">
-        {problems.map(([title, text]) => (
-          <div key={title} className="card">
-            <h3>{t(title!)}</h3>
-            <p>{t(text!)}</p>
+    <section className="band sides" aria-label={t('Choose your side')}>
+      {sides.map((side) => (
+        <div key={side.kicker} className="card side">
+          <Icon name={side.icon} size={48} />
+          <div className="kicker">{t(side.kicker)}</div>
+          <h2>{t(side.title)}</h2>
+          <ol>
+            {side.items.map((item) => (
+              <li key={item}>{t(item)}</li>
+            ))}
+          </ol>
+          <div className="row">
+            {side.links.map(([href, label], index) => (
+              <a key={href} href={href} className={index ? 'button secondary' : 'button'}>
+                {t(label)}
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function Targets() {
+  const t = useT();
+  return (
+    <section id="evidence" className="band">
+      <div className="eyebrow">{t('WHAT CAN BE PUT UNDER A BOUNTY')}</div>
+      <h2>{t('Contracts, tokens, intents and AI agents.')}</h2>
+      <p className="muted">
+        {t(
+          'Each of these already went through our judge on known attacks. Below is what it found.',
+        )}
+      </p>
+      <div className="tiles">
+        {targets.map(([kind, title, text, result]) => (
+          <div key={title} className="card tile">
+            <span className="kicker">{t(kind!)}</span>
+            <strong>{t(title!)}</strong>
+            <span className="muted">{t(text!)}</span>
+            <span>{t(result!)}</span>
           </div>
         ))}
       </div>
+      <p className="row">
+        <a href="#/projects">{t('Full results, case by case →')}</a>
+      </p>
     </section>
   );
 }
 
-function Doors() {
-  const t = useT();
-  return (
-    <section className="band">
-      <div className="eyebrow">{t('TWO SIDES')}</div>
-      <h2>{t('Pick your side.')}</h2>
-      <div className="outcomes">
-        <div className="card door">
-          <div className="kicker">{t('FOR HUNTERS')}</div>
-          <h3>{t('Break it, prove it, get paid.')}</h3>
-          <p>
-            {t(
-              'Pick an open bounty, test the attack locally, seal it. The replay decides, so nobody can argue the verdict.',
-            )}
-          </p>
-          <a className="button" href="#/programs">
-            {t('Hunt a bounty →')}
-          </a>
-        </div>
-        <div className="card door">
-          <div className="kicker">{t('FOR PROJECTS')}</div>
-          <h3>{t('Pay only for proved breaks.')}</h3>
-          <p>
-            {t(
-              'Describe your contract, token, intents app or agent as a program. Hunters attack a fresh copy, never your live funds.',
-            )}
-          </p>
-          <a className="button secondary" href="#/projects/new">
-            {t('Launch a bounty →')}
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function OutcomePair() {
-  const t = useT();
-  return (
-    <section className="band">
-      <div className="eyebrow">{t('THE CHECK')}</div>
-      <h2>{t('The replay decides.')}</h2>
-      <div className="outcomes">
-        <div className="card outcome paid">
-          <div className="symbol">↗</div>
-          <h3>{t('Rule broken. Reward paid.')}</h3>
-          <p>{t(copy.paid)}</p>
-          <div className="evidence">rule: take · verdict: violation</div>
-        </div>
-        <div className="card outcome zero">
-          <div className="symbol">0</div>
-          <h3>{t('A story is worth zero.')}</h3>
-          <p>{t(copy.zero)}</p>
-          <div className="evidence">fixed build · verdict: no_violation · reward: 0</div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ChainStats({ entries, height }: { entries: Entry[]; height: bigint }) {
-  const { meta } = useEnv(),
-    t = useT();
-  const stats = overview(entries, height, BigInt(meta.min_prepare_window_blocks));
-  const amount = (value: bigint) => near(value).replace(/ NEAR$/, '');
-  const items: [string, string][] = [
-    [String(stats.total), 'Programs'],
-    [String(stats.open), 'Open'],
-    [amount(stats.escrowed), 'NEAR escrowed'],
-    [amount(stats.paid), 'NEAR paid'],
-    [String(stats.winners), 'Winners'],
-  ];
-  return (
-    <div className="stats">
-      {items.map(([value, label]) => (
-        <div key={label} className="card stat">
-          <strong>{value}</strong>
-          <span>{t(label)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function RecentPayouts({ entries }: { entries: Entry[] }) {
-  const t = useT();
-  const paid = entries
-    .filter((entry) => entry.bounty.state === 'Paid' && entry.bounty.winner)
-    .reverse()
-    .slice(0, 5);
-  return (
-    <div className="payouts">
-      <div className="payout-head">
-        <h3>{t('Recent payouts')}</h3>
-        <span>{t("Each row links to the winner's account on NearBlocks.")}</span>
-      </div>
-      {!paid.length && (
-        <p className="muted">
-          {t('No payouts yet. The first executed violation will appear here.')}
-        </p>
-      )}
-      {paid.map((entry) => (
-        <div key={entry.id} className="payout-row">
-          <Account name={entry.bounty.winner!} />
-          <span>
-            {t('Program #')}
-            {entry.id}
-          </span>
-          <strong>{near(entry.bounty.reward)}</strong>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function LiveEvidence() {
+export function Landing() {
   const { chain } = useEnv(),
     t = useT();
   const data = useAsync(() => chain.allBounties(), []);
   return (
-    <section id="evidence" className="band">
-      <div className="section-head">
-        <div>
-          <div className="eyebrow">{t('FINALIZED NEAR STATE')}</div>
-          <h2>{t('On-chain, not on faith.')}</h2>
-        </div>
-        <p>{t('Finalized NEAR state. Refreshes when the page loads.')}</p>
-      </div>
-      {data.loading && <p className="muted">{t('Loading chain data…')}</p>}
+    <div className="wrap">
+      <Hero entries={data.value?.entries} />
+      {data.value && <Numbers entries={data.value.entries} height={data.value.height} />}
+      {data.loading && !data.value && <p className="muted">{t('Loading chain data…')}</p>}
       {data.error && (
         <p className="error-text">
           {t('Chain data unavailable. Try again.')}{' '}
@@ -324,27 +344,9 @@ function LiveEvidence() {
           </button>
         </p>
       )}
-      {data.value && (
-        <>
-          <ChainStats entries={data.value.entries} height={data.value.height} />
-          <RecentPayouts entries={data.value.entries} />
-        </>
-      )}
-    </section>
-  );
-}
-
-export function Landing() {
-  return (
-    <div className="wrap">
-      <Hero />
-      <Problem />
       <HowItWorks />
-      <OutcomePair />
-      <CoverageBand />
-      <Doors />
-      <LiveEvidence />
-      <TrustNotice />
+      <Sides />
+      <Targets />
     </div>
   );
 }

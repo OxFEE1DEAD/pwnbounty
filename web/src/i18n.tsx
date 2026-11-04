@@ -430,6 +430,107 @@ const ru: Record<string, string> = {
   'HTTPS or localhost is required for encryption': 'Для шифрования нужен HTTPS или localhost',
   'Invoice larger than 64 KiB': 'Инвойс больше 64 KiB',
   'Invalid envelope': 'Неверный конверт',
+  'Bug bounties today end in weeks of triage and arguments about severity. Here the rule of a break is frozen up front, every attack is replayed by a machine, and the contract pays on the verdict.':
+    'Сегодня баг-баунти заканчиваются неделями разбора и спорами о серьёзности. Здесь правило взлома зафиксировано заранее, каждую атаку воспроизводит машина, а контракт платит по вердикту.',
+  'Testnet only: rewards are test NEAR, not real money.':
+    'Только testnet: награды в тестовых NEAR, это не настоящие деньги.',
+  'Attacks are replayed on an operator machine. The operator can read your attack.':
+    'Атаки воспроизводятся на машине оператора. Оператор может прочитать вашу атаку.',
+  'The operator holds the verdict key, so this page cannot prove a replay happened.':
+    'Ключ вердикта у оператора, поэтому эта страница не может доказать, что воспроизведение было.',
+  'The verifier runs on OutLayer and reports confidential model inference as confirmed. Check the evidence before a private submission.':
+    'Верификатор работает в OutLayer и сообщает, что конфиденциальный вывод модели подтверждён. Проверьте доказательства перед приватной отправкой.',
+  'The verifier runs on OutLayer. Confidential model inference is not confirmed yet. Check the evidence before a private submission.':
+    'Верификатор работает в OutLayer. Конфиденциальный вывод модели пока не подтверждён. Проверьте доказательства перед приватной отправкой.',
+  '01 FREEZE': '01 ФИКСАЦИЯ',
+  '02 SEAL': '02 ПЕЧАТЬ',
+  '03 REPLAY': '03 ПОВТОР',
+  '04 SETTLE': '04 РАСЧЁТ',
+  'The project pins code, starting state and the rule of a break, and reserves the reward in escrow. Its hash is on chain.':
+    'Проект фиксирует код, начальное состояние и правило взлома и резервирует награду в эскроу. Хеш лежит в сети.',
+  'The hacker encrypts the attack in the browser and commits its hash on NEAR. Nobody sees the attack before the commit is final.':
+    'Хакер шифрует атаку в браузере и записывает её хеш в NEAR. До финализации записи атаку никто не видит.',
+  'The verifier replays it on a fresh sandbox chain, or runs the agent on a test ledger. The judge checks the frozen rule.':
+    'Верификатор воспроизводит её на свежей sandbox-сети или запускает агента на тестовом реестре. Судья проверяет зафиксированное правило.',
+  'A signed verdict reaches the contract. The first valid break is paid automatically; anything else earns zero.':
+    'Подписанный вердикт приходит в контракт. Первый настоящий взлом оплачивается автоматически, всё остальное получает ноль.',
+  'Break it. Prove it. Get paid.': 'Сломай. Докажи. Получи награду.',
+  'Pay only for a proved break.': 'Платите только за доказанный взлом.',
+  'Pick an open program. What counts as a break is written down and frozen.':
+    'Выберите открытую программу. Что считается взломом, записано и зафиксировано.',
+  'Write the attack, test it on your machine, seal it in the browser.':
+    'Напишите атаку, проверьте у себя, запечатайте в браузере.',
+  'The contract pays the first valid break. Nobody triages your report.':
+    'Контракт платит за первый настоящий взлом. Ваш отчёт никто не разбирает вручную.',
+  'Upload your contract, point to its code on mainnet, or describe your AI agent.':
+    'Загрузите контракт, укажите его код в mainnet или опишите своего AI-агента.',
+  'Set the starting state and what counts as a break. A test run checks it before you pay.':
+    'Задайте начальное состояние и что считается взломом. Тестовый прогон проверит это до оплаты.',
+  'Reserve the reward. If nobody breaks it, take it back after the deadline.':
+    'Зарезервируйте награду. Если никто не сломает, заберите её после срока.',
+  'Browse programs →': 'Смотреть программы →',
+  'Launch a program →': 'Запустить программу →',
+  'How it works for projects': 'Как это работает для проектов',
+  CONTRACT: 'КОНТРАКТ',
+  TOKEN: 'ТОКЕН',
+  INTENTS: 'INTENTS',
+  'AGENT WALLET': 'КОШЕЛЁК АГЕНТА',
+  'AI AGENT': 'AI-АГЕНТ',
+  'Vault with user deposits': 'Хранилище с депозитами пользователей',
+  'Wrapped NEAR': 'Wrapped NEAR',
+  'NEAR Intents': 'NEAR Intents',
+  'Payment agent with a model': 'Платёжный агент с моделью',
+  "A contract that holds other people's money.": 'Контракт, который хранит чужие деньги.',
+  'The real wrap.near code, copied from mainnet.':
+    'Настоящий код wrap.near, скопированный из mainnet.',
+  'The real intents.near code. Also checks that a user is not blocked from their funds.':
+    'Настоящий код intents.near. Ещё проверяется, что пользователь не теряет доступ к своим средствам.',
+  'The on-chain wallet an AI agent pays from.': 'Кошелёк в сети, с которого платит AI-агент.',
+  'An agent that reads invoices and pays them. Runs on OutLayer or on an operator machine.':
+    'Агент, который читает счета и оплачивает их. Работает в OutLayer или на машине оператора.',
+  'Broken build: caught (deposit 1, withdraw 10). Fixed build: passed.':
+    'Сломанная сборка: поймана (внёс 1, вывел 10). Исправленная: прошла.',
+  '3 known attacks, no break found.': '3 известные атаки, взлома нет.',
+  'Full-access key: drained. Limited key: held.':
+    'Ключ с полным доступом: опустошён. Ограниченный ключ: устоял.',
+  'Crafted invoice on testnet: the weak agent paid 1 NEAR, the guarded one 0.':
+    'Подделанный счёт в testnet: слабый агент заплатил 1 NEAR, защищённый - 0.',
+  'TEST MODE': 'ТЕСТОВЫЙ РЕЖИМ',
+  'BEFORE YOU SEND': 'ПЕРЕД ОТПРАВКОЙ',
+  'LAST VERDICT': 'ПОСЛЕДНИЙ ВЕРДИКТ',
+  'No payouts yet. The first proved break will appear here.':
+    'Выплат пока нет. Первый доказанный взлом появится здесь.',
+  'Loading…': 'Загрузка…',
+  'VERDICT · PROGRAM #': 'ВЕРДИКТ · ПРОГРАММА #',
+  VALID: 'ВЗЛОМ',
+  payout: 'выплата',
+  'rule hash': 'хеш правила',
+  state: 'статус',
+  'Paid by the contract': 'Оплачено контрактом',
+  'Open the program →': 'Открыть программу →',
+  'AUTOMATED BUG BOUNTY ON NEAR': 'АВТОМАТИЧЕСКИЙ БАГ-БАУНТИ НА NEAR',
+  'If it breaks,': 'Сломалось -',
+  'it pays.': 'заплатят.',
+  'I HACK': 'Я ХАКЕР',
+  'find a program →': 'найти программу →',
+  'I BUILD': 'Я СТРОЮ',
+  'launch a bounty →': 'запустить баунти →',
+  'programs launched': 'программ запущено',
+  'open right now': 'открыто сейчас',
+  'paid to hackers': 'выплачено хакерам',
+  'breaks proved': 'взломов доказано',
+  'Live numbers': 'Живые цифры',
+  '{network} · read from {contract} at the last final block':
+    '{network} · прочитано из {contract} на последнем финальном блоке',
+  'HOW IT WORKS': 'КАК ЭТО РАБОТАЕТ',
+  'Four steps. One frozen rule.': 'Четыре шага. Одно зафиксированное правило.',
+  'Choose your side': 'Выберите сторону',
+  'WHAT CAN BE PUT UNDER A BOUNTY': 'ЧТО МОЖНО ПОСТАВИТЬ ПОД БАУНТИ',
+  'Contracts, tokens, intents and AI agents.': 'Контракты, токены, intents и AI-агенты.',
+  'Each of these already went through our judge on known attacks. Below is what it found.':
+    'Каждый из них уже прошёл через нашего судью на известных атаках. Ниже то, что он нашёл.',
+  'Full results, case by case →': 'Все результаты по кейсам →',
+  'Verifier key': 'Ключ верификатора',
 };
 const prefixes = Object.keys(ru).filter((key) => /[ #]$/.test(key));
 const storageKey = 'sealed-bounty/lang/1';

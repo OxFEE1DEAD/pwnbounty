@@ -413,11 +413,15 @@ function Footer() {
       <a href={chain.accountUrl(meta.contract)} {...external}>
         {t('Inspect the contract ↗')}
       </a>
+      <span title={meta.signing_public_key}>
+        {t('Verifier key')} {meta.signing_public_key.slice(0, 8)}…
+      </span>
       <a href={repository} {...external}>
         {t('Read the code ↗')}
       </a>
       <a href="#/programs">{t('Start hunting →')}</a>
       <a href="#/projects/new">{t('Launch a bounty →')}</a>
+      <span className="pixel">PWNBOUNTY</span>
     </footer>
   );
 }

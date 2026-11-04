@@ -30,7 +30,7 @@ export interface Overview {
   open: number;
   escrowed: bigint;
   paid: bigint;
-  winners: number;
+  breaks: number;
 }
 const pageSize = 50n;
 const inconsistent = 'NEAR RPC returned an inconsistent contract state';
@@ -201,6 +201,6 @@ export function overview(
     open: open.length,
     escrowed: sum(open),
     paid: sum(paid),
-    winners: new Set(paid.map((entry) => entry.bounty.winner)).size,
+    breaks: paid.length,
   };
 }

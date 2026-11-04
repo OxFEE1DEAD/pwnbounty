@@ -103,13 +103,6 @@ export function RuleList({ spec }: { spec: Spec }) {
 }
 
 const agentMatched = coverage.agent.cases.filter((r) => String(r.violation) === r.expected).length;
-const results = coverage.targets.flatMap((t) => t.cases.flatMap((c) => Object.values(c.results)));
-export const totals = {
-  projects: coverage.targets.length + 1,
-  runs: results.length + coverage.agent.cases.length,
-  matched: results.filter((r) => r.outcome === r.expected).length + agentMatched,
-  breaks: results.filter((r) => r.outcome === 'violation').length,
-};
 
 function Pill({ result }: { result: Result }) {
   const t = useT();
@@ -156,10 +149,7 @@ function TargetCard({ target }: { target: Target }) {
           </li>
         ))}
       </ul>
-      <div
-        className="matrix"
-        style={{ '--n': variants.length } as CSSProperties}
-      >
+      <div className="matrix" style={{ '--n': variants.length } as CSSProperties}>
         <span className="head">{t('Attack')}</span>
         {variants.map((v) => (
           <span key={v} className="head">
@@ -257,45 +247,6 @@ function AgentCard() {
       </details>
       <p className="hint">{t('Stub model: checks the checker, not the model.')}</p>
     </article>
-  );
-}
-
-export function CoverageBand() {
-  const t = useT();
-  return (
-    <section id="coverage" className="band">
-      <div className="section-head">
-        <div>
-          <div className="eyebrow">{t('COVERAGE')}</div>
-          <h2>{t('Not only agents. Any NEAR project with value at stake.')}</h2>
-        </div>
-        <p>
-          {t(
-            '{runs} replays across {projects} projects, {matched} as expected, {breaks} breaks caught.',
-            {
-              runs: String(totals.runs),
-              projects: String(totals.projects),
-              matched: String(totals.matched),
-              breaks: String(totals.breaks),
-            },
-          )}
-        </p>
-      </div>
-      <div className="tiles">
-        {coverage.targets.map((target) => (
-          <a key={target.id} className="card tile" href="#/projects">
-            <span className="kicker">{t(concepts[target.concept] ?? target.concept)}</span>
-            <strong>{t(target.title)}</strong>
-            <span className="muted">{t(target.source)}</span>
-          </a>
-        ))}
-        <a className="card tile" href="#/projects">
-          <span className="kicker">{t('AI payment agent')}</span>
-          <strong>{t('Invoice-paying agent')}</strong>
-          <span className="muted">{t('Model, prompt and tools frozen')}</span>
-        </a>
-      </div>
-    </section>
   );
 }
 

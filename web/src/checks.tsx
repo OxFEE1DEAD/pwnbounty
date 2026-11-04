@@ -253,27 +253,29 @@ function AgentCard() {
 export function Coverage() {
   const t = useT();
   return (
-    <div className="wrap">
-      <div className="hunt-head">
-        <div className="eyebrow">{t('COVERAGE')}</div>
-        <h1>{t('What a sealed bounty can check today')}</h1>
-        <p className="lead">
+    <section id="coverage" className="band">
+      <div className="section-head">
+        <div>
+          <div className="eyebrow">{t('WHAT WE CAN TEST TODAY')}</div>
+          <h2>{t('Known attacks, real results.')}</h2>
+        </div>
+        <p>
           {t(
             'Each result is a replay: a fresh local NEAR chain, the real code, one attack, and the judge that decides payouts.',
           )}
         </p>
-        <p className="hint">
-          {t(
-            'Measured {date} · NEAR sandbox {v} · judge v{j} · {p}. Reproduce: npm run cli coverage',
-            {
-              date: new Date(coverage.measured).toLocaleString(),
-              v: coverage.engine.sandbox,
-              j: coverage.engine.judge,
-              p: coverage.platform,
-            },
-          )}
-        </p>
       </div>
+      <p className="hint">
+        {t(
+          'Measured {date} · NEAR sandbox {v} · judge v{j} · {p}. Reproduce: npm run cli coverage',
+          {
+            date: new Date(coverage.measured).toLocaleString(),
+            v: coverage.engine.sandbox,
+            j: coverage.engine.judge,
+            p: coverage.platform,
+          },
+        )}
+      </p>
       <div className="targets">
         {coverage.targets.map((target) => (
           <TargetCard key={target.id} target={target} />
@@ -289,7 +291,7 @@ export function Coverage() {
           </p>
         </article>
       </div>
-    </div>
+    </section>
   );
 }
 

@@ -471,8 +471,7 @@ details.raw, .team details, .operator {
 }
 
 summary { cursor: pointer; font-weight: 600; }
-.team { padding-top: 48px; }
-.team summary { font: 28px var(--pixel); }
+.team { margin: 24px 0 48px; }
 .team p { color: var(--muted); }
 .operator { margin-top: 12px; max-width: 460px; }
 

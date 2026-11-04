@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { digest, openDisclosure } from './crypto.js';
 import { HunterWallet } from './wallet.js';
 import { Chain, near, type Bounty, type Entry } from './chain.js';
 import {
-  context,
   EnvContext,
   errorText,
   loadMeta,
@@ -16,11 +14,12 @@ import {
   type Note,
   type TeamDraft,
 } from './env.js';
-import type { ChainReader, HunterClaim, VerifierApi } from './ports.js';
+import type { ChainReader, HunterClaim } from './ports.js';
 import { Icon, type IconName } from './icons.js';
 import { LangProvider, useLang, useT } from './i18n.js';
 import { Hunt } from './hunt.js';
-import { Coverage, Launch } from './checks.js';
+import { Launch } from './checks.js';
+import { Projects } from './projects.js';
 import { Account, Landing, repository } from './landing.js';
 import '../style.css';
 
@@ -308,93 +307,6 @@ function MyAttempts() {
   );
 }
 
-async function decrypt(
-  worker: VerifierApi,
-  draft: TeamDraft,
-  file: File | undefined,
-): Promise<string> {
-  if (!/^[a-f0-9]{64}$/.test(draft.hash)) throw new Error('Invalid disclosure hash');
-  if (!file || file.size > 4096) throw new Error('Choose the team PKCS8 DER private key');
-  const c = context(JSON.parse(draft.context));
-  const ciphertext = await worker.disclosure(draft.hash);
-  if ((await digest(ciphertext)) !== draft.hash) throw new Error('Ciphertext hash mismatch');
-  try {
-    return await openDisclosure(ciphertext, await file.arrayBuffer(), c);
-  } catch {
-    throw new Error('Decryption failed: check the key, the context and X25519 support');
-  }
-}
-
-function TeamDecryptPanel() {
-  const { worker, team, setTeam, notify } = useEnv(),
-    t = useT();
-  const [plain, setPlain] = useState<string>();
-  const key = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    const clear = () => setPlain(undefined);
-    window.addEventListener('pagehide', clear);
-    return () => window.removeEventListener('pagehide', clear);
-  }, []);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    decrypt(worker, { hash: team.hash.trim(), context: team.context }, key.current?.files?.[0])
-      .then(
-        (text) => {
-          setPlain(text);
-          notify('Disclosure decrypted locally.');
-        },
-        (error) => notify(errorText(error), true),
-      )
-      .finally(() => {
-        if (key.current) key.current.value = '';
-      });
-  };
-  return (
-    <div id="mine" className="wrap team">
-      <details open>
-        <summary>{t('For the project team')}</summary>
-        <p>{t('Upload your team key to decrypt locally. The key never leaves this browser.')}</p>
-        <form onSubmit={submit}>
-          <label className="field">
-            {t('Ciphertext hash')}
-            <input
-              required
-              pattern="[a-f0-9]{64}"
-              autoComplete="off"
-              value={team.hash}
-              onChange={(e) => setTeam({ ...team, hash: e.target.value })}
-            />
-          </label>
-          <label className="field">
-            {t('Context - JSON with network, contract, bounty, hunter, submission')}
-            <textarea
-              required
-              rows={4}
-              value={team.context}
-              onChange={(e) => setTeam({ ...team, context: e.target.value })}
-            />
-          </label>
-          <label className="field">
-            {t('Team X25519 private key (PKCS8 DER)')}
-            <input ref={key} required type="file" />
-          </label>
-          <button type="submit" className="button">
-            {t('Fetch ciphertext and decrypt locally')}
-          </button>
-        </form>
-        {plain !== undefined && (
-          <>
-            <pre>{plain}</pre>
-            <button type="button" className="chip" onClick={() => setPlain(undefined)}>
-              {t('Clear disclosure')}
-            </button>
-          </>
-        )}
-      </details>
-    </div>
-  );
-}
-
 function Operator({ token, setToken }: { token: string; setToken(value: string): void }) {
   const t = useT();
   return (
@@ -500,12 +412,7 @@ function Shell({ meta }: { meta: Meta }) {
           <Hunt visible={hunting} program={route === 'program' ? id : undefined} />
         </div>
         {route === 'me' && <MyAttempts />}
-        {route === 'projects' && (
-          <>
-            <Coverage />
-            <TeamDecryptPanel />
-          </>
-        )}
+        {route === 'projects' && <Projects />}
         {route === 'launch' && <Launch />}
       </main>
       <Footer />

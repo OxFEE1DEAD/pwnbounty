@@ -568,6 +568,38 @@ const ru: Record<string, string> = {
   'Every claim, read from the contract.': 'Все заявки, прочитанные из контракта.',
   'earned, paid only': 'получено, только выплаченное',
   wins: 'побед',
+  'Write down what a break of your contract or agent looks like. Hackers attack it, a verifier replays every attack, and the contract pays the first one that breaks the rule. Junk reports cost you nothing and need no triage.':
+    'Запишите, как выглядит взлом вашего контракта или агента. Хакеры атакуют, верификатор воспроизводит каждую атаку, а контракт платит первой, которая нарушила правило. Мусорные отчёты ничего не стоят и не требуют разбора.',
+  '01 DESCRIBE': '01 ОПИСАНИЕ',
+  '02 TEST RUN': '02 ТЕСТОВЫЙ ПРОГОН',
+  '03 FUND': '03 ПОПОЛНЕНИЕ',
+  '04 READ REPORTS': '04 ОТЧЁТЫ',
+  'Start from a template or upload your .wasm build. Set the starting balances and what counts as a break.':
+    'Начните с шаблона или загрузите свою сборку .wasm. Задайте начальные балансы и что считается взломом.',
+  'Replay your honest cases and the known attacks with one CLI command, before any money moves.':
+    'Прогоните честные кейсы и известные атаки одной CLI-командой, до того как двинутся деньги.',
+  'Create the program: the reward goes to escrow and you keep your team key. The program appears in the hacker catalog.':
+    'Создайте программу: награда уходит в эскроу, ключ команды остаётся у вас. Программа появляется в каталоге для хакеров.',
+  'Decrypt the winning attack with your team key. Nobody broke it? Take the reward back after the deadline.':
+    'Расшифруйте победившую атаку ключом команды. Никто не сломал? Заберите награду после срока.',
+  'Settling claims': 'Идёт расчёт заявок',
+  'No winner': 'Без победителя',
+  'The winning claim is not in the claim index. Paste the hash and context below.':
+    'Победившей заявки нет в индексе заявок. Вставьте хеш и контекст ниже.',
+  'Withdrawal sent. The reward returns to your wallet.':
+    'Вывод отправлен. Награда вернётся в ваш кошелёк.',
+  'MY PROGRAMS': 'МОИ ПРОГРАММЫ',
+  'Programs owned by {account}': 'Программы аккаунта {account}',
+  'Your programs': 'Ваши программы',
+  'No programs from this account yet.': 'У этого аккаунта пока нет программ.',
+  'Withdraw {amount}': 'Вывести {amount}',
+  'Decrypt report': 'Расшифровать отчёт',
+  'TEAM KEY': 'КЛЮЧ КОМАНДЫ',
+  'Decrypt a report': 'Расшифровать отчёт',
+  'Decrypting happens in this browser. Pick the team key file you saved at launch; it never leaves this page.':
+    'Расшифровка идёт в этом браузере. Выберите файл ключа команды, сохранённый при запуске; он не покидает страницу.',
+  'WHAT WE CAN TEST TODAY': 'ЧТО МЫ УМЕЕМ ПРОВЕРЯТЬ СЕГОДНЯ',
+  'Known attacks, real results.': 'Известные атаки, настоящие результаты.',
 };
 const prefixes = Object.keys(ru).filter((key) => /[ #]$/.test(key));
 const storageKey = 'sealed-bounty/lang/1';

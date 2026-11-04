@@ -14,6 +14,7 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'es2022',
     cssCodeSplit: false,
+    assetsInlineLimit: 65536,
     modulePreload: { polyfill: false },
     rollupOptions: {
       output: {

@@ -350,6 +350,14 @@ pre {
 .launch .review { grid-column: 1 / -1; }
 .launch .samples + .samples { margin-top: 10px; }
 .launch code { overflow-wrap: anywhere; }
+.launch h3 { margin-top: 24px; }
+.holder { display: grid; grid-template-columns: minmax(0, 1fr) 120px 128px; }
+.holder > span:first-child { overflow-wrap: anywhere; }
+.holder .tag { justify-self: start; }
+.holder strong { justify-self: end; }
+.code-source { padding: 12px 0 16px; border-bottom: 1px solid var(--line); }
+.code-pick { display: flex; align-items: flex-end; gap: 8px; }
+.code-pick .field { flex: 1; margin-bottom: 0; }
 
 .notice {
   border: 1px solid var(--warn);
@@ -529,6 +537,9 @@ summary { cursor: pointer; font-weight: 600; }
 
 @media (max-width: 560px) {
   .wrap { width: calc(100% - 32px); }
+  .holder { grid-template-columns: 1fr auto; }
+  .holder > span:first-child { grid-column: 1 / -1; }
+  .code-pick { flex-wrap: wrap; }
   .brand { font-size: 18px; }
   .hero { padding: 40px 0; }
   .doors, .steps, .tiles { grid-template-columns: 1fr; }

@@ -155,10 +155,18 @@ const ru: Record<string, string> = {
   'AI payment agents launch from the existing program flow: npm run cli program-create':
     'Платёжные AI-агенты запускаются через текущий поток программ: npm run cli program-create',
   'YOUR CODE': 'ВАШ КОД',
-  'Contract build': 'Сборка контракта',
-  'Replace with your .wasm build (hashed in this browser)':
-    'Заменить своей сборкой .wasm (хеш считается в браузере)',
-  'Uploaded: {name}': 'Загружено: {name}',
+  'Every attack runs on a fresh local NEAR chain with a copy of this code. Your live contract is never touched.':
+    'Каждая атака идёт на свежей локальной сети NEAR с копией этого кода. Живой контракт никто не трогает.',
+  'template build': 'сборка из шаблона',
+  'Deployed contract': 'Задеплоенный контракт',
+  'Copy its code': 'Взять его код',
+  'or a .wasm build': 'или сборка .wasm',
+  'No contract is deployed on this account': 'На этом аккаунте нет контракта',
+  'This file is not a .wasm build': 'Этот файл не сборка .wasm',
+  'Deployed contract: the code is copied at the last final block, from testnet for *.testnet, otherwise from mainnet. A .wasm build is the compiled contract (cargo near build); it does not have to be deployed, you hand it over with program.json.':
+    'Задеплоенный контракт: код копируется на последнем финальном блоке, для *.testnet из testnet, иначе из mainnet. Сборка .wasm - это скомпилированный контракт (cargo near build); деплоить его не нужно, он передаётся вместе с program.json.',
+  'The template setup stays the same, so your code needs the same methods. For another setup, edit steps in program.json.':
+    'Подготовка сети из шаблона не меняется, поэтому коду нужны те же методы. Для другой подготовки правьте steps в program.json.',
   'WHO HOLDS WHAT': 'У КОГО ЧТО ЛЕЖИТ',
   protected: 'защищён',
   attacker: 'атакующий',
@@ -174,11 +182,19 @@ const ru: Record<string, string> = {
   'Hunters see this hash on the bounty. Any change to code, balances or rules changes it.':
     'Охотники видят этот хеш в награде. Любое изменение кода, балансов или правил меняет его.',
   'Download program.json': 'Скачать program.json',
-  reward: 'награда',
   'Write your own attack in the same format and replay it: npm run cli world-run program.json attack.json':
     'Напишите свою атаку в том же формате и прогоните её: npm run cli world-run program.json attack.json',
-  'Replay your own attack locally first, then program-create funds the bounty on NEAR and hunters see it in the hunt.':
-    'Сначала прогоните свою атаку локально, затем program-create фондирует награду в NEAR, и охотники видят её в каталоге.',
+  'Download a sample attack': 'Скачать пример атаки',
+  'Test run on your machine': 'Пробный прогон у себя',
+  'once: the CLI and a local NEAR chain (Node 22+)':
+    'один раз: CLI и локальная сеть NEAR (Node 22+)',
+  'test run: a fresh chain, your code, one attack, a verdict':
+    'прогон: свежая сеть, ваш код, одна атака, вердикт',
+  'On Linux replace Darwin-arm64 with Linux-x86_64. The sample is a known attack from the results list; write your own in the same format.':
+    'На Linux замените Darwin-arm64 на Linux-x86_64. Пример - известная атака из списка результатов; свою пишите в том же формате.',
+  Publish: 'Публикация',
+  'Publishing needs the verifier keys, so in test mode the verifier operator runs it with your files. The reward goes to escrow and the program appears in the hacker catalog. Publishing with your wallet from this page is not available yet.':
+    'Для публикации нужны ключи верификатора, поэтому в тестовом режиме её запускает оператор с вашими файлами. Награда уходит в эскроу, программа появляется в каталоге для хакеров. Публикации своим кошельком с этой страницы пока нет.',
   'On-chain, not on faith.': 'В сети, а не на словах.',
   'Finalized NEAR state. Refreshes when the page loads.':
     'Подтверждённое состояние NEAR. Обновляется при загрузке страницы.',

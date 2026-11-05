@@ -1,58 +1,95 @@
 mod interface;
 pub use interface::*;
 use near_sdk::json_types::{Base64VecU8, U128, U64};
+use near_sdk::serde_json::{self, json, Value};
 use near_sdk::store::LookupMap;
-use near_sdk::{env, near, require, AccountId, Gas, NearToken, PanicOnDefault, Promise};
+use near_sdk::{
+    env, near, require, AccountId, Gas, GasWeight, NearToken, PanicOnDefault, Promise, PromiseError,
+};
 
 const BOUNTY_STORAGE: u128 = 10_000_000_000_000_000_000_000;
-const CLAIM_STORAGE: u128 = 20_000_000_000_000_000_000_000;
+const CLAIM_STORAGE: u128 = 100_000_000_000_000_000_000_000;
+const MAX_PROGRAM: usize = 16_384;
+const MAX_CIPHERTEXT: usize = 65_536;
+const MAX_DISCLOSURE: usize = 8_192;
+const CALLBACK_GAS: Gas = Gas::from_tgas(80);
 
 #[near(contract_state)]
 #[derive(PanicOnDefault)]
 pub struct Contract {
     network: String,
+    runner: Runner,
+    verifier: Option<Verifier>,
+    sealed_state: String,
     next_id: u64,
     bounties: LookupMap<u64, Bounty>,
+    programs: LookupMap<u64, String>,
     commitments: LookupMap<String, Commitment>,
+    disclosures: LookupMap<String, Base64VecU8>,
     hunters: LookupMap<AccountId, Vec<ClaimRef>>,
-}
-
-#[near(serializers = [borsh])]
-struct StateV1 {
-    network: String,
-    next_id: u64,
-    bounties: LookupMap<u64, Bounty>,
-    commitments: LookupMap<String, Commitment>,
 }
 
 #[near]
 impl Contract {
     #[init]
-    pub fn new(network: String) -> Self {
+    pub fn new(network: String, runner: Runner) -> Self {
         require!(
             network == "testnet" || network == "mainnet",
             "invalid network"
         );
+        hash(&runner.version);
         Self {
             network,
+            runner,
+            verifier: None,
+            sealed_state: String::new(),
             next_id: 0,
             bounties: LookupMap::new(b"b"),
+            programs: LookupMap::new(b"p"),
             commitments: LookupMap::new(b"c"),
+            disclosures: LookupMap::new(b"d"),
             hunters: LookupMap::new(b"h"),
         }
     }
 
+    #[payable]
+    pub fn provision(&mut self) -> Promise {
+        require!(self.verifier.is_none(), "already provisioned");
+        self.run(
+            json!({"action":"provision"}).to_string(),
+            json!({"max_instructions":10_000_000_000u64,"max_memory_mb":128,"max_execution_seconds":30}),
+            false,
+        )
+        .then(
+            Self::ext(env::current_account_id())
+                .with_static_gas(Gas::from_tgas(20))
+                .on_provision(),
+        )
+    }
+
     #[private]
-    #[init(ignore_state)]
-    pub fn migrate() -> Self {
-        let old: StateV1 = env::state_read().expect("no state to migrate");
-        Self {
-            network: old.network,
-            next_id: old.next_id,
-            bounties: old.bounties,
-            commitments: old.commitments,
-            hunters: LookupMap::new(b"h"),
-        }
+    pub fn on_provision(
+        &mut self,
+        #[callback_result] result: Result<Option<Provisioned>, PromiseError>,
+    ) {
+        require!(self.verifier.is_none(), "already provisioned");
+        let Ok(Some(p)) = result else {
+            env::panic_str("provisioning failed")
+        };
+        require!(
+            p.signing_public_key.0.len() == 32
+                && p.encryption_public_key.0.len() == 32
+                && !p.sealed_state.is_empty()
+                && p.sealed_state.len() <= 1_400,
+            "invalid provisioning"
+        );
+        self.verifier = Some(Verifier {
+            public_key: p.signing_public_key,
+            encryption_key: p.encryption_public_key,
+            attestation_hash: self.runner.version.clone(),
+        });
+        self.sealed_state = p.sealed_state;
+        event("provisioned", json!({"verifier":self.verifier}));
     }
 
     #[payable]
@@ -63,15 +100,15 @@ impl Contract {
         reward: U128,
         expires: U64,
         settle_until: U64,
-        verifier: Verifier,
+        program: String,
     ) -> U64 {
         hash(&rules_hash);
-        hash(&verifier.attestation_hash);
+        let verifier = self.verifier.clone().expect("verifier not provisioned");
+        require!(team_key.0.len() == 32, "invalid key");
         require!(
-            team_key.0.len() == 32
-                && verifier.public_key.0.len() == 32
-                && verifier.encryption_key.0.len() == 32,
-            "invalid key"
+            program.len() <= MAX_PROGRAM
+                && serde_json::from_str::<Value>(&program).is_ok_and(|v| v.is_object()),
+            "invalid program"
         );
         require!(reward.0 > 0, "zero reward");
         require!(
@@ -82,10 +119,9 @@ impl Contract {
             settle_until.0 - expires.0 <= 100_000,
             "settlement window too long"
         );
-        let required = reward
-            .0
-            .checked_add(BOUNTY_STORAGE)
-            .expect("deposit overflow");
+        let storage =
+            BOUNTY_STORAGE + program.len() as u128 * env::storage_byte_cost().as_yoctonear();
+        let required = reward.0.checked_add(storage).expect("deposit overflow");
         require!(
             env::attached_deposit().as_yoctonear() == required,
             "attach reward plus storage budget exactly"
@@ -107,8 +143,10 @@ impl Contract {
                 winner: None,
             },
         );
+        self.programs.insert(id, program);
         self.bounties.flush();
-        storage_budget(before, BOUNTY_STORAGE, 128);
+        self.programs.flush();
+        storage_budget(before, storage, 128);
         event(
             "created",
             near_sdk::serde_json::json!({"bounty":id.to_string()}),
@@ -155,6 +193,77 @@ impl Contract {
             "committed",
             near_sdk::serde_json::json!({"bounty":bounty,"hunter":hunter,"submission":submission}),
         );
+    }
+
+    #[payable]
+    pub fn claim(&mut self, bounty: U64, submission: String, ciphertext: String) -> Promise {
+        require!(ciphertext.len() <= MAX_CIPHERTEXT, "ciphertext too large");
+        let hunter = env::predecessor_account_id();
+        let b = self.bounty(bounty.0);
+        require!(
+            b.state == PaymentState::Available && env::block_height() < b.settle_until.0,
+            "program not open"
+        );
+        let c = self
+            .commitments
+            .get(&claim_key(bounty.0, &hunter, &submission))
+            .cloned()
+            .expect("unknown claim");
+        require!(!c.settled, "already settled");
+        let report = json!({
+            "network": self.network,
+            "contract": env::current_account_id(),
+            "bounty": bounty.0.to_string(),
+            "hunter": hunter,
+            "submission": submission,
+            "report_hash": c.report_hash,
+            "ciphertext": ciphertext,
+        });
+        let input = format!(
+            r#"{{"action":"verify","report":{},"config":{},"sealed_state":{}}}"#,
+            report,
+            self.programs.get(&bounty.0).expect("unknown program"),
+            Value::String(self.sealed_state.clone())
+        );
+        self.run(input, Self::claim_limits(), true).then(
+            Self::ext(env::current_account_id())
+                .with_static_gas(CALLBACK_GAS)
+                .on_verdict(bounty, hunter, submission),
+        )
+    }
+
+    #[private]
+    pub fn on_verdict(
+        &mut self,
+        bounty: U64,
+        hunter: AccountId,
+        submission: String,
+        #[callback_result] result: Result<Option<RunnerOutput>, PromiseError>,
+    ) {
+        let Ok(Some(out)) = result else {
+            event(
+                "claim_failed",
+                json!({"bounty":bounty,"hunter":hunter,"submission":submission}),
+            );
+            return;
+        };
+        require!(
+            out.verdict.bounty == bounty
+                && out.verdict.hunter == hunter
+                && out.verdict.submission == submission,
+            "verdict for another claim"
+        );
+        require!(
+            hex(&env::sha256(&out.disclosure_ciphertext.0)) == out.verdict.disclosure_hash,
+            "disclosure mismatch"
+        );
+        self.settle(out.verdict, out.signature);
+        if out.disclosure_ciphertext.0.len() <= MAX_DISCLOSURE {
+            self.disclosures.insert(
+                claim_key(bounty.0, &hunter, &submission),
+                out.disclosure_ciphertext,
+            );
+        }
     }
 
     pub fn settle(&mut self, verdict: Verdict, signature: Base64VecU8) {
@@ -265,8 +374,27 @@ impl Contract {
             bounty_count: U64(self.next_id),
             bounty_storage_deposit: U128(BOUNTY_STORAGE),
             claim_storage_deposit: U128(CLAIM_STORAGE),
-            verifier_registration: "unverified_pinned_key".to_string(),
+            storage_byte_cost: U128(env::storage_byte_cost().as_yoctonear()),
+            verifier_registration: "outlayer_project_pinned_version".to_string(),
+            runner: self.runner.clone(),
+            verifier: self.verifier.clone(),
+            claim_limits: Self::claim_limits(),
         }
+    }
+
+    pub fn get_program(&self, bounty: U64) -> Option<String> {
+        self.programs.get(&bounty.0).cloned()
+    }
+
+    pub fn get_disclosure(
+        &self,
+        bounty: U64,
+        hunter: AccountId,
+        submission: String,
+    ) -> Option<Base64VecU8> {
+        self.disclosures
+            .get(&claim_key(bounty.0, &hunter, &submission))
+            .cloned()
     }
 
     pub fn get_bounties(&self, from_index: Option<U64>, limit: Option<u32>) -> Vec<BountyEntry> {
@@ -330,6 +458,26 @@ impl Contract {
     fn bounty(&self, id: u64) -> Bounty {
         self.bounties.get(&id).cloned().expect("unknown bounty")
     }
+    fn claim_limits() -> Value {
+        json!({"max_instructions":100_000_000_000u64,"max_memory_mb":256,"max_execution_seconds":170})
+    }
+    fn run(&self, input: String, limits: Value, secrets: bool) -> Promise {
+        let args = json!({
+            "source": {"Project": {"project_id": self.runner.project, "version_key": self.runner.version}},
+            "resource_limits": limits,
+            "input_data": input,
+            "secrets_ref": secrets.then(|| json!({"profile": self.runner.secrets_profile, "account_id": self.runner.secrets_owner})),
+            "response_format": "Json",
+            "payer_account_id": env::predecessor_account_id(),
+        });
+        Promise::new(self.runner.outlayer.clone()).function_call_weight(
+            "request_execution",
+            serde_json::to_vec(&args).expect("serialize request"),
+            env::attached_deposit(),
+            Gas::from_tgas(50),
+            GasWeight(1),
+        )
+    }
     fn transfer(&self, id: u64, recipient: AccountId, reward: U128, refund: bool) {
         Promise::new(recipient)
             .transfer(NearToken::from_yoctonear(reward.0))
@@ -343,6 +491,9 @@ impl Contract {
 }
 fn claim_key(id: u64, hunter: &AccountId, submission: &str) -> String {
     format!("{id}:{hunter}:{submission}")
+}
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 fn hash(s: &str) {
     require!(
@@ -411,6 +562,27 @@ mod tests {
     use near_sdk::test_utils::{get_created_receipts, VMContextBuilder};
     use near_sdk::{testing_env, PromiseResult};
 
+    const PROGRAM: &str = r#"{"model":"m"}"#;
+
+    fn test_contract() -> Contract {
+        let mut contract = Contract::new(
+            "testnet".into(),
+            Runner {
+                outlayer: "outlayer.testnet".parse().unwrap(),
+                project: "owner.testnet/runner".into(),
+                version: "4".repeat(64),
+                secrets_owner: "owner.testnet".parse().unwrap(),
+                secrets_profile: "default".into(),
+            },
+        );
+        contract.verifier = Some(Verifier {
+            public_key: Base64VecU8(vec![2; 32]),
+            encryption_key: Base64VecU8(vec![3; 32]),
+            attestation_hash: "4".repeat(64),
+        });
+        contract
+    }
+
     fn context(actor: &str, height: u64, deposit: u128) {
         let mut builder = VMContextBuilder::new();
         builder.current_account_id("bounty.testnet".parse().unwrap());
@@ -426,7 +598,7 @@ mod tests {
         context.predecessor_account_id("sponsor.testnet".parse().unwrap());
         context.block_height(201);
         testing_env!(context.build());
-        let mut contract = Contract::new("testnet".into());
+        let mut contract = test_contract();
         contract.bounties.insert(
             0,
             Bounty {
@@ -451,19 +623,19 @@ mod tests {
     #[test]
     fn create_requires_full_reward_in_escrow() {
         let reward = 10u128.pow(24);
-        context("sponsor.testnet", 10, reward + BOUNTY_STORAGE);
-        let mut contract = Contract::new("testnet".into());
+        context(
+            "sponsor.testnet",
+            10,
+            reward + BOUNTY_STORAGE + PROGRAM.len() as u128 * 10u128.pow(19),
+        );
+        let mut contract = test_contract();
         let id = contract.create(
             "0".repeat(64),
             Base64VecU8(vec![1; 32]),
             U128(reward),
             U64(100),
             U64(200),
-            Verifier {
-                public_key: Base64VecU8(vec![2; 32]),
-                encryption_key: Base64VecU8(vec![3; 32]),
-                attestation_hash: "4".repeat(64),
-            },
+            PROGRAM.into(),
         );
         assert_eq!(id.0, 0);
         let bounty = contract.get_bounty(id).unwrap();
@@ -476,17 +648,13 @@ mod tests {
     #[should_panic(expected = "attach reward plus storage budget exactly")]
     fn create_rejects_underfunded_reward() {
         context("sponsor.testnet", 10, BOUNTY_STORAGE);
-        Contract::new("testnet".into()).create(
+        test_contract().create(
             "0".repeat(64),
             Base64VecU8(vec![1; 32]),
             U128(10u128.pow(24)),
             U64(100),
             U64(200),
-            Verifier {
-                public_key: Base64VecU8(vec![2; 32]),
-                encryption_key: Base64VecU8(vec![3; 32]),
-                attestation_hash: "4".repeat(64),
-            },
+            PROGRAM.into(),
         );
     }
 

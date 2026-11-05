@@ -1,1 +1,1 @@
-{"signing_keys":[{"path":"verdicts","type":"ed25519","bind":"project","caller":"signer"}],"encryption_keys":[{"path":"runner-state","bind":"project","caller":"signer"}]}
+{"signing_keys":[{"path":"verdicts","type":"ed25519","bind":"project","caller":"predecessor"}],"encryption_keys":[{"path":"runner-state","bind":"project","caller":"predecessor"}]}

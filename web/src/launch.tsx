@@ -3,7 +3,7 @@ import { canonical, digest, teamKey } from './crypto.js';
 import { near } from './chain.js';
 import { errorText, useEnv, type TargetConfig } from './env.js';
 import { useT } from './i18n.js';
-import { WorldLaunch } from './checks.js';
+import { WorldLaunch } from './program-form.js';
 
 const BLOCKS_PER_DAY = 144_000n;
 const SETTLE_BLOCKS = 6_000n;

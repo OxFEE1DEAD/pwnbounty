@@ -92,6 +92,8 @@ The release builds give the hashes in the table above on the build machine; a bu
 
 `fixtures/worlds.json` describes v2 programs (`protocol/program.ts`): code (a `fixtures/wasm` build by sha256 or mainnet account code), starting accounts with roles, break rules and limits. Every attack runs on a fresh nearcore sandbox 2.13.4; `verifier/src/world/judge.ts` compares role value before and after. These replays run on the project's machine, not in the TEE.
 
+On the web page, Launch a program → Contract is one form for any contract: accounts, deploys, setup calls and keys as ordered steps, then the rules, tokens and limits. A template only fills the same form. Method names come from the wasm exports of a deployed account or a `.wasm` build; a `cargo near abi` file adds a field for every argument.
+
 ```sh
 curl -L https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore/Darwin-arm64/2.13.4/near-sandbox.tar.gz | tar -xz
 export NEAR_SANDBOX_BIN=$PWD/near-sandbox

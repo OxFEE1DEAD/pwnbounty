@@ -631,6 +631,22 @@
       "hashes": {
         "vulnerable": "d34fa96c4ae3638118d2d6567f584c251f0151caa4be1e00157a46b961110087",
         "fixed": "c3ebf61c687c0fc6a09bc0ae4ba76cc9461ad9ee1c7f00fbe5c4676a900f7725"
+      },
+      "methods": {
+        "d8717441e044d7f8fcf2dfd9e8c01b37260566dc72d582c90d41d8e537068353": [
+          "contract_source_metadata",
+          "deposit",
+          "new",
+          "shares_of",
+          "withdraw"
+        ],
+        "ea3035dd277026f8549ee99a0274d6439a7be59171b666d8bff78ef071ca680e": [
+          "contract_source_metadata",
+          "deposit",
+          "new",
+          "shares_of",
+          "withdraw"
+        ]
       }
     },
     {
@@ -887,6 +903,25 @@
       ],
       "hashes": {
         "mainnet": "fdd9f25f981337a140923e3627dc0829f77acbe028181cc408069f76e9c11003"
+      },
+      "methods": {
+        "b72c26d390b23f4517d091a8aab06b0369d465356ec5fb337d5fda076da38ac0": [
+          "storage_minimum_balance",
+          "near_deposit",
+          "near_withdraw",
+          "new",
+          "ft_transfer",
+          "ft_transfer_call",
+          "ft_total_supply",
+          "ft_balance_of",
+          "ft_resolve_transfer",
+          "storage_deposit",
+          "storage_withdraw",
+          "storage_unregister",
+          "storage_balance_bounds",
+          "storage_balance_of",
+          "ft_metadata"
+        ]
       }
     },
     {
@@ -1246,6 +1281,122 @@
       ],
       "hashes": {
         "mainnet": "658d0238d488460a607f86b984e7ef7600fb20fc06e15b4c9050c79e2a90e48b"
+      },
+      "methods": {
+        "b72c26d390b23f4517d091a8aab06b0369d465356ec5fb337d5fda076da38ac0": [
+          "storage_minimum_balance",
+          "near_deposit",
+          "near_withdraw",
+          "new",
+          "ft_transfer",
+          "ft_transfer_call",
+          "ft_total_supply",
+          "ft_balance_of",
+          "ft_resolve_transfer",
+          "storage_deposit",
+          "storage_withdraw",
+          "storage_unregister",
+          "storage_balance_bounds",
+          "storage_balance_of",
+          "ft_metadata"
+        ],
+        "a1afab98916d9f213746544dcf8e4e6bdb22c0be6bc5dfbd8ea8814c9922b547": [
+          "acl_add_admin",
+          "acl_add_super_admin",
+          "acl_get_admins",
+          "acl_get_grantees",
+          "acl_get_permissioned_accounts",
+          "acl_get_super_admins",
+          "acl_grant_role",
+          "acl_has_any_role",
+          "acl_has_role",
+          "acl_init_super_admin",
+          "acl_is_admin",
+          "acl_is_super_admin",
+          "acl_renounce_admin",
+          "acl_renounce_role",
+          "acl_revoke_admin",
+          "acl_revoke_role",
+          "acl_revoke_super_admin",
+          "acl_role_variants",
+          "acl_storage_prefix",
+          "acl_transfer_super_admin",
+          "add_full_access_key",
+          "add_public_key",
+          "add_relayer_key",
+          "admin_call",
+          "cleanup_nonces",
+          "contract_source_metadata",
+          "current_salt",
+          "delete_key",
+          "delete_relayer_key",
+          "disable_auth_by_predecessor_id",
+          "do_add_relayer_key",
+          "do_auth_call",
+          "do_ft_withdraw",
+          "do_mt_withdraw",
+          "do_native_withdraw",
+          "do_nft_withdraw",
+          "do_storage_deposit",
+          "execute_intents",
+          "fee",
+          "fee_collector",
+          "force_disable_auth_by_predecessor_ids",
+          "force_enable_auth_by_predecessor_ids",
+          "force_lock_account",
+          "force_unlock_account",
+          "ft_force_withdraw",
+          "ft_on_transfer",
+          "ft_resolve_deposit",
+          "ft_resolve_withdraw",
+          "ft_withdraw",
+          "has_public_key",
+          "invalidate_salts",
+          "is_account_locked",
+          "is_auth_by_predecessor_id_enabled",
+          "is_nonce_used",
+          "is_valid_salt",
+          "mt_balance_of",
+          "mt_batch_balance_of",
+          "mt_batch_supply",
+          "mt_batch_transfer",
+          "mt_batch_transfer_call",
+          "mt_force_batch_transfer",
+          "mt_force_batch_transfer_call",
+          "mt_force_transfer",
+          "mt_force_transfer_call",
+          "mt_force_withdraw",
+          "mt_on_transfer",
+          "mt_resolve_deposit",
+          "mt_resolve_transfer",
+          "mt_resolve_withdraw",
+          "mt_supply",
+          "mt_token",
+          "mt_tokens",
+          "mt_tokens_for_owner",
+          "mt_transfer",
+          "mt_transfer_call",
+          "mt_withdraw",
+          "new",
+          "nft_force_withdraw",
+          "nft_on_transfer",
+          "nft_resolve_deposit",
+          "nft_resolve_withdraw",
+          "nft_withdraw",
+          "pa_all_paused",
+          "pa_is_paused",
+          "pa_pause_feature",
+          "pa_storage_key",
+          "pa_unpause_feature",
+          "public_keys_of",
+          "remove_public_key",
+          "set_fee",
+          "set_fee_collector",
+          "simulate_intents",
+          "state_migrate",
+          "update_current_salt",
+          "upgrade"
+        ]
       }
     },
     {
@@ -1578,6 +1729,17 @@
       "hashes": {
         "full key": "12dfd80c99fac6583d9e087802b0953408b49220a23c82b5999dea4282c1eb73",
         "scoped key": "8f4fd2142141569ee77c2b1d924d7a406fe645580e826885f279775d2498617e"
+      },
+      "methods": {
+        "4349117f578f4d83c08b44b76a71739bc3d55510723cdcd34f6cb263d60cfb4e": [
+          "contract_source_metadata",
+          "fund",
+          "get_payment",
+          "get_policy",
+          "new",
+          "on_payment",
+          "pay"
+        ]
       }
     }
   ]

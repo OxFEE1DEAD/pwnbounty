@@ -37,6 +37,7 @@ import { SandboxWorlds } from './world/sandbox.ts';
 import { codeLoader, runProgram } from './world/run.ts';
 import { ENGINE, programHash } from '../../protocol/program.ts';
 import type { Outcome, ProgramSpec, TxAttack } from '../../protocol/program.ts';
+import { wasmMethods } from '../../web/src/abi.ts';
 
 function env(name: string, required = true): string {
   const value = process.env[name];
@@ -200,7 +201,8 @@ async function run() {
     return;
   }
   if (command === 'coverage') {
-    const worlds = new SandboxWorlds(env('NEAR_SANDBOX_BIN'), codeLoader('fixtures/wasm'));
+    const load = codeLoader('fixtures/wasm');
+    const worlds = new SandboxWorlds(env('NEAR_SANDBOX_BIN'), load);
     type Case = { id: string; title: string; attack: TxAttack; expect: Record<string, Outcome> };
     type Entry = { id: string; variants: Record<string, ProgramSpec>; cases: Case[] };
     const only = args[0];
@@ -228,7 +230,13 @@ async function run() {
       const hashes = Object.fromEntries(
         Object.entries(entry.variants).map(([v, spec]) => [v, programHash(spec)]),
       );
-      targets.push({ ...entry, hashes, cases });
+      const codes = Object.values(entry.variants).flatMap((spec) => spec.codes);
+      const methods = Object.fromEntries(
+        await Promise.all(
+          codes.map(async (c) => [c.sha256, Object.keys(wasmMethods(await load(c)))]),
+        ),
+      );
+      targets.push({ ...entry, hashes, methods, cases });
     }
     const rows = await agentCorpus('fixtures/cases.json');
     const agent = {

@@ -103,10 +103,11 @@ export class Chain implements ChainReader {
     method: string,
     args: Record<string, unknown>,
     blockHash?: string,
+    account = this.contract,
   ): Promise<{ value: T | null; blockHash: string }> {
     const result = await this.rpc<{ result?: number[]; block_hash?: string }>('query', {
       request_type: 'call_function',
-      account_id: this.contract,
+      account_id: account,
       method_name: method,
       args_base64: btoa(JSON.stringify(args)),
       ...(blockHash ? { block_id: blockHash } : { finality: 'final' }),

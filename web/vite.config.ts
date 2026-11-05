@@ -8,7 +8,6 @@ export default defineConfig({
   root: web,
   publicDir: false,
   plugins: [react()],
-  server: { proxy: { '/v1': 'http://127.0.0.1:8787' } },
   build: {
     outDir: 'dist',
     emptyOutDir: true,

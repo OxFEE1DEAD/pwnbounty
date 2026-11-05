@@ -111,6 +111,15 @@ export async function sealReport(
     ciphertext: base64(concat(new Uint8Array([1]), ephemeral, salt, iv, tag, body)),
   };
 }
+export async function teamKey(): Promise<{ publicKey: string; privateDer: Uint8Array }> {
+  const pair = (await crypto.subtle.generateKey({ name: 'X25519' }, true, [
+    'deriveBits',
+  ])) as CryptoKeyPair;
+  return {
+    publicKey: base64(new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey))),
+    privateDer: new Uint8Array(await crypto.subtle.exportKey('pkcs8', pair.privateKey)),
+  };
+}
 export async function openDisclosure(
   envelope: Uint8Array,
   privateDer: ArrayBuffer,

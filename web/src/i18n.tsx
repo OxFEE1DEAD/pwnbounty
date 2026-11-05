@@ -553,6 +553,78 @@ const ru: Record<string, string> = {
   'I saved sealed-report-{id}.json. It cannot be recreated after the deadline.':
     'Я сохранил sealed-report-{id}.json. После срока его не восстановить.',
   'Commit on NEAR · {deposit}': 'Записать в NEAR · {deposit}',
+  'Confirm in your wallet: the commitment, then the encrypted invoice. The TEE check runs right after, up to 2 min.':
+    'Подтвердите в кошельке: сначала коммит, затем зашифрованный инвойс. Проверка в TEE идёт сразу после, до 2 минут.',
+  'The TEE check returned no verdict. The claim is still open: run it again.':
+    'Проверка в TEE не вернула вердикт. Заявка открыта: запустите её ещё раз.',
+  'Commitment confirmed in finalized NEAR. Press the button to run the check.':
+    'Коммит подтверждён в NEAR. Нажмите кнопку, чтобы запустить проверку.',
+  'The escrow sent the invoice to the OutLayer TEE. Waiting for the verdict, up to 2 min…':
+    'Escrow отправил инвойс в OutLayer TEE. Ждём вердикт, до 2 минут…',
+  'No verdict yet: {detail}': 'Вердикта пока нет: {detail}',
+  'the TEE run did not finish. The claim is still open: run the check again.':
+    'прогон в TEE не завершился. Заявка открыта: запустите проверку ещё раз.',
+  'View the claim transaction ↗': 'Транзакция заявки ↗',
+  'Run the check again': 'Проверить ещё раз',
+  'Run the check in the TEE →': 'Запустить проверку в TEE →',
+  'Encrypt, commit and check · {deposit}': 'Зашифровать, записать и проверить · {deposit}',
+  'One wallet confirmation, two transactions: {deposit} claim storage (not refundable) and about 0.03 NEAR for the TEE run, unused part comes back. The invoice is encrypted here; only the TEE can open it.':
+    'Одно подтверждение в кошельке, две транзакции: {deposit} за хранение заявки (не возвращается) и около 0.03 NEAR за прогон в TEE, неиспользованное вернётся. Инвойс шифруется здесь, открыть его может только TEE.',
+  'Claim on NEAR': 'Заявка в NEAR',
+  'The commitment on NEAR differs from this submission':
+    'Коммит в NEAR не совпадает с этой заявкой',
+  'No commitment found for the saved invoice yet. Press the button to sign it.':
+    'Коммит для сохранённого инвойса пока не найден. Нажмите кнопку, чтобы подписать его.',
+  'OutLayer did not return a price': 'OutLayer не вернул цену прогона',
+  'No report is stored for this claim': 'Для этой заявки отчёт не сохранён',
+  'No escrow is deployed on this network yet': 'В этой сети escrow ещё не развёрнут',
+  'The escrow has no provisioned verifier': 'У escrow нет подготовленного верификатора',
+  'Invalid deposit': 'Неверный депозит',
+  TEE: 'TEE',
+  'Winning attack': 'Выигравшая атака',
+  'Agent sent {amount} to {recipient}': 'Агент отправил {amount} на {recipient}',
+  executed: 'исполнено',
+  blocked: 'заблокировано',
+  'Test balance after the run: {balance}': 'Тестовый баланс после прогона: {balance}',
+  'Full report': 'Полный отчёт',
+  'AI payment agent · checked in the TEE': 'AI-агент оплаты · проверка в TEE',
+  'Contract · export for a local replay': 'Контракт · экспорт для локального прогона',
+  'THE AGENT': 'АГЕНТ',
+  'Instructions the agent follows': 'Инструкции агента',
+  'Allowed recipients, comma separated': 'Разрешённые получатели через запятую',
+  'Test balance': 'Тестовый баланс',
+  'Spending control on: forbidden transfers are blocked before they execute':
+    'Контроль трат включён: запрещённые переводы блокируются до исполнения',
+  'Model {model}, pinned by attestation. A break is a forbidden transfer that executes on the test ledger.':
+    'Модель {model}, закреплена аттестацией. Взлом - запрещённый перевод, исполненный на тестовом реестре.',
+  REWARD: 'НАГРАДА',
+  'Open for attacks, days': 'Открыта для атак, дней',
+  'No winner by the deadline: the reward comes back to you.':
+    'Если до дедлайна победителя нет, награда возвращается вам.',
+  'TEAM KEY': 'КЛЮЧ КОМАНДЫ',
+  'Reports are encrypted to this key. It is made in this browser and saved as a file; nobody else gets it.':
+    'Отчёты шифруются на этот ключ. Он создаётся в этом браузере и сохраняется файлом, больше его никто не получает.',
+  'Make the team key': 'Создать ключ команды',
+  'Make a new key': 'Создать новый ключ',
+  'I saved {file}. Without it the reports cannot be read.':
+    'Я сохранил {file}. Без него отчёты не прочитать.',
+  PUBLISH: 'ПУБЛИКАЦИЯ',
+  'The escrow sends every claim to OutLayer project {project}, version {version}. Its keys were made inside the TEE.':
+    'Escrow отправляет каждую заявку в OutLayer-проект {project}, версия {version}. Его ключи созданы внутри TEE.',
+  'Publish with wallet · {amount}': 'Опубликовать кошельком · {amount}',
+  'Write the instructions for the agent': 'Напишите инструкции для агента',
+  'Allowed recipients must be NEAR accounts': 'Разрешённые получатели должны быть NEAR-аккаунтами',
+  'The limit and the balance are whole numbers': 'Лимит и баланс - целые числа',
+  'Set the reward in NEAR': 'Укажите награду в NEAR',
+  'Open for 1 to 30 days': 'Срок от 1 до 30 дней',
+  'Make the team key and save it': 'Создайте ключ команды и сохраните его',
+  'This browser cannot make X25519 keys': 'Этот браузер не умеет создавать ключи X25519',
+  'Program published. Hackers can attack it now.':
+    'Программа опубликована. Хакеры уже могут атаковать.',
+  'Program #{id} is open →': 'Программа #{id} открыта →',
+  'Published. Open My programs →': 'Опубликовано. Открыть «Мои программы» →',
+  'Describe the agent and its spending rules. Hackers send encrypted invoices; the TEE runs the agent on a test ledger and the escrow pays only for a forbidden transfer.':
+    'Опишите агента и правила трат. Хакеры присылают зашифрованные инвойсы, TEE прогоняет агента на тестовом реестре, а escrow платит только за запрещённый перевод.',
   'Encrypt in this browser →': 'Зашифровать в этом браузере →',
   'Already committed? Load your sealed report': 'Заявка уже записана? Загрузите запечатанный отчёт',
   'Only when the verifier never received it and the claim can still settle. The file must match the claim on NEAR.':
@@ -610,7 +682,6 @@ const ru: Record<string, string> = {
   'No programs from this account yet.': 'У этого аккаунта пока нет программ.',
   'Withdraw {amount}': 'Вывести {amount}',
   'Decrypt report': 'Расшифровать отчёт',
-  'TEAM KEY': 'КЛЮЧ КОМАНДЫ',
   'Decrypt a report': 'Расшифровать отчёт',
   'Decrypting happens in this browser. Pick the team key file you saved at launch; it never leaves this page.':
     'Расшифровка идёт в этом браузере. Выберите файл ключа команды, сохранённый при запуске; он не покидает страницу.',

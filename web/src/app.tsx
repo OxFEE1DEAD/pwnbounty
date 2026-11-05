@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HunterWallet } from './wallet.js';
 import { Chain, near, type Bounty, type Entry } from './chain.js';
@@ -8,7 +8,7 @@ import {
   loadMeta,
   useAsync,
   useEnv,
-  Worker,
+  ChainVerifier,
   type Env,
   type Meta,
   type Note,
@@ -18,7 +18,7 @@ import type { ChainReader, HunterClaim } from './ports.js';
 import { Icon, type IconName } from './icons.js';
 import { LangProvider, useLang, useT } from './i18n.js';
 import { Hunt } from './hunt.js';
-import { Launch } from './checks.js';
+import { Launch } from './launch.js';
 import { Projects } from './projects.js';
 import { Account, Landing, repository } from './landing.js';
 import '../style.css';
@@ -307,22 +307,6 @@ function MyAttempts() {
   );
 }
 
-function Operator({ token, setToken }: { token: string; setToken(value: string): void }) {
-  const t = useT();
-  return (
-    <details className="wrap operator">
-      <summary>{t('Operator token')}</summary>
-      <input
-        type="password"
-        autoComplete="off"
-        value={token}
-        placeholder={t("Kept only in this tab's memory")}
-        onChange={(e) => setToken(e.target.value)}
-      />
-    </details>
-  );
-}
-
 function Toast({ note, close }: { note?: Note; close(): void }) {
   const t = useT();
   if (!note) return null;
@@ -361,33 +345,19 @@ function Footer() {
 function Shell({ meta }: { meta: Meta }) {
   const { route, id } = useRoute();
   const hunting = route === 'programs' || route === 'program';
-  const token = useRef('');
-  const [tokenValue, setTokenValue] = useState('');
-  const [askToken, setAskToken] = useState(meta.public_ingress === false);
   const [account, setAccount] = useState<string>();
   const [note, setNote] = useState<Note>();
   const [team, setTeam] = useState<TeamDraft>({ hash: '', context: '' });
-  const services = useMemo(
-    () => ({
-      chain: new Chain(meta.network, meta.contract),
+  const services = useMemo(() => {
+    const chain = new Chain(meta.network, meta.contract);
+    return {
+      chain,
       wallet: new HunterWallet(meta.network, meta.contract, meta.allow_mainnet_writes === true),
-      worker: new Worker(
-        meta,
-        () => token.current,
-        () => setAskToken(true),
-      ),
-    }),
-    [meta],
-  );
-  const setToken = (value: string) => {
-    token.current = value;
-    setTokenValue(value);
-  };
+      worker: new ChainVerifier(meta, chain),
+    };
+  }, [meta]);
   useEffect(() => {
     services.wallet.account().then(setAccount, () => undefined);
-    const clear = () => setToken('');
-    window.addEventListener('pagehide', clear);
-    return () => window.removeEventListener('pagehide', clear);
   }, [services]);
   const env: Env = {
     meta,
@@ -405,7 +375,6 @@ function Shell({ meta }: { meta: Meta }) {
   return (
     <EnvContext.Provider value={env}>
       <Header route={route} />
-      {askToken && <Operator token={tokenValue} setToken={setToken} />}
       <main>
         {route === 'home' && <Landing />}
         <div hidden={!hunting}>

@@ -76,7 +76,7 @@ async function decrypt(
   if (!/^[a-f0-9]{64}$/.test(draft.hash)) throw new Error('Invalid disclosure hash');
   if (!file || file.size > 4096) throw new Error('Choose the team PKCS8 DER private key');
   const c = context(JSON.parse(draft.context));
-  const ciphertext = await worker.disclosure(draft.hash);
+  const ciphertext = await worker.disclosure(c.bounty, c.hunter, c.submission);
   if ((await digest(ciphertext)) !== draft.hash) throw new Error('Ciphertext hash mismatch');
   try {
     return await openDisclosure(ciphertext, await file.arrayBuffer(), c);
@@ -168,6 +168,45 @@ function MyPrograms() {
   );
 }
 
+interface Operation {
+  amount: string;
+  recipient: string;
+  executed: boolean;
+}
+
+function Disclosure({ text }: { text: string }) {
+  const t = useT();
+  let report: { attack?: string; trace?: { balance?: string; operations?: Operation[] } } = {};
+  try {
+    report = JSON.parse(text);
+  } catch {}
+  return (
+    <>
+      {report.attack !== undefined && (
+        <>
+          <h3>{t('Winning attack')}</h3>
+          <pre>{report.attack}</pre>
+        </>
+      )}
+      {report.trace?.operations?.map((op, i) => (
+        <p key={i}>
+          {t('Agent sent {amount} to {recipient}', { amount: op.amount, recipient: op.recipient })}{' '}
+          · <strong>{op.executed ? t('executed') : t('blocked')}</strong>
+        </p>
+      ))}
+      {report.trace?.balance && (
+        <p className="muted">
+          {t('Test balance after the run: {balance}', { balance: report.trace.balance })}
+        </p>
+      )}
+      <details className="raw">
+        <summary>{t('Full report')}</summary>
+        <pre>{text}</pre>
+      </details>
+    </>
+  );
+}
+
 function TeamDecryptPanel() {
   const { worker, team, setTeam, notify } = useEnv(),
     t = useT();
@@ -231,7 +270,7 @@ function TeamDecryptPanel() {
       </form>
       {plain !== undefined && (
         <>
-          <pre>{plain}</pre>
+          <Disclosure text={plain} />
           <button type="button" className="chip" onClick={() => setPlain(undefined)}>
             {t('Clear disclosure')}
           </button>

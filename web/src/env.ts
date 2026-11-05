@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { Context, SealedReport } from './crypto.js';
-import { readLimited, type Bounty, type Network } from './chain.js';
-import type { Job, Ports, ProgramSummary, VerifierApi, WorkerClaim } from './ports.js';
+import { unbase64, type Context, type SealedReport } from './crypto.js';
+import { Chain, type Bounty, type Network } from './chain.js';
+import type { Ports, ProgramSummary, Runner, VerifierApi } from './ports.js';
 import type { Spec } from './checks.js';
 
 export interface Meta {
@@ -13,7 +13,12 @@ export interface Meta {
   claim_storage_deposit: string;
   min_prepare_window_blocks: string;
   allow_mainnet_writes: boolean;
-  public_ingress?: boolean;
+  runner: Runner;
+  claim_limits: Record<string, number>;
+  bounty_storage_deposit: string;
+  storage_byte_cost: string;
+  model: string;
+  model_policy_hash: string;
 }
 export interface TargetConfig {
   model: string;
@@ -23,6 +28,7 @@ export interface TargetConfig {
   enforcePolicy: boolean;
   maxSteps: number;
   timeoutMs: number;
+  modelPolicyHash?: string;
 }
 export type Program = {
   id: string;
@@ -47,95 +53,106 @@ export interface Env extends Ports {
   setTeam(draft: TeamDraft): void;
 }
 
-export class HttpError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super(message);
-  }
-}
+const deployments: Record<Network, { contract: string; model: string; model_policy_hash: string }> =
+  {
+    testnet: {
+      contract: 'pwnbounty-bd056a.testnet',
+      model: 'Qwen/Qwen3.8-27B',
+      model_policy_hash: '4f1190fd7dc6ed7c65e718bc85909591c7f1658512ba534871e07f4d9481b087',
+    },
+    mainnet: { contract: '', model: '', model_policy_hash: '' },
+  };
 
-const labels: Record<number, string> = {
-  400: 'Bad request or the commitment is not finalized yet',
-  401: 'Invalid access token',
-  404: 'Record not found',
-  409: 'This program uses a different verifier',
-  503: 'The worker cannot read the data right now',
-};
-const requestOptions = () => ({
-  cache: 'no-store' as const,
-  redirect: 'error' as const,
-  signal: AbortSignal.timeout(30000),
-});
+const kindOf = (raw: string): Program['kind'] =>
+  'model' in (JSON.parse(raw) as object) ? 'agent' : 'world';
 
-export class Worker implements VerifierApi {
+export class ChainVerifier implements VerifierApi {
   constructor(
     readonly meta: Meta,
-    private token: () => string,
-    private unauthorized: () => void,
+    private chain: Chain,
   ) {}
 
-  private async fetch(path: string, auth: boolean, init: RequestInit = {}): Promise<Response> {
-    const headers = new Headers(init.headers);
-    const token = this.token();
-    if (auth && !token && this.meta.public_ingress === false) {
-      throw new Error('Enter the operator token');
-    }
-    if (auth && token) headers.set('authorization', 'Bearer ' + token);
-    const response = await fetch(path, { ...init, headers, ...requestOptions() });
-    if (response.status === 401) this.unauthorized();
-    if (!response.ok) {
-      const label = labels[response.status] ?? `Worker returned HTTP ${response.status}`;
-      throw new HttpError(label, response.status);
-    }
-    return response;
+  async programs(): Promise<ProgramSummary[]> {
+    const { entries } = await this.chain.allBounties();
+    return Promise.all(
+      entries.map(async (entry) => ({ id: entry.id, kind: kindOf(await this.raw(entry.id)) })),
+    );
   }
 
-  private async get<T>(path: string, auth = false): Promise<T> {
-    return (await this.fetch(path, auth)).json() as Promise<T>;
+  async program(id: string): Promise<Program> {
+    const at = await this.chain.snapshot();
+    const [bounty, raw] = await Promise.all([
+      this.chain.bounty(id, at.hash),
+      this.raw(id, at.hash),
+    ]);
+    const base = { id, bounty, finalized_height: at.height.toString() };
+    return kindOf(raw) === 'agent'
+      ? { ...base, kind: 'agent', config: JSON.parse(raw) as TargetConfig }
+      : { ...base, kind: 'world', spec: JSON.parse(raw) as Spec };
   }
 
-  private async post<T>(path: string, body: unknown): Promise<T> {
-    const headers = { 'content-type': 'application/json' };
-    const init = { method: 'POST', headers, body: JSON.stringify(body) };
-    return (await this.fetch(path, true, init)).json() as Promise<T>;
+  async claim(bounty: string, hunter: string, submission: string) {
+    const { commitment } = await this.chain.commitment(bounty, hunter, submission);
+    return commitment
+      ? { report_hash: commitment.report_hash, settled: commitment.settled }
+      : undefined;
   }
 
-  programs(): Promise<ProgramSummary[]> {
-    return this.get('/v1/programs');
+  async fee(report: SealedReport): Promise<string> {
+    const args = {
+      resource_limits: this.meta.claim_limits,
+      input_len: report.ciphertext.length + 4096,
+    };
+    const { runner } = this.meta;
+    const { value } = await this.chain.view<string>(
+      'estimate_execution_cost',
+      args,
+      undefined,
+      runner.outlayer,
+    );
+    if (!value || !/^[0-9]{1,39}$/.test(value)) throw new Error('OutLayer did not return a price');
+    return ((BigInt(value) * 3n) / 2n).toString();
   }
 
-  program(id: string): Promise<Program> {
-    return this.get('/v1/programs/' + encodeURIComponent(id));
+  async disclosure(bounty: string, hunter: string, submission: string): Promise<Uint8Array> {
+    const args = { bounty, hunter, submission };
+    const { value } = await this.chain.view<string>('get_disclosure', args);
+    if (!value) throw new Error('No report is stored for this claim');
+    return unbase64(value);
   }
 
-  claim(bounty: string, hunter: string, submission: string): Promise<WorkerClaim> {
-    return this.get('/v1/commitments?' + new URLSearchParams({ bounty, hunter, submission }), true);
-  }
-
-  submit(report: SealedReport): Promise<{ id: string }> {
-    return this.post('/v1/submissions', report);
-  }
-
-  job(id: string): Promise<Job> {
-    return this.get('/v1/jobs/' + id, true);
-  }
-
-  async disclosure(hash: string): Promise<Uint8Array> {
-    return readLimited(await this.fetch('/v1/disclosures/' + hash, true), 1_048_576);
+  private async raw(id: string, blockHash?: string): Promise<string> {
+    const { value } = await this.chain.view<string>('get_program', { bounty: id }, blockHash);
+    if (!value) throw new Error('Program not found in the contract');
+    return value;
   }
 }
 
 export async function loadMeta(): Promise<Meta> {
-  const response = await fetch('/v1/meta', requestOptions());
-  if (!response.ok) throw new Error(`Worker returned HTTP ${response.status}`);
-  const meta = (await response.json()) as Meta;
-  if (!['testnet', 'mainnet'].includes(meta.network)) throw new Error('Invalid worker network');
-  if (!/^[1-9][0-9]*$/.test(meta.min_prepare_window_blocks)) {
-    throw new Error('The worker did not report its verification time limit');
+  const network: Network =
+    new URLSearchParams(location.search).get('network') === 'mainnet' ? 'mainnet' : 'testnet';
+  const { contract, model, model_policy_hash } = deployments[network];
+  if (!contract) throw new Error('No escrow is deployed on this network yet');
+  const config = await new Chain(network, contract).config();
+  if (config.network !== network || !config.verifier) {
+    throw new Error('The escrow has no provisioned verifier');
   }
-  return meta;
+  return {
+    network,
+    contract,
+    signing_public_key: config.verifier.public_key,
+    trust_mode: 'outlayer',
+    confidential_inference_verified: true,
+    claim_storage_deposit: config.claim_storage_deposit,
+    min_prepare_window_blocks: '300',
+    allow_mainnet_writes: true,
+    runner: config.runner,
+    claim_limits: config.claim_limits,
+    bounty_storage_deposit: config.bounty_storage_deposit,
+    storage_byte_cost: config.storage_byte_cost,
+    model,
+    model_policy_hash,
+  };
 }
 
 const accountPattern = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;

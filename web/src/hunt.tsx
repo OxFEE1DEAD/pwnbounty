@@ -1,25 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  canonical,
-  digest,
-  randomHex,
-  sealReport,
-  unbase64,
-  verifyVerdict,
-  type SealedReport,
-} from './crypto.js';
-import {
-  settlementState,
-  type SettlementState,
-  type SettlementVerdict as Verdict,
-} from './settlement.js';
+import { canonical, digest, randomHex, sealReport, unbase64, type SealedReport } from './crypto.js';
+import { settlementState, type ChainCommitment, type SettlementState } from './settlement.js';
 import { isOpen, near, type Entry } from './chain.js';
-import type { ChainReader, Job } from './ports.js';
+import type { ChainReader } from './ports.js';
 import {
   context,
   delay,
   errorText,
-  HttpError,
   useAsync,
   useEnv,
   type Env,
@@ -37,18 +24,19 @@ interface Outcome {
   kind: SettlementState | 'failed';
   bounty?: string;
   hunter?: string;
+  submission?: string;
   reward?: string;
   reportHash?: string;
   detail?: string;
 }
 
 const pendingKey = 'sealed-bounty/encrypted-pending/1';
-const pendingJobKey = 'sealed-bounty/job/2';
+const pendingJobKey = 'sealed-bounty/claim/3';
 const steps: { id: Step; label: string }[] = [
   { id: 'encrypt', label: 'Encrypt' },
   { id: 'wallet', label: 'Wallet' },
   { id: 'commit', label: 'Commit' },
-  { id: 'sandbox', label: 'Sandbox' },
+  { id: 'sandbox', label: 'TEE' },
   { id: 'check', label: 'Check' },
   { id: 'payout', label: 'Payout' },
 ];
@@ -87,17 +75,15 @@ const verdicts: Record<Outcome['kind'], string> = {
     'You won. The reward transfer failed; the reserved payout can be retried by your ' + 'wallet.',
   pending: 'Rule broken. The payout is on its way.',
   unconfirmed: 'Signed verdict accepted. Checking payout in finalized NEAR…',
-  failed: 'Processing stopped: {detail}',
+  failed: 'No verdict yet: {detail}',
 };
 const status = {
   encrypt: 'Sealing the invoice in this browser…',
-  sealed: 'Sealed. Save the file, then commit it on NEAR.',
-  wallet: 'Confirm the commitment in your wallet. A storage deposit may be required.',
+  wallet:
+    'Confirm in your wallet: the commitment, then the encrypted invoice. The TEE check runs right after, up to 2 min.',
   commit: 'Waiting for the commitment in finalized NEAR…',
-  committed: 'Commitment confirmed in finalized NEAR. Your claim is linked to this account.',
-  send: 'Sending the encrypted invoice to the verifier…',
-  sandbox: 'Replaying with fake funds…',
-  check: 'Checking the signed verdict…',
+  committed: 'Commitment confirmed in finalized NEAR. Press the button to run the check.',
+  sandbox: 'The escrow sent the invoice to the OutLayer TEE. Waiting for the verdict, up to 2 min…',
   payout: 'Signed verdict accepted. Checking payout in finalized NEAR…',
 };
 
@@ -230,21 +216,33 @@ function download(report: SealedReport): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function receipt(chain: ChainReader, job: Job | undefined): string | undefined {
-  const pattern = /^near:(testnet|mainnet):transaction:([1-9A-HJ-NP-Za-km-z]+)$/;
-  const tx = job?.transaction?.match(pattern);
-  return tx && tx[1] === chain.network ? chain.txUrl(tx[2]!) : undefined;
+function receipt(chain: ChainReader, tx: string | undefined): string | undefined {
+  return tx && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(tx) ? chain.txUrl(tx) : undefined;
 }
 
-function savedJob(): { id: string; bounty: string } | undefined {
+interface Tracked {
+  bounty: string;
+  hunter: string;
+  submission: string;
+  since: number;
+}
+
+function savedClaim(): Tracked | undefined {
   try {
     const value = JSON.parse(session.get(pendingJobKey) ?? 'null') as Record<
       string,
       unknown
     > | null;
-    const { id, bounty } = value ?? {};
-    if (typeof id === 'string' && typeof bounty === 'string' && /^[0-9]{1,20}$/.test(bounty)) {
-      return { id, bounty };
+    const { bounty, hunter, submission, since } = value ?? {};
+    if (
+      typeof bounty === 'string' &&
+      /^[0-9]{1,20}$/.test(bounty) &&
+      typeof hunter === 'string' &&
+      typeof submission === 'string' &&
+      /^[a-f0-9]{64}$/.test(submission) &&
+      typeof since === 'number'
+    ) {
+      return { bounty, hunter, submission, since };
     }
   } catch {}
   session.remove(pendingJobKey);
@@ -258,8 +256,8 @@ function useSubmission(env: Env) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>();
-  const [job, setJob] = useState<Job>();
-  const [saved, setSaved] = useState(false);
+  const [tx, setTx] = useState<string>();
+  const [record, setRecord] = useState<ChainCommitment | null>();
   const active = useRef<Step | undefined>(undefined);
   const running = useRef(false);
   const poll = useRef(0);
@@ -279,11 +277,11 @@ function useSubmission(env: Env) {
     setProgress({});
     setText('');
     setOutcome(undefined);
-    setJob(undefined);
+    setTx(undefined);
+    setRecord(undefined);
   };
   const forget = () => {
     setReport(undefined);
-    setSaved(false);
     session.remove(pendingKey);
   };
 
@@ -329,27 +327,21 @@ function useSubmission(env: Env) {
     return sealed;
   }
 
-  async function found(pending: SealedReport, attempts: number): Promise<boolean> {
+  async function found(pending: SealedReport, attempts: number) {
     const { bounty, hunter, submission } = pending;
     for (let attempt = 0; attempt < attempts; attempt++) {
       if (attempt) await delay(3000);
       const claim = await worker.claim(bounty, hunter, submission).catch((error) => {
-        const transient =
-          error instanceof HttpError
-            ? error.status !== 401
-            : error instanceof TypeError || error instanceof DOMException;
-        if (!transient) throw error;
-        return undefined;
+        if (error instanceof TypeError || error instanceof DOMException) return undefined;
+        throw error;
       });
       if (!claim) continue;
-      if (claim.report_hash !== pending.report_hash || claim.settled) {
-        throw new Error(
-          'Commitment is missing, differs from the submission or was already processed',
-        );
+      if (claim.report_hash !== pending.report_hash) {
+        throw new Error('The commitment on NEAR differs from this submission');
       }
-      return true;
+      return claim;
     }
-    return false;
+    return undefined;
   }
 
   async function confirm(pending: SealedReport, attempts: number, missing: string): Promise<void> {
@@ -358,36 +350,16 @@ function useSubmission(env: Env) {
     mark('commit', 'done', status.committed);
   }
 
-  async function send(pending: SealedReport): Promise<void> {
-    mark('sandbox', 'active', status.send);
-    const created = await worker.submit(pending);
-    forget();
-    session.set(pendingJobKey, JSON.stringify({ id: created.id, bounty: pending.bounty }));
-    await track(created.id, ++poll.current);
+  function remember(pending: SealedReport): Tracked {
+    const { bounty, hunter, submission } = pending;
+    const tracked = { bounty, hunter, submission, since: Date.now() };
+    session.set(pendingJobKey, JSON.stringify(tracked));
+    return tracked;
   }
 
-  async function verified(current: Job & { verdict: Verdict }) {
-    const v = current.verdict;
-    const { commitment: claim, blockHash } = await chain.commitment(
-      v.bounty,
-      v.hunter,
-      v.submission,
-    );
-    const bounty = await chain.bounty(v.bounty, blockHash);
-    if (
-      v.network !== meta.network ||
-      v.contract !== meta.contract ||
-      typeof current.signature !== 'string' ||
-      !(await verifyVerdict(v, current.signature, bounty.verifier.public_key))
-    ) {
-      throw new Error('Verdict signature check failed');
-    }
-    return { claim, bounty };
-  }
-
-  function later(id: string, version: number, ms: number): void {
+  function later(tracked: Tracked, version: number, ms: number): void {
     window.setTimeout(() => {
-      if (version === poll.current) track(id, version).catch(fail);
+      if (version === poll.current) track(tracked, version).catch(fail);
     }, ms);
   }
 
@@ -398,44 +370,42 @@ function useSubmission(env: Env) {
     mark('payout', kind === 'failed' ? 'error' : 'done', '');
   }
 
-  async function track(id: string, version: number): Promise<void> {
-    if (!/^[a-f0-9]{64}$/.test(id)) throw new Error('Job ID must be 64 hex characters');
-    const current = await worker.job(id);
+  async function track(tracked: Tracked, version: number): Promise<void> {
+    const { bounty, hunter, submission } = tracked;
+    const { commitment, blockHash } = await chain.commitment(bounty, hunter, submission);
     if (version !== poll.current) return;
-    setJob(current);
-    if (current.state === 'failed') {
-      const call = current.outlayerCallId ? ', OutLayer call ' + current.outlayerCallId : '';
-      return settle('failed', { detail: (current.errorCode ?? 'worker error') + call });
-    }
-    if (!current.verdict) {
-      if (current.state === 'complete') throw new Error('A completed job has no signed verdict');
+    setRecord(commitment);
+    const verdict = commitment?.verdict;
+    if (!commitment?.settled || !verdict) {
+      if (Date.now() - tracked.since > 240_000) {
+        mark('sandbox', 'error');
+        return settle('failed', {
+          bounty,
+          hunter,
+          submission,
+          detail: 'the TEE run did not finish. The claim is still open: run the check again.',
+        });
+      }
       mark('sandbox', 'active', status.sandbox);
-      return later(id, version, 3000);
+      return later(tracked, version, 4000);
     }
     mark('sandbox', 'done');
-    mark('check', 'active', status.check);
-    const verdict = current.verdict;
-    const { claim, bounty } = await verified({ ...current, verdict });
-    if (version !== poll.current) return;
-    setTeam({ hash: verdict.disclosure_hash, context: JSON.stringify(context(verdict), null, 2) });
     mark('check', 'done');
+    setTeam({ hash: verdict.disclosure_hash, context: JSON.stringify(context(verdict), null, 2) });
+    forget();
     mark('payout', 'active', status.payout);
-    if (current.state !== 'complete') return later(id, version, 3000);
-    const state = settlementState(verdict, claim, bounty);
-    const { bounty: bountyId, hunter, report_hash: reportHash } = verdict;
-    settle(state, { bounty: bountyId, hunter, reward: bounty.reward, reportHash });
-    if (state === 'unconfirmed' || state === 'pending') later(id, version, 5000);
+    const reward = await chain.bounty(bounty, blockHash);
+    if (version !== poll.current) return;
+    const state = settlementState(verdict, commitment, reward);
+    settle(state, {
+      bounty,
+      hunter,
+      submission,
+      reward: reward.reward,
+      reportHash: verdict.report_hash,
+    });
+    if (state === 'unconfirmed' || state === 'pending') later(tracked, version, 5000);
   }
-
-  const seal = (program: Program | undefined, invoice: string) =>
-    guarded(async () => {
-      if (!env.account) throw new Error('Connect your wallet first');
-      if (!program) throw new Error('Choose a program');
-      reset();
-      setSaved(false);
-      await encrypt(program, invoice, env.account);
-      mark('encrypt', 'done', status.sealed);
-    }).catch(fail);
 
   const load = (file: File | undefined) =>
     guarded(async () => {
@@ -446,7 +416,6 @@ function useSubmission(env: Env) {
       }
       session.set(pendingKey, JSON.stringify(pending));
       setReport(pending);
-      setSaved(true);
     }).catch(fail);
 
   const start = (program: Program | undefined, invoice: string) =>
@@ -457,9 +426,17 @@ function useSubmission(env: Env) {
       reset();
       const pending = saved ?? (await encrypt(program!, invoice, env.account));
       mark('encrypt', 'done');
-      if (!(await found(pending, 1))) {
+      const existing = await found(pending, 1);
+      const tracked = remember(pending);
+      if (!existing?.settled) {
+        const fee = await worker.fee(pending);
         mark('wallet', 'active', status.wallet);
-        await wallet.commit(pending, meta.claim_storage_deposit);
+        setTx(
+          existing
+            ? await wallet.claim(pending, fee)
+            : await wallet.submit(pending, meta.claim_storage_deposit, fee),
+        );
+        tracked.since = Date.now();
       }
       mark('wallet', 'done');
       await confirm(
@@ -467,7 +444,7 @@ function useSubmission(env: Env) {
         40,
         'The commitment did not show up on NEAR in time. Press the button again.',
       );
-      await send(pending);
+      await track(tracked, ++poll.current);
     }).catch(fail);
 
   const resume = (pending: SealedReport) =>
@@ -477,26 +454,25 @@ function useSubmission(env: Env) {
       await confirm(
         pending,
         20,
-        'No commitment found for the saved invoice yet. ' +
-          'Press "Continue submission" to sign it.',
+        'No commitment found for the saved invoice yet. Press the button to sign it.',
       );
-      await send(pending);
+      const tracked = savedClaim();
+      if (tracked?.submission === pending.submission) await track(tracked, ++poll.current);
     }).catch(fail);
 
-  const retry = (bounty: string, hunter: string, jobId: string) =>
+  const retry = (bounty: string, hunter: string, submission: string) =>
     guarded(async () => {
       await wallet.retryPayment(bounty, hunter);
-      await track(jobId, ++poll.current);
+      await track({ bounty, hunter, submission, since: Date.now() }, ++poll.current);
     }).catch(fail);
 
   useEffect(() => {
     const raw = session.get(pendingKey),
-      saved = savedJob();
+      saved = savedClaim();
     if (raw) {
       try {
         const pending = restoreReport(meta, raw);
         setReport(pending);
-        setSaved(true);
         location.hash = '#/programs/' + pending.bounty;
         if (!new URLSearchParams(location.search).has('errorCode')) void resume(pending);
         else notify('The wallet did not send the commitment. Press the button to try again.', true);
@@ -508,7 +484,7 @@ function useSubmission(env: Env) {
       location.hash = '#/programs/' + saved.bounty;
       for (const step of ['encrypt', 'wallet', 'commit'] as const) mark(step, 'done');
       mark('sandbox', 'active', status.sandbox);
-      track(saved.id, ++poll.current).catch(fail);
+      track(saved, ++poll.current).catch(fail);
     }
     return () => {
       poll.current++;
@@ -521,10 +497,8 @@ function useSubmission(env: Env) {
     text,
     busy,
     outcome,
-    job,
-    saved,
-    setSaved,
-    seal,
+    tx,
+    record,
     load,
     start,
     retry,
@@ -883,17 +857,18 @@ function TransferEvidence({ outcome, rule }: { outcome: Outcome; rule?: TargetCo
 
 interface VerdictProps {
   outcome: Outcome;
-  job?: Job;
+  tx?: string;
   rule?: TargetConfig;
   busy: boolean;
   onRetry(): void;
+  onRerun?(): void;
   onAgain(): void;
 }
 
-function VerdictCard({ outcome, job, rule, busy, onRetry, onAgain }: VerdictProps) {
+function VerdictCard({ outcome, tx, rule, busy, onRetry, onRerun, onAgain }: VerdictProps) {
   const { chain } = useEnv(),
     t = useT(),
-    link = receipt(chain, job);
+    link = receipt(chain, tx);
   const vars = {
     amount: outcome.reward ? near(outcome.reward) : '',
     account: outcome.hunter ?? '',
@@ -907,8 +882,13 @@ function VerdictCard({ outcome, job, rule, busy, onRetry, onAgain }: VerdictProp
       <div className="row">
         {link && (
           <a href={link} target="_blank" rel="noopener noreferrer">
-            {t('View payout transaction ↗')}
+            {t('View the claim transaction ↗')}
           </a>
+        )}
+        {outcome.kind === 'failed' && onRerun && (
+          <button type="button" className="button" disabled={busy} onClick={onRerun}>
+            {t('Run the check again')}
+          </button>
         )}
         {outcome.kind === 'retryable' && (
           <button type="button" className="button" disabled={busy} onClick={onRetry}>
@@ -934,7 +914,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
     () => (visible && id ? loadProgram(env, id) : Promise.resolve(undefined)),
     [visible, id],
   );
-  const { report, busy, outcome, job } = flow;
+  const { report, busy, outcome, tx, record } = flow;
   const data = view.value?.entry.id === id ? view.value : undefined;
   const selected = data?.standing === 'open' ? data.program : undefined;
   const elsewhere = report && report.bounty !== id ? report.bounty : undefined;
@@ -945,8 +925,8 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
     selected?.kind === 'agent' && selected.id === outcome?.bounty ? selected.config : undefined;
   const started = Object.keys(flow.progress).length > 0 || !!outcome;
   const retry = () => {
-    if (outcome?.bounty && outcome.hunter && job) {
-      void flow.retry(outcome.bounty, outcome.hunter, job.id);
+    if (outcome?.bounty && outcome.hunter && outcome.submission) {
+      void flow.retry(outcome.bounty, outcome.hunter, outcome.submission);
     }
   };
   const again = () => {
@@ -1040,26 +1020,14 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                         {t('Save sealed-report-{id}.json', { id: report.bounty })}
                       </button>
                     </div>
-                    <label className="check">
-                      <input
-                        type="checkbox"
-                        checked={flow.saved}
-                        disabled={busy}
-                        onChange={(e) => flow.setSaved(e.target.checked)}
-                      />
-                      {t(
-                        'I saved sealed-report-{id}.json. It cannot be recreated after the deadline.',
-                        { id: report.bounty },
-                      )}
-                    </label>
                     <div className="row">
                       <button
                         type="button"
                         className="button"
-                        disabled={!ready || !flow.saved}
+                        disabled={!ready}
                         onClick={() => void flow.start(undefined, '')}
                       >
-                        {t('Commit on NEAR · {deposit}', { deposit })}
+                        {t('Run the check in the TEE →')}
                       </button>
                       {!busy && (
                         <button type="button" className="chip" onClick={flow.forget}>
@@ -1075,9 +1043,9 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                         type="button"
                         className="button"
                         disabled={!ready || !selected || !invoice.trim()}
-                        onClick={() => void flow.seal(selected, invoice)}
+                        onClick={() => void flow.start(selected, invoice)}
                       >
-                        {t('Encrypt in this browser →')}
+                        {t('Encrypt, commit and check · {deposit}', { deposit })}
                       </button>
                     </div>
                     <LoadReport busy={busy} load={flow.load} />
@@ -1085,7 +1053,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                 )}
                 <p className="hint">
                   {t(
-                    '{deposit} claim storage, not refundable. The attack leaves this browser only after the commit is final. Deadlines are best effort on this test worker: if it is down, a claim can miss settlement.',
+                    'One wallet confirmation, two transactions: {deposit} claim storage (not refundable) and about 0.03 NEAR for the TEE run, unused part comes back. The invoice is encrypted here; only the TEE can open it.',
                     { deposit },
                   )}
                 </p>
@@ -1108,17 +1076,18 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                 {outcome && (
                   <VerdictCard
                     outcome={outcome}
-                    job={job}
+                    tx={tx}
                     rule={rule}
                     busy={busy}
                     onRetry={retry}
+                    onRerun={report ? () => void flow.start(undefined, '') : undefined}
                     onAgain={again}
                   />
                 )}
-                {job && (
+                {record && (
                   <details className="raw">
-                    <summary>{t('Job details')}</summary>
-                    <pre>{JSON.stringify(job, null, 2)}</pre>
+                    <summary>{t('Claim on NEAR')}</summary>
+                    <pre>{JSON.stringify(record, null, 2)}</pre>
                   </details>
                 )}
               </section>

@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import { readLimited } from './chain.js';
 import { canonical, digest } from './crypto.js';
 import { errorText, useEnv } from './env.js';
@@ -419,7 +419,7 @@ function download(name: string, text: string) {
   URL.revokeObjectURL(link.href);
 }
 
-export function Launch() {
+export function WorldLaunch({ switcher }: { switcher: ReactNode }) {
   const t = useT();
   const [pick, setPick] = useState({ target: coverage.targets[0]!.id, variant: '' });
   const target = coverage.targets.find((x) => x.id === pick.target)!;
@@ -471,6 +471,7 @@ export function Launch() {
             'Describe the code, who holds what, and what counts as a break. Hunters attack a fresh copy; the reward leaves escrow only for a proved break.',
           )}
         </p>
+        {switcher}
       </div>
       <div className="launch">
         <section className="card">

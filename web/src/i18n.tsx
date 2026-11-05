@@ -400,6 +400,7 @@ const ru: Record<string, string> = {
   'The program is closed for new commitments.': 'Программа закрыта для новых заявок.',
   'Submission is already in progress': 'Отправка уже идёт',
   'Connect your wallet first': 'Сначала подключите кошелёк',
+  '(connect wallet first)': '(сначала подключим кошелёк)',
   'Choose a program': 'Выберите программу',
   'Write the invoice first': 'Сначала напишите инвойс',
   ['Could not encrypt the submission. Check WebCrypto X25519 support, ' +

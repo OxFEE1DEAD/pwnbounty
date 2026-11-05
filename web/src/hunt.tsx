@@ -411,7 +411,7 @@ function useSubmission(env: Env) {
     guarded(async () => {
       if (!file || file.size > 1_048_576) throw new Error('Choose a sealed-report.json file');
       const pending = restoreReport(meta, await file.text());
-      if (pending.hunter !== env.account) {
+      if (env.account && pending.hunter !== env.account) {
         throw new Error("Connect the wallet of this submission's hunter account");
       }
       session.set(pendingKey, JSON.stringify(pending));
@@ -420,11 +420,12 @@ function useSubmission(env: Env) {
 
   const start = (program: Program | undefined, invoice: string) =>
     guarded(async () => {
-      if (!env.account) throw new Error('Connect your wallet first');
+      const account = env.account ?? (await env.connect());
+      if (!account) throw new Error('Connect your wallet first');
       const saved = report;
       if (!saved && !program) throw new Error('Choose a program');
       reset();
-      const pending = saved ?? (await encrypt(program!, invoice, env.account));
+      const pending = saved ?? (await encrypt(program!, invoice, account));
       mark('encrypt', 'done');
       const existing = await found(pending, 1);
       const tracked = remember(pending);
@@ -918,7 +919,8 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
   const data = view.value?.entry.id === id ? view.value : undefined;
   const selected = data?.standing === 'open' ? data.program : undefined;
   const elsewhere = report && report.bounty !== id ? report.bounty : undefined;
-  const ready = !busy && !!env.account && !elsewhere;
+  const ready = !busy && !elsewhere;
+  const first = env.account ? '' : ' ' + t('(connect wallet first)');
   const deposit = near(env.meta.claim_storage_deposit);
   const world = data?.program?.kind === 'world';
   const rule =
@@ -1027,7 +1029,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                         disabled={!ready}
                         onClick={() => void flow.start(undefined, '')}
                       >
-                        {t('Run the check in the TEE →')}
+                        {t('Run the check in the TEE →') + first}
                       </button>
                       {!busy && (
                         <button type="button" className="chip" onClick={flow.forget}>
@@ -1045,7 +1047,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                         disabled={!ready || !selected || !invoice.trim()}
                         onClick={() => void flow.start(selected, invoice)}
                       >
-                        {t('Encrypt, commit and check · {deposit}', { deposit })}
+                        {t('Encrypt, commit and check · {deposit}', { deposit }) + first}
                       </button>
                     </div>
                     <LoadReport busy={busy} load={flow.load} />

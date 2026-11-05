@@ -6,6 +6,7 @@ const web = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   root: web,
+  base: './',
   publicDir: false,
   plugins: [react()],
   build: {

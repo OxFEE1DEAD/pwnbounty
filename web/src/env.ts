@@ -46,7 +46,7 @@ export interface Note {
 export interface Env extends Ports {
   meta: Meta;
   account?: string;
-  connect(): Promise<void>;
+  connect(): Promise<string | undefined>;
   disconnect(): Promise<void>;
   notify(text: string, error?: boolean): void;
   team: TeamDraft;

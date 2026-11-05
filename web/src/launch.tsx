@@ -124,6 +124,7 @@ function AgentLaunch() {
   const publish = async () => {
     setBusy(true);
     try {
+      if (!account && !(await connect())) throw new Error("Connect the program owner's wallet");
       const { height } = await chain.snapshot();
       const expires = height + period! * BLOCKS_PER_DAY;
       const id = await wallet.create(
@@ -218,26 +219,17 @@ function AgentLaunch() {
           )}
         </p>
         <div className="row">
-          {account ? (
-            <button
-              type="button"
-              className="button"
-              disabled={busy || !!problem}
-              onClick={() => void publish()}
-            >
-              {t('Publish with wallet · {amount}', { amount: deposit ? near(deposit) : '…' })}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="button"
-              onClick={() => connect().catch((e) => notify(errorText(e), true))}
-            >
-              {t('Connect wallet')}
-            </button>
-          )}
+          <button
+            type="button"
+            className="button"
+            disabled={busy || !!problem}
+            onClick={() => void publish()}
+          >
+            {t('Publish with wallet · {amount}', { amount: deposit ? near(deposit) : '…' }) +
+              (account ? '' : ' ' + t('(connect wallet first)'))}
+          </button>
         </div>
-        {problem && account && <p className="hint">{t(problem)}</p>}
+        {problem && <p className="hint">{t(problem)}</p>}
         {created !== undefined && (
           <p className="notice">
             {created ? (

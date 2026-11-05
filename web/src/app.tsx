@@ -366,7 +366,11 @@ function Shell({ meta }: { meta: Meta }) {
     team,
     setTeam,
     notify: (text, error = false) => setNote({ text, error }),
-    connect: async () => setAccount(await services.wallet.connect()),
+    connect: async () => {
+      const connected = await services.wallet.connect();
+      setAccount(connected);
+      return connected;
+    },
     disconnect: async () => {
       await services.wallet.disconnect();
       setAccount(undefined);

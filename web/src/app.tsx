@@ -19,11 +19,11 @@ import { Icon, type IconName } from './icons.js';
 import { LangProvider, useLang, useT } from './i18n.js';
 import { Hunt } from './hunt.js';
 import { Launch } from './launch.js';
-import { Projects } from './projects.js';
-import { Account, Landing, repository } from './landing.js';
+import { MyProgramsPage, Projects } from './projects.js';
+import { Account, Docs, Landing, repository } from './landing.js';
 import '../style.css';
 
-type Route = 'home' | 'programs' | 'program' | 'me' | 'projects' | 'launch';
+type Route = 'home' | 'programs' | 'program' | 'me' | 'projects' | 'mine' | 'launch' | 'docs';
 interface Place {
   route: Route;
   id?: string;
@@ -62,7 +62,7 @@ const sides: Side[] = [
     path: 'describe → test run → fund → read reports',
     links: [
       ['#/projects', 'Overview', ['projects']],
-      ['#/projects/mine', 'My programs', []],
+      ['#/projects/mine', 'My programs', ['mine']],
       ['#/projects/new', 'Launch a program', ['launch']],
     ],
   },
@@ -74,8 +74,13 @@ function readHash(): Place {
   const [name = '', sub] = location.hash.replace(/^#\/?/, '').split('/');
   if (name === 'programs') return sub ? { route: 'program', id: sub } : { route: 'programs' };
   if (name === 'projects')
-    return sub === 'new' ? { route: 'launch' } : { route: 'projects', anchor: sub };
+    return sub === 'new'
+      ? { route: 'launch' }
+      : sub === 'mine'
+        ? { route: 'mine' }
+        : { route: 'projects', anchor: sub };
   if (name === 'me') return { route: 'me' };
+  if (name === 'docs') return { route: 'docs', anchor: sub };
   return { route: 'home', anchor: name || undefined };
 }
 
@@ -180,7 +185,10 @@ async function loadMine(chain: ChainReader, account: string) {
   return {
     wins: entries.filter((entry) => entry.bounty.winner === account),
     attempts: claims
-      .map((claim) => ({ claim, status: claimStatus(claim, bounties.get(claim.bounty), account) }))
+      .map((claim) => {
+        const bounty = bounties.get(claim.bounty);
+        return { claim, bounty, status: claimStatus(claim, bounty, account) };
+      })
       .reverse(),
   };
 }
@@ -190,7 +198,9 @@ const earned = (wins: Entry[]) =>
     .filter((entry) => entry.bounty.state === 'Paid')
     .reduce((sum, entry) => sum + BigInt(entry.bounty.reward), 0n);
 
-function Wins({ wins, reload }: { wins: Entry[]; reload(): void }) {
+type Attempt = { claim: HunterClaim; bounty?: Bounty; status: string };
+
+function Claims({ rows, reload }: { rows: Attempt[]; reload(): void }) {
   const { wallet, account, notify } = useEnv(),
     t = useT();
   const [busy, setBusy] = useState(false);
@@ -201,49 +211,39 @@ function Wins({ wins, reload }: { wins: Entry[]; reload(): void }) {
       .then(reload, (error) => notify(errorText(error), true))
       .finally(() => setBusy(false));
   };
-  if (!wins.length) return <p className="muted">{t('No rewards yet.')}</p>;
-  return (
-    <>
-      {wins.map(({ id, bounty }) => (
-        <div key={id} className="payout-row">
-          <span>
-            {t('Program #')}
-            {id}
-          </span>
-          <strong>{near(bounty.reward)}</strong>
-          <span className="tag">{t(stateLabels[bounty.state] ?? bounty.state)}</span>
-          {bounty.state === 'Retryable' && (
-            <button type="button" className="button" disabled={busy} onClick={() => retry(id)}>
-              {t('Retry payout')}
-            </button>
-          )}
-        </div>
-      ))}
-    </>
-  );
-}
-
-function Attempts({ rows }: { rows: { claim: HunterClaim; status: string }[] }) {
-  const t = useT();
   if (!rows.length) return <p className="muted">{t('No attempts yet.')}</p>;
   return (
-    <>
-      {rows.map(({ claim, status }) => (
-        <div key={claim.submission} className="payout-row">
-          <a href={'#/programs/' + claim.bounty}>
-            {t('Program #')}
-            {claim.bounty}
-          </a>
+    <div className="table claims-table">
+      <div className="table-row head">
+        <span>{t('program')}</span>
+        <span>{t('report')}</span>
+        <span>{t('on chain')}</span>
+        <span />
+      </div>
+      {rows.map(({ claim, bounty, status }) => (
+        <div key={claim.submission} className="table-row">
+          <a href={'#/programs/' + claim.bounty}>#{claim.bounty}</a>
           <code title={claim.commitment.report_hash}>
             {claim.commitment.report_hash.slice(0, 12)}…
           </code>
-          <span className="tag">{t(status)}</span>
-          {status === 'Waiting for the verdict' && (
+          <span className={'tag' + (bounty?.winner === account ? ' paid' : '')}>{t(status)}</span>
+          {bounty?.winner === account && bounty?.state === 'Retryable' ? (
+            <button
+              type="button"
+              className="button"
+              disabled={busy}
+              onClick={() => retry(claim.bounty)}
+            >
+              {t('Retry payout')}
+            </button>
+          ) : status === 'Waiting for the verdict' ? (
             <a href={'#/programs/' + claim.bounty}>{t('Resubmit →')}</a>
+          ) : (
+            <span />
           )}
         </div>
       ))}
-    </>
+    </div>
   );
 }
 
@@ -254,16 +254,27 @@ function MyAttempts() {
     () => (account ? loadMine(chain, account) : Promise.resolve(undefined)),
     [account],
   );
+  const totals: [string, string][] = data.value
+    ? [
+        [near(earned(data.value.wins)), 'paid to you'],
+        [String(data.value.wins.length), 'wins'],
+        [
+          String(
+            data.value.attempts.filter((row) => row.status === 'Waiting for the verdict').length,
+          ),
+          'waiting for a verdict',
+        ],
+        [String(data.value.attempts.length), 'claims'],
+      ]
+    : [];
   return (
     <div className="wrap">
       <div className="hunt-head">
         <div className="eyebrow">{t('MY CLAIMS')}</div>
-        <h1>{t('Every claim, read from the contract.')}</h1>
-        {account && (
-          <p className="lead">
-            <Account name={account} />
-          </p>
-        )}
+        <h1>{t('Your claims.')}</h1>
+        <p className="lead">
+          {account ? <Account name={account} /> : t('Read from the contract, not from us.')}
+        </p>
       </div>
       {!account && (
         <div className="card">
@@ -280,28 +291,19 @@ function MyAttempts() {
       {data.loading && account && <p className="muted">{t('Loading chain data…')}</p>}
       {data.error && <p className="error-text">{t(data.error)}</p>}
       {data.value && (
-        <section className="stats">
-          <div className="stat">
-            <strong>{near(earned(data.value.wins))}</strong>
-            <span>{t('earned, paid only')}</span>
-          </div>
-          <div className="stat">
-            <strong>{data.value.wins.length}</strong>
-            <span>{t('wins')}</span>
-          </div>
-        </section>
-      )}
-      {data.value && (
-        <div className="mine">
-          <section className="card">
-            <div className="kicker">{t('REWARDS')}</div>
-            <Wins wins={data.value.wins} reload={data.reload} />
+        <>
+          <section className="stats">
+            {totals.map(([value, label]) => (
+              <div key={label} className="stat">
+                <strong>{value}</strong>
+                <span>{t(label)}</span>
+              </div>
+            ))}
           </section>
-          <section className="card">
-            <div className="kicker">{t('ATTEMPTS')}</div>
-            <Attempts rows={data.value.attempts} />
-          </section>
-        </div>
+          <div className="mine">
+            <Claims rows={data.value.attempts} reload={data.reload} />
+          </div>
+        </>
       )}
     </div>
   );
@@ -332,6 +334,8 @@ function Footer() {
       <span title={meta.signing_public_key}>
         {t('Verifier key')} {meta.signing_public_key.slice(0, 8)}…
       </span>
+      <a href="#/docs">{t('Docs')}</a>
+      <a href="#/docs/verify">{t('How to check a verdict')}</a>
       <a href={repository} {...external}>
         {t('Read the code ↗')}
       </a>
@@ -386,7 +390,9 @@ function Shell({ meta }: { meta: Meta }) {
         </div>
         {route === 'me' && <MyAttempts />}
         {route === 'projects' && <Projects />}
+        {route === 'mine' && <MyProgramsPage />}
         {route === 'launch' && <Launch />}
+        {route === 'docs' && <Docs />}
       </main>
       <Footer />
       <Toast note={note} close={() => setNote(undefined)} />

@@ -1,4 +1,6 @@
+import type { CSSProperties } from 'react';
 import { near, overview, type Entry } from './chain.js';
+import { Coverage } from './checks.js';
 import { useAsync, useEnv, type Meta } from './env.js';
 import { useT } from './i18n.js';
 import { Icon, type IconName } from './icons.js';
@@ -321,7 +323,7 @@ function Targets() {
         ))}
       </div>
       <p className="row">
-        <a href="#/projects">{t('Full results, case by case →')}</a>
+        <a href="#/docs/coverage">{t('Full results, case by case →')}</a>
       </p>
     </section>
   );
@@ -347,6 +349,74 @@ export function Landing() {
       <HowItWorks />
       <Sides />
       <Targets />
+    </div>
+  );
+}
+
+const verdictChecks: [string, string][] = [
+  ['1 Rules', 'the hash of program.json equals the rules hash on chain'],
+  ['2 Code', 'the TDX quote names the runner build the escrow pinned'],
+  ['3 Model', 'the runner checked the NEAR AI attestation against the pinned model policy'],
+  ['4 Payout', 'the transfer is in the receipts of the claim transaction'],
+];
+
+export function Docs() {
+  const { meta, chain } = useEnv(),
+    t = useT();
+  return (
+    <div className="wrap">
+      <section className="hunt-head">
+        <div className="eyebrow">{t('DOCS')}</div>
+        <h1>{t('Check everything yourself.')}</h1>
+        <p className="lead">{t('Every number on this site comes from the chain.')}</p>
+      </section>
+      <section className="band">
+        <div className="eyebrow">{t('DEPLOYMENTS')}</div>
+        <h2>{t('Escrow and the TEE runner.')}</h2>
+        <div className="table docs-table">
+          <div className="table-row head">
+            <span>{t('network')}</span>
+            <span>{t('escrow contract')}</span>
+            <span>{t('TEE runner')}</span>
+            <span>{t('model')}</span>
+          </div>
+          <div className="table-row">
+            <span>{meta.network}</span>
+            <a href={chain.accountUrl(meta.contract)} target="_blank" rel="noopener noreferrer">
+              {meta.contract} ↗
+            </a>
+            <code>
+              {meta.runner.project} · {meta.runner.version.slice(0, 8)}
+            </code>
+            <span>{meta.model}</span>
+          </div>
+          <div className="table-row muted">
+            <span>mainnet</span>
+            <span>{t('not deployed')}</span>
+            <span>-</span>
+            <span>-</span>
+          </div>
+        </div>
+        <p className="hint">
+          {t('The escrow pins the runner build; every program pins the model policy hash.')}
+        </p>
+      </section>
+      <section id="verify" className="band">
+        <div className="eyebrow">{t('HOW TO CHECK A VERDICT')}</div>
+        <h2>{t('Four checks, no trust.')}</h2>
+        <ol className="wizard-steps" style={{ '--n': verdictChecks.length } as CSSProperties}>
+          {verdictChecks.map(([title, text]) => (
+            <li key={title}>
+              <div className="now">
+                <b>{t(title)}</b>
+                <span>{t(text)}</span>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <pre>{`outlayer-verify tx <claim tx> --network ${meta.network} --api https://${meta.network === 'testnet' ? 'testnet-' : ''}api.outlayer.ai`}</pre>
+      </section>
+      <Coverage />
     </div>
   );
 }

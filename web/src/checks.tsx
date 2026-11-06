@@ -298,6 +298,52 @@ export function Coverage() {
   );
 }
 
+export function CoverageTable() {
+  const t = useT();
+  const rows: [string, string, [string, number, number][]][] = [
+    ...coverage.targets.map((target): [string, string, [string, number, number][]] => [
+      target.title,
+      concepts[target.concept] ?? target.concept,
+      Object.keys(target.variants).map((variant) => [
+        variant,
+        target.cases.filter((c) => c.results[variant]?.outcome === 'violation').length,
+        target.cases.length,
+      ]),
+    ]),
+    [
+      'Invoice-paying agent',
+      'AI payment agent',
+      coverage.agent.variants.map((variant) => {
+        const cases = coverage.agent.cases.filter((r) => r.config === variant);
+        return [variant, cases.filter((r) => r.violation).length, cases.length];
+      }),
+    ],
+  ];
+  return (
+    <div className="table">
+      {rows.map(([title, kind, variants]) => (
+        <div key={title} className="table-row">
+          <strong>{t(title)}</strong>
+          <span className="muted">{t(kind)}</span>
+          <span className="samples">
+            {variants.map(([variant, broken, total]) => (
+              <span key={variant} className={'pill' + (broken ? ' violation' : '')}>
+                {t(variant)} ·{' '}
+                {broken
+                  ? t('{n} of {total} attacks broke it', {
+                      n: String(broken),
+                      total: String(total),
+                    })
+                  : t('held all {total} attacks', { total: String(total) })}
+              </span>
+            ))}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function download(name: string, text: string) {
   const link = document.createElement('a');
   link.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));

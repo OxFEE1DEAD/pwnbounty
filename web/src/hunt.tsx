@@ -583,6 +583,9 @@ function Details({ id, program }: { id: string; program: Program }) {
           <summary>{t('Raw rules')}</summary>
           <pre>{JSON.stringify(raw, null, 2)}</pre>
         </details>
+        <a className="hint" href="#/docs/verify">
+          {t('How to check a verdict →')}
+        </a>
       </Row>
     </div>
   );

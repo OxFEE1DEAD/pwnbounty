@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { near, type Entry } from './chain.js';
 import { digest, openDisclosure } from './crypto.js';
 import { context, errorText, useAsync, useEnv, type TeamDraft } from './env.js';
 import type { ChainReader, VerifierApi } from './ports.js';
 import { useT } from './i18n.js';
-import { Coverage } from './checks.js';
+import { CoverageTable } from './checks.js';
 
 const lead =
   'Write down what a break of your contract or agent looks like. Hackers attack it, a verifier ' +
@@ -111,9 +111,7 @@ function MyPrograms() {
       document.getElementById('team')?.scrollIntoView({ behavior: 'smooth' });
     });
   return (
-    <section id="mine" className="band">
-      <div className="eyebrow">{t('MY PROGRAMS')}</div>
-      <h2>{account ? t('Programs owned by {account}', { account }) : t('Your programs')}</h2>
+    <section id="mine">
       {!account && (
         <button
           type="button"
@@ -131,39 +129,49 @@ function MyPrograms() {
           <a href="#/projects/new">{t('Launch a program →')}</a>
         </p>
       )}
-      {data.value?.mine.map((entry) => {
-        const now = standing(entry, data.value!.height);
-        return (
-          <div key={entry.id} className="payout-row">
-            <a href={'#/programs/' + entry.id}>
-              {t('Program #')}
-              {entry.id}
-            </a>
-            <span className={'tag ' + now.tag}>{t(now.label)}</span>
-            <strong>{near(entry.bounty.reward)}</strong>
-            {now.refund && (
-              <button
-                type="button"
-                className="button"
-                disabled={busy}
-                onClick={() => withdraw(entry.id)}
-              >
-                {t('Withdraw {amount}', { amount: near(entry.bounty.reward) })}
-              </button>
-            )}
-            {entry.bounty.state === 'Paid' && (
-              <button
-                type="button"
-                className="button secondary"
-                disabled={busy}
-                onClick={() => report(entry)}
-              >
-                {t('Decrypt report')}
-              </button>
-            )}
+      {!!data.value?.mine.length && (
+        <div className="table mine-table">
+          <div className="table-row head">
+            <span>{t('program')}</span>
+            <span>{t('state')}</span>
+            <span>{t('reward')}</span>
+            <span />
           </div>
-        );
-      })}
+          {data.value.mine.map((entry) => {
+            const now = standing(entry, data.value!.height);
+            return (
+              <div key={entry.id} className="table-row">
+                <a href={'#/programs/' + entry.id}>#{entry.id}</a>
+                <span className={'tag ' + now.tag}>{t(now.label)}</span>
+                <strong>{near(entry.bounty.reward)}</strong>
+                {now.refund ? (
+                  <button
+                    type="button"
+                    className="button"
+                    disabled={busy}
+                    onClick={() => withdraw(entry.id)}
+                  >
+                    {t('Withdraw {amount}', { amount: near(entry.bounty.reward) })}
+                  </button>
+                ) : entry.bounty.state === 'Paid' ? (
+                  <button
+                    type="button"
+                    className="button secondary"
+                    disabled={busy}
+                    onClick={() => report(entry)}
+                  >
+                    {t('Decrypt report')}
+                  </button>
+                ) : (
+                  <a className="button secondary" href={'#/programs/' + entry.id}>
+                    {t('Open program')}
+                  </a>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
@@ -294,15 +302,44 @@ export function Projects() {
           </a>
         </div>
       </section>
-      <div className="steps">
+      <ol className="wizard-steps" style={{ '--n': steps.length } as CSSProperties}>
         {steps.map(([tag, text]) => (
-          <div key={tag} className="card">
-            <div className="step-number">{t(tag)}</div>
-            <p>{t(text)}</p>
-          </div>
+          <li key={tag}>
+            <div className="now">
+              <b>{t(tag)}</b>
+              <span>{t(text)}</span>
+            </div>
+          </li>
         ))}
-      </div>
-      <Coverage />
+      </ol>
+      <section className="band">
+        <div className="section-head">
+          <div>
+            <div className="eyebrow">{t('TESTED TODAY')}</div>
+            <h2>{t('Known attacks, real results.')}</h2>
+          </div>
+          <a href="#/docs/coverage">{t('Every attack, case by case →')}</a>
+        </div>
+        <CoverageTable />
+      </section>
+    </div>
+  );
+}
+
+export function MyProgramsPage() {
+  const t = useT();
+  return (
+    <div className="wrap">
+      <section className="hunt-head">
+        <div className="eyebrow">{t('MY PROGRAMS')}</div>
+        <h1>{t('Your programs.')}</h1>
+        <p className="lead">{t('Read from the contract. Reports open only with your team key.')}</p>
+        <div className="row">
+          <a className="button secondary" href="#/projects/new">
+            {t('New program')}
+          </a>
+        </div>
+      </section>
       <MyPrograms />
       <TeamDecryptPanel />
     </div>

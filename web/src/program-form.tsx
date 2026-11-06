@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { readLimited } from './chain.js';
 import { digest } from './crypto.js';
 import { errorText, useEnv } from './env.js';
@@ -579,6 +579,7 @@ function CodePick({
 function StepCard({
   step,
   index,
+  first,
   last,
   scope,
   onChange,
@@ -589,6 +590,7 @@ function StepCard({
 }: {
   step: Step;
   index: number;
+  first: boolean;
   last: boolean;
   scope: Scope;
   onChange(step: Step): void;
@@ -599,10 +601,10 @@ function StepCard({
 }) {
   const t = useT();
   const titles = { account: 'Account', deploy: 'Contract', call: 'Setup call', key: 'Key' };
-  let body: ReactNode;
-  if (step.op === 'account') {
-    body = (
-      <>
+  if (step.op === 'account')
+    return (
+      <div className="account-row">
+        <span className="kicker">{index + 1}</span>
         <label className="field">
           {t('Name')}
           <input
@@ -611,23 +613,25 @@ function StepCard({
             onChange={(e) => onChange({ ...step, id: e.target.value.trim().toLowerCase() })}
           />
         </label>
-        <div className="pair">
-          <Pick
-            label={t('Role')}
-            value={step.role}
-            options={roles}
-            onChange={(role) => onChange({ ...step, role: role as Role })}
-          />
-          <Amount
-            label={t('Balance, NEAR')}
-            unit="near"
-            value={step.near}
-            onChange={(near) => onChange({ ...step, near })}
-          />
-        </div>
-      </>
+        <Pick
+          label={t('Role')}
+          value={step.role}
+          options={roles}
+          onChange={(role) => onChange({ ...step, role: role as Role })}
+        />
+        <Amount
+          label={t('Balance, NEAR')}
+          unit="near"
+          value={step.near}
+          onChange={(near) => onChange({ ...step, near })}
+        />
+        <button type="button" className="chip" onClick={onRemove} aria-label={t('Remove')}>
+          ✕
+        </button>
+      </div>
     );
-  } else if (step.op === 'deploy') {
+  let body: ReactNode;
+  if (step.op === 'deploy') {
     const methods = scope.sources[step.code]?.methods ?? {};
     body = (
       <>
@@ -739,7 +743,7 @@ function StepCard({
           {index + 1} · {t(titles[step.op])}
         </span>
         <span className="row">
-          <button type="button" className="chip" disabled={index === 0} onClick={() => onMove(-1)}>
+          <button type="button" className="chip" disabled={first} onClick={() => onMove(-1)}>
             ↑
           </button>
           <button type="button" className="chip" disabled={last} onClick={() => onMove(1)}>
@@ -755,7 +759,87 @@ function StepCard({
   );
 }
 
-export function WorldLaunch({ switcher }: { switcher: ReactNode }) {
+export function Wizard({
+  steps,
+  at,
+  onAt,
+  aside,
+  children,
+}: {
+  steps: [string, string][];
+  at: number;
+  onAt(at: number): void;
+  aside: ReactNode;
+  children: ReactNode;
+}) {
+  const t = useT();
+  const go = (next: number) => {
+    onAt(next);
+    window.scrollTo({ top: 0 });
+  };
+  const previous = steps[at - 1];
+  const next = steps[at + 1];
+  return (
+    <>
+      <ol className="wizard-steps" style={{ '--n': steps.length } as CSSProperties}>
+        {steps.map(([title, hint], i) => (
+          <li key={title}>
+            <button
+              type="button"
+              className={i < at ? 'done' : i === at ? 'now' : ''}
+              onClick={() => go(i)}
+            >
+              <b>
+                {i < at ? '✓' : i + 1} {t(title)}
+              </b>
+              <span>{t(hint)}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+      <div className="wizard">
+        <div className="wizard-main">
+          {children}
+          <div className="wizard-foot">
+            {previous ? (
+              <button type="button" className="button secondary" onClick={() => go(at - 1)}>
+                ← {t(previous[0])}
+              </button>
+            ) : (
+              <span />
+            )}
+            {next && (
+              <button type="button" className="button" onClick={() => go(at + 1)}>
+                {t('Next')}: {t(next[0]).toLowerCase()} →
+              </button>
+            )}
+          </div>
+        </div>
+        <aside className="summary" aria-label={t('Your program')}>
+          <div className="summary-head">
+            <span>{t('YOUR PROGRAM')}</span>
+            <span>
+              {at + 1}/{steps.length}
+            </span>
+          </div>
+          {aside}
+        </aside>
+      </div>
+    </>
+  );
+}
+
+export function Summary({ title, children }: { title?: string; children: ReactNode }) {
+  const t = useT();
+  return (
+    <div className="summary-block">
+      {title && <div className="kicker">{t(title)}</div>}
+      {children}
+    </div>
+  );
+}
+
+export function WorldLaunch() {
   const t = useT();
   const first = targets[0]!;
   const [start, setStart] = useState({
@@ -769,6 +853,7 @@ export function WorldLaunch({ switcher }: { switcher: ReactNode }) {
   const [reward, setReward] = useState(nearOf(5));
   const [hashed, setHashed] = useState({ text: '', hash: '' });
   const [round, setRound] = useState(0);
+  const [at, setAt] = useState(0);
   const target = targets.find((x) => x.id === start.target);
 
   const open = (id: string, variant?: string) => {
@@ -882,396 +967,486 @@ export function WorldLaunch({ switcher }: { switcher: ReactNode }) {
     );
   const setBlock = (next: Block) =>
     rules((all) => all.map((rule) => (rule.id === 'block' ? next : rule)));
-  const added: [string, () => Step][] = [
-    [
-      '+ account',
-      () => ({
-        op: 'account',
-        id: `user${scope.accounts.length + 1}.test.near`,
-        near: nearOf(10),
-        role: 'protected',
-      }),
-    ],
-    ['+ contract', () => ({ op: 'deploy', id: victim, code: '' })],
-    [
-      '+ setup call',
-      () => ({
-        op: 'call',
-        call: {
-          signer: victim,
-          receiver: scope.contracts[0] ?? '',
-          method: '',
-          args: {},
-          deposit: '0',
-          gas: gasOf(30),
-        },
-      }),
-    ],
-    [
-      '+ key',
-      () => ({ op: 'key', id: scope.contracts[0] ?? victim, key: 'key:0', permission: 'full' }),
-    ],
-  ];
+  const rank = { account: 0, deploy: 1, key: 2, call: 3 };
+  const add = (...fresh: Step[]) =>
+    steps((all) =>
+      fresh.reduce((list, step) => {
+        const after = list.reduce((last, s, i) => (rank[s.op] <= rank[step.op] ? i : last), -1);
+        return [...list.slice(0, after + 1), step, ...list.slice(after + 1)];
+      }, all),
+    );
+  const contract = `contract${scope.contracts.length + 1}.test.near`;
+  const list = (op: Step['op']) => {
+    const shown = program.steps.flatMap((step, index) => (step.op === op ? [index] : []));
+    return shown.map((index, pos) => (
+      <StepCard
+        key={`${round}-${index}`}
+        step={program.steps[index]!}
+        index={index}
+        first={pos === 0}
+        last={pos === shown.length - 1}
+        scope={scope}
+        onChange={(next) => steps((all) => all.map((s, i) => (i === index ? next : s)))}
+        onMove={(by) =>
+          steps((all) => {
+            const next = [...all];
+            const other = shown[pos + by]!;
+            [next[index], next[other]] = [next[other]!, next[index]!];
+            return next;
+          })
+        }
+        onRemove={() => steps((all) => all.filter((_, i) => i !== index))}
+        onCode={(source) => {
+          setSources((all) => ({ ...all, [source.code.sha256]: source }));
+          steps((all) =>
+            all.map((s, i) =>
+              i === index && s.op === 'deploy' ? { ...s, code: source.code.sha256 } : s,
+            ),
+          );
+        }}
+        onAbi={(sha, methods) =>
+          setSources((all) => ({
+            ...all,
+            [sha]: { ...all[sha]!, methods: { ...all[sha]!.methods, ...methods } },
+          }))
+        }
+      />
+    ));
+  };
+  const chip = (current: boolean, label: string, onClick: () => void) => (
+    <button
+      key={label}
+      type="button"
+      className={'chip' + (current ? ' current' : '')}
+      onClick={onClick}
+    >
+      {t(label)}
+    </button>
+  );
+  const ruleNames = { take: 'theft', loss: 'any loss', block: 'withdrawal blocked' };
 
-  return (
-    <div className="wrap">
-      <div className="hunt-head">
-        <div className="eyebrow">{t('FOR PROJECTS')}</div>
-        <h1>{t('Put your project under a sealed bounty')}</h1>
-        <p className="lead">
+  const screens = [
+    <>
+      <section className="card">
+        <div className="kicker">{t('FILL FROM')}</div>
+        <div className="samples">
+          {targets.map((x) => chip(x.id === start.target, x.title, () => open(x.id)))}
+          {chip(!start.target, 'Empty form', () => open(''))}
+        </div>
+        {target && Object.keys(target.variants).length > 1 && (
+          <div className="samples">
+            {Object.keys(target.variants).map((v) =>
+              chip(v === start.variant, v, () => open(target.id, v)),
+            )}
+          </div>
+        )}
+        <label className="field">
+          {t('Program name')}
+          <input
+            value={program.title}
+            onChange={(e) => setProgram((p) => ({ ...p, title: e.target.value }))}
+          />
+        </label>
+      </section>
+      <div className="step-list">{list('deploy')}</div>
+      <div className="row">
+        {chip(false, '+ Add a contract', () =>
+          add(
+            { op: 'account', id: contract, near: nearOf(10), role: 'protected' },
+            { op: 'deploy', id: contract, code: '' },
+          ),
+        )}
+      </div>
+      <p className="hint">
+        {t(
+          'Attacks hit a local copy, never your live contract. Methods come from the contract code; upload its ABI to get a field per argument.',
+        )}
+      </p>
+    </>,
+    <>
+      <section className="card">
+        <div className="kicker">{t('ACCOUNTS IN THE TEST CHAIN')}</div>
+        <div className="account-row account-head">
+          <span />
+          <span>{t('account')}</span>
+          <span>{t('role')}</span>
+          <span>NEAR</span>
+          <span />
+        </div>
+        <div className="account-list">{list('account')}</div>
+        <div className="row">
+          {chip(false, '+ Add account', () =>
+            add({
+              op: 'account',
+              id: `user${scope.accounts.length + 1}.test.near`,
+              near: nearOf(10),
+              role: 'protected',
+            }),
+          )}
+        </div>
+        <p className="hint">
           {t(
-            'Describe the code, who holds what, and what counts as a break. Hunters attack a fresh copy; the reward leaves escrow only for a proved break.',
+            'Protected: its loss is a break. Attacker: the hunter acts as it. Neutral: just there.',
           )}
         </p>
-        {switcher}
-      </div>
-      <div className="launch">
-        <section className="card">
-          <div className="kicker">1 · {t('START')}</div>
-          <div className="samples">
-            <button
-              type="button"
-              className={'chip' + (start.target ? '' : ' current')}
-              onClick={() => open('')}
-            >
-              {t('From scratch')}
-            </button>
-            {targets.map((x) => (
-              <button
-                key={x.id}
-                type="button"
-                className={'chip' + (x.id === start.target ? ' current' : '')}
-                onClick={() => open(x.id)}
-              >
-                {t(x.title)}
-              </button>
-            ))}
-          </div>
-          {target && Object.keys(target.variants).length > 1 && (
-            <div className="samples">
-              {Object.keys(target.variants).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  className={'chip' + (v === start.variant ? ' current' : '')}
-                  onClick={() => open(target.id, v)}
-                >
-                  {t(v)}
-                </button>
-              ))}
-            </div>
+      </section>
+      <section className="card">
+        <div className="kicker">{t('KEYS GIVEN TO THE ATTACKER')}</div>
+        <label className="field">
+          {t('Attacker keys')}
+          <input
+            value={program.attackerKeys}
+            inputMode="numeric"
+            onChange={(e) =>
+              /^[1-4]$/.test(e.target.value) &&
+              setProgram((p) => ({ ...p, attackerKeys: Number(e.target.value) }))
+            }
+          />
+        </label>
+        <div className="step-list">{list('key')}</div>
+        <div className="row">
+          {chip(false, '+ Give a key', () =>
+            add({ op: 'key', id: scope.contracts[0] ?? victim, key: 'key:0', permission: 'full' }),
           )}
-          <p className="hint">
-            {t(
-              'A template fills the same form. Change anything: code, accounts, setup calls, rules.',
-            )}
-          </p>
-          <label className="field">
-            {t('Program name')}
-            <input
-              value={program.title}
-              onChange={(e) => setProgram((p) => ({ ...p, title: e.target.value }))}
+        </div>
+        <p className="hint">{t('The hunter signs the attack with these keys.')}</p>
+      </section>
+    </>,
+    <>
+      <div className="step-list">{list('call')}</div>
+      <div className="row">
+        {chip(false, '+ Add call', () =>
+          add({
+            op: 'call',
+            call: {
+              signer: victim,
+              receiver: scope.contracts[0] ?? '',
+              method: '',
+              args: {},
+              deposit: '0',
+              gas: gasOf(30),
+            },
+          }),
+        )}
+      </div>
+      <p className="hint">{t('Runs before every attack, in this order.')}</p>
+    </>,
+    <>
+      <section className="card">
+        <div className="kicker">{t('A BREAK IS')}</div>
+        <label className="check">
+          <input type="checkbox" checked={has('take')} onChange={() => toggle('take')} />
+          {t('attacker gains what a protected account loses')}
+        </label>
+        <label className="check">
+          <input type="checkbox" checked={has('loss')} onChange={() => toggle('loss')} />
+          {t('a protected account loses value')}
+        </label>
+        <label className="check">
+          <input type="checkbox" checked={!!block} onChange={() => toggle('block')} />
+          {t('a protected withdrawal stops working')}
+        </label>
+        <Amount
+          label={t('Ignore moves smaller than (NEAR)')}
+          unit="near"
+          value={threshold}
+          onChange={(value) =>
+            rules((all) =>
+              all.map((rule) => (rule.id === 'block' ? rule : { ...rule, threshold: value })),
+            )
+          }
+        />
+        {block && (
+          <div className="args">
+            <p className="hint">
+              {t(
+                'After the attack a protected account makes this call and must still receive what the view says it is owed.',
+              )}
+            </p>
+            <CallFields
+              call={block.victim}
+              scope={scope}
+              onChange={(victim) => setBlock({ ...block, victim })}
             />
-          </label>
-          <div className="pair">
-            <Amount label={t('Reward (NEAR)')} unit="near" value={reward} onChange={setReward} />
+            <Pick
+              label={t('Owed amount from')}
+              value={block.claim.contract}
+              options={scope.contracts}
+              onChange={(contract) => setBlock({ ...block, claim: { ...block.claim, contract } })}
+            />
+            <MethodInput
+              label={t('View method')}
+              value={block.claim.method}
+              methods={scope.methodsOf(block.claim.contract)}
+              onChange={(method) => setBlock({ ...block, claim: { ...block.claim, method } })}
+            />
+            <Args
+              value={block.claim.args}
+              params={scope.methodsOf(block.claim.contract)[block.claim.method]?.params}
+              onChange={(args) => setBlock({ ...block, claim: { ...block.claim, args } })}
+            />
+            <div className="pair">
+              <Pick
+                label={t('Receiver')}
+                value={block.expect.account}
+                options={scope.signers}
+                onChange={(account) => setBlock({ ...block, expect: { ...block.expect, account } })}
+              />
+              <Pick
+                label={t('Paid in')}
+                value={block.expect.token}
+                options={['NEAR', ...scope.contracts]}
+                onChange={(token) => setBlock({ ...block, expect: { ...block.expect, token } })}
+              />
+            </div>
+            <Amount
+              label={t('It pays without an attack, NEAR or token units with 24 decimals')}
+              unit="near"
+              value={block.expect.amount}
+              onChange={(amount) => setBlock({ ...block, expect: { ...block.expect, amount } })}
+            />
+          </div>
+        )}
+      </section>
+      <section className="card">
+        <div className="kicker">{t('TOKENS COUNTED AS VALUE')}</div>
+        {program.tokens.map((token, i) => (
+          <div key={i} className="pair">
+            <Pick
+              label={t('Token contract')}
+              value={token.contract}
+              options={scope.contracts}
+              onChange={(contract) =>
+                setProgram((p) => ({
+                  ...p,
+                  tokens: p.tokens.map((x, j) => (j === i ? { ...x, contract } : x)),
+                }))
+              }
+            />
             <label className="field">
-              {t('Attacker keys')}
+              {t('yoctoNEAR per token unit')}
               <input
-                value={program.attackerKeys}
+                value={token.rate}
                 inputMode="numeric"
                 onChange={(e) =>
-                  /^[1-4]$/.test(e.target.value) &&
-                  setProgram((p) => ({ ...p, attackerKeys: Number(e.target.value) }))
+                  /^\d{0,39}$/.test(e.target.value) &&
+                  setProgram((p) => ({
+                    ...p,
+                    tokens: p.tokens.map((x, j) => (j === i ? { ...x, rate: e.target.value } : x)),
+                  }))
                 }
               />
             </label>
           </div>
-        </section>
-        <section className="card">
-          <div className="kicker">2 · {t('WHAT COUNTS AS A BREAK')}</div>
-          <label className="check">
-            <input type="checkbox" checked={has('take')} onChange={() => toggle('take')} />
-            {t('attacker gains what a protected account loses')}
-          </label>
-          <label className="check">
-            <input type="checkbox" checked={has('loss')} onChange={() => toggle('loss')} />
-            {t('a protected account loses value')}
-          </label>
-          <label className="check">
-            <input type="checkbox" checked={!!block} onChange={() => toggle('block')} />
-            {t('a protected withdrawal stops working')}
-          </label>
-          <Amount
-            label={t('Ignore moves smaller than (NEAR)')}
-            unit="near"
-            value={threshold}
-            onChange={(value) =>
-              rules((all) =>
-                all.map((rule) => (rule.id === 'block' ? rule : { ...rule, threshold: value })),
-              )
-            }
-          />
-          {block && (
-            <div className="args">
-              <p className="hint">
-                {t(
-                  'After the attack a protected account makes this call and must still receive what the view says it is owed.',
-                )}
-              </p>
-              <CallFields
-                call={block.victim}
-                scope={scope}
-                onChange={(victim) => setBlock({ ...block, victim })}
-              />
-              <Pick
-                label={t('Owed amount from')}
-                value={block.claim.contract}
-                options={scope.contracts}
-                onChange={(contract) => setBlock({ ...block, claim: { ...block.claim, contract } })}
-              />
-              <MethodInput
-                label={t('View method')}
-                value={block.claim.method}
-                methods={scope.methodsOf(block.claim.contract)}
-                onChange={(method) => setBlock({ ...block, claim: { ...block.claim, method } })}
-              />
-              <Args
-                value={block.claim.args}
-                params={scope.methodsOf(block.claim.contract)[block.claim.method]?.params}
-                onChange={(args) => setBlock({ ...block, claim: { ...block.claim, args } })}
-              />
-              <div className="pair">
-                <Pick
-                  label={t('Receiver')}
-                  value={block.expect.account}
-                  options={scope.signers}
-                  onChange={(account) =>
-                    setBlock({ ...block, expect: { ...block.expect, account } })
-                  }
-                />
-                <Pick
-                  label={t('Paid in')}
-                  value={block.expect.token}
-                  options={['NEAR', ...scope.contracts]}
-                  onChange={(token) => setBlock({ ...block, expect: { ...block.expect, token } })}
-                />
-              </div>
-              <Amount
-                label={t('It pays without an attack, NEAR or token units with 24 decimals')}
-                unit="near"
-                value={block.expect.amount}
-                onChange={(amount) => setBlock({ ...block, expect: { ...block.expect, amount } })}
-              />
-            </div>
+        ))}
+        <div className="row">
+          {chip(false, '+ token', () =>
+            setProgram((p) => ({
+              ...p,
+              tokens: [...p.tokens, { contract: scope.contracts[0] ?? '', rate: '1' }],
+            })),
           )}
-          <h3>{t('Tokens counted as value')}</h3>
-          {program.tokens.map((token, i) => (
-            <div key={i} className="pair">
-              <Pick
-                label={t('Token contract')}
-                value={token.contract}
-                options={scope.contracts}
-                onChange={(contract) =>
+          {program.tokens.length > 0 &&
+            chip(false, 'Remove the last token', () =>
+              setProgram((p) => ({ ...p, tokens: p.tokens.slice(0, -1) })),
+            )}
+        </div>
+        <p className="hint">
+          {t('NEAR always counts. The verifier compares balances before and after the attack.')}
+        </p>
+      </section>
+    </>,
+    <section className="card">
+      <Amount label={t('Reward (NEAR)')} unit="near" value={reward} onChange={setReward} />
+      <div className="kicker">{t('LIMITS FOR ONE ATTACK')}</div>
+      <div className="pair">
+        {limitFields.map(([key, label, gas]) =>
+          gas ? (
+            <Amount
+              key={key}
+              label={t(label)}
+              unit="tgas"
+              value={String(program.limits[key])}
+              onChange={(value) =>
+                setProgram((p) => ({ ...p, limits: { ...p.limits, [key]: value } }))
+              }
+            />
+          ) : (
+            <label key={key} className="field">
+              {t(label)}
+              <input
+                value={program.limits[key]}
+                inputMode="numeric"
+                onChange={(e) =>
+                  /^\d{1,7}$/.test(e.target.value) &&
                   setProgram((p) => ({
                     ...p,
-                    tokens: p.tokens.map((x, j) => (j === i ? { ...x, contract } : x)),
+                    limits: { ...p.limits, [key]: Number(e.target.value) },
                   }))
                 }
               />
-              <label className="field">
-                {t('yoctoNEAR per token unit')}
-                <input
-                  value={token.rate}
-                  inputMode="numeric"
-                  onChange={(e) =>
-                    /^\d{0,39}$/.test(e.target.value) &&
-                    setProgram((p) => ({
-                      ...p,
-                      tokens: p.tokens.map((x, j) =>
-                        j === i ? { ...x, rate: e.target.value } : x,
-                      ),
-                    }))
-                  }
-                />
-              </label>
-            </div>
-          ))}
-          <div className="row">
-            <button
-              type="button"
-              className="chip"
-              onClick={() =>
-                setProgram((p) => ({
-                  ...p,
-                  tokens: [...p.tokens, { contract: scope.contracts[0] ?? '', rate: '1' }],
-                }))
-              }
-            >
-              {t('+ token')}
-            </button>
-            {program.tokens.length > 0 && (
-              <button
-                type="button"
-                className="chip"
-                onClick={() => setProgram((p) => ({ ...p, tokens: p.tokens.slice(0, -1) }))}
-              >
-                {t('Remove the last token')}
-              </button>
-            )}
-          </div>
-        </section>
-        <section className="card wide">
-          <div className="kicker">3 · {t('SETUP, STEP BY STEP')}</div>
-          <p className="hint">
-            {t(
-              'Every attack runs on a fresh local NEAR chain built by these steps. Your live contract is never touched. Methods come from the contract code; upload its ABI to get a field per argument.',
-            )}
-          </p>
-          <div className="step-list">
-            {program.steps.map((step, index) => (
-              <StepCard
-                key={`${round}-${index}`}
-                step={step}
-                index={index}
-                last={index === program.steps.length - 1}
-                scope={scope}
-                onChange={(next) => steps((all) => all.map((s, i) => (i === index ? next : s)))}
-                onMove={(by) =>
-                  steps((all) => {
-                    const next = [...all];
-                    next.splice(index + by, 0, next.splice(index, 1)[0]!);
-                    return next;
-                  })
-                }
-                onRemove={() => steps((all) => all.filter((_, i) => i !== index))}
-                onCode={(source) => {
-                  setSources((all) => ({ ...all, [source.code.sha256]: source }));
-                  steps((all) =>
-                    all.map((s, i) =>
-                      i === index && s.op === 'deploy' ? { ...s, code: source.code.sha256 } : s,
-                    ),
-                  );
-                }}
-                onAbi={(sha, methods) =>
-                  setSources((all) => ({
-                    ...all,
-                    [sha]: { ...all[sha]!, methods: { ...all[sha]!.methods, ...methods } },
-                  }))
-                }
-              />
-            ))}
-          </div>
-          <div className="row">
-            {added.map(([label, make]) => (
-              <button
-                key={label}
-                type="button"
-                className="chip"
-                onClick={() => steps((all) => [...all, make()])}
-              >
-                {t(label)}
-              </button>
-            ))}
-          </div>
-        </section>
-        <section className="card review">
-          <div className="kicker">4 · {t('REVIEW AND EXPORT')}</div>
-          {problems.length ? (
-            <ul className="problems">
-              {problems.map(([problem, vars], i) => (
-                <li key={i}>{t(problem, vars)}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>
-              {t('Program hash')}: <code>{hashed.text === text ? hashed.hash : '…'}</code>
-            </p>
-          )}
-          <p className="hint">
-            {t(
-              'Hunters see this hash on the bounty. Any change to code, balances or rules changes it.',
-            )}
-          </p>
-          <details className="raw">
-            <summary>{t('Limits for one attack')}</summary>
-            <div className="pair">
-              {limitFields.map(([key, label, gas]) =>
-                gas ? (
-                  <Amount
-                    key={key}
-                    label={t(label)}
-                    unit="tgas"
-                    value={String(program.limits[key])}
-                    onChange={(value) =>
-                      setProgram((p) => ({ ...p, limits: { ...p.limits, [key]: value } }))
-                    }
-                  />
-                ) : (
-                  <label key={key} className="field">
-                    {t(label)}
-                    <input
-                      value={program.limits[key]}
-                      inputMode="numeric"
-                      onChange={(e) =>
-                        /^\d{1,7}$/.test(e.target.value) &&
-                        setProgram((p) => ({
-                          ...p,
-                          limits: { ...p.limits, [key]: Number(e.target.value) },
-                        }))
-                      }
-                    />
-                  </label>
-                ),
-              )}
-            </div>
-          </details>
-          <details className="raw">
-            <summary>program.json</summary>
-            <JsonText
-              value={spec}
-              rows={18}
-              onChange={(value) => {
-                const next = value as unknown as Program;
-                if (!Array.isArray(next?.steps) || !Array.isArray(next.codes)) return;
-                setProgram(next);
-                setSources((all) => ({ ...sourcesOf(next.codes), ...all }));
-              }}
-            />
-          </details>
-          <div className="row">
-            <button
-              type="button"
-              className="button"
-              disabled={problems.length > 0}
-              onClick={() => download(`${name}.program.json`, text)}
-            >
-              {t('Download program.json')}
-            </button>
-            <button
-              type="button"
-              className="button secondary"
-              onClick={() => download(`${name}.attack.json`, JSON.stringify(attack, null, 2))}
-            >
-              {t('Download a sample attack')}
-            </button>
-          </div>
-          <h3>{t('Test run on your machine')}</h3>
-          <pre>{setup}</pre>
-          <p className="hint">
-            {t(
-              'On Linux replace Darwin-arm64 with Linux-x86_64. The sample is a known attack from the results list; write your own in the same format.',
-            )}
-          </p>
-          <h3>{t('Publish')}</h3>
-          <p>
-            {t(
-              'Publishing needs the verifier keys, so in test mode the verifier operator runs it with your files. The reward goes to escrow and the program appears in the hacker catalog. Publishing with your wallet from this page is not available yet.',
-            )}
-          </p>
-          <pre>{`BOUNTY_REWARD_YOCTO=${reward} npm run cli -- program-create ${name}.program.json`}</pre>
-        </section>
+            </label>
+          ),
+        )}
       </div>
-    </div>
+    </section>,
+    <section className="card">
+      {problems.length ? (
+        <ul className="problems">
+          {problems.map(([problem, vars], i) => (
+            <li key={i}>{t(problem, vars)}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>
+          {t('Program hash')}: <code>{hashed.text === text ? hashed.hash : '…'}</code>
+        </p>
+      )}
+      <p className="hint">
+        {t(
+          'Hunters see this hash on the bounty. Any change to code, balances or rules changes it.',
+        )}
+      </p>
+      <div className="row">
+        <button
+          type="button"
+          className="button"
+          disabled={problems.length > 0}
+          onClick={() => download(`${name}.program.json`, text)}
+        >
+          {t('Download program.json')}
+        </button>
+        <button
+          type="button"
+          className="button secondary"
+          onClick={() => download(`${name}.attack.json`, JSON.stringify(attack, null, 2))}
+        >
+          {t('Download a sample attack')}
+        </button>
+      </div>
+      <details className="raw">
+        <summary>program.json</summary>
+        <JsonText
+          value={spec}
+          rows={18}
+          onChange={(value) => {
+            const next = value as unknown as Program;
+            if (!Array.isArray(next?.steps) || !Array.isArray(next.codes)) return;
+            setProgram(next);
+            setSources((all) => ({ ...sourcesOf(next.codes), ...all }));
+          }}
+        />
+      </details>
+      <h3>{t('Test run on your machine')}</h3>
+      <pre>{setup}</pre>
+      <p className="hint">
+        {t(
+          'On Linux replace Darwin-arm64 with Linux-x86_64. The sample is a known attack from the results list; write your own in the same format.',
+        )}
+      </p>
+      <h3>{t('Publish')}</h3>
+      <p>
+        {t(
+          'Publishing needs the verifier keys, so in test mode the verifier operator runs it with your files. The reward goes to escrow and the program appears in the hacker catalog. Publishing with your wallet from this page is not available yet.',
+        )}
+      </p>
+      <pre>{`BOUNTY_REWARD_YOCTO=${reward} npm run cli -- program-create ${name}.program.json`}</pre>
+    </section>,
+  ];
+
+  const keys = program.steps.flatMap((s) => (s.op === 'key' ? [s] : []));
+  const calls = program.steps.flatMap((s) => (s.op === 'call' ? [s.call] : []));
+  const aside = (
+    <>
+      <Summary title="CODE">
+        {program.steps.flatMap((s) =>
+          s.op === 'deploy'
+            ? [
+                <p key={s.id}>
+                  {s.id}
+                  <br />
+                  <span className="hint">{sources[s.code]?.label ?? t('code not chosen')}</span>
+                </p>,
+              ]
+            : [],
+        )}
+      </Summary>
+      <Summary title="WHO HOLDS WHAT">
+        {program.steps.flatMap((s) =>
+          s.op === 'account'
+            ? [
+                <div key={s.id} className="holder">
+                  <span>{s.id}</span>
+                  <span className={'tag ' + s.role}>{t(s.role)}</span>
+                  <strong>{/^\d+$/.test(s.near) ? toNear(s.near) : '…'}</strong>
+                </div>,
+              ]
+            : [],
+        )}
+        {keys.map((k, i) => (
+          <p key={i} className="hint">
+            {t('attacker key on {id}', { id: k.id })}:{' '}
+            {k.permission === 'full'
+              ? t('full access')
+              : t('only {methods}', { methods: k.permission.methods.join(', ') || '*' })}
+          </p>
+        ))}
+      </Summary>
+      <Summary title="SETUP">
+        {calls.length ? (
+          calls.map((c, i) => (
+            <p key={i}>
+              {c.signer} → {c.method || '…'}()
+              {/^\d+$/.test(c.deposit) && c.deposit !== '0' ? ` · ${toNear(c.deposit)} NEAR` : ''}
+            </p>
+          ))
+        ) : (
+          <p className="hint">{t('No setup calls')}</p>
+        )}
+      </Summary>
+      <Summary title="RULE">
+        <p>
+          {program.rules.map((rule) => t(ruleNames[rule.id])).join(', ') || '…'} ·{' '}
+          {t('ignore < {amount} NEAR', { amount: toNear(threshold) })}
+        </p>
+      </Summary>
+      <Summary>
+        <dl className="kv">
+          <dt>{t('reward')}</dt>
+          <dd>{toNear(reward)} NEAR</dd>
+          <dt>{t('rules hash')}</dt>
+          <dd>
+            <code>
+              {hashed.text === text && hashed.hash
+                ? `${hashed.hash.slice(0, 8)}…${hashed.hash.slice(-4)}`
+                : '…'}
+            </code>
+          </dd>
+        </dl>
+        <p className="hint">
+          {problems[0]
+            ? t('Still needed: {what}', { what: t(...problems[0]) })
+            : t('Ready to export.')}
+        </p>
+      </Summary>
+    </>
+  );
+
+  return (
+    <Wizard
+      steps={[
+        ['Code', 'what gets attacked'],
+        ['Accounts', 'who holds what'],
+        ['Setup', 'calls before an attack'],
+        ['Rule', 'what counts as a break'],
+        ['Reward', 'reward and limits'],
+        ['Publish', 'test run, then the CLI'],
+      ]}
+      at={at}
+      onAt={setAt}
+      aside={aside}
+    >
+      {screens[at]}
+    </Wizard>
   );
 }

@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { near, overview, type Entry } from './chain.js';
 import { Coverage } from './checks.js';
 import { useAsync, useEnv, type Meta } from './env.js';
@@ -7,10 +7,7 @@ import { Icon, type IconName } from './icons.js';
 
 export const repository = 'https://github.com/OxFEE1DEAD/sealed-bounty';
 
-const lead =
-  'Bug bounties today end in weeks of triage and arguments about severity. Here the rule of a ' +
-  'break is frozen up front, every attack is replayed by a machine, and the contract pays on ' +
-  'the verdict.';
+const lead = 'No triage. A machine replays the attack, the contract pays the verdict.';
 const notes = {
   testnet: 'Testnet only: rewards are test NEAR, not real money.',
   operator: 'Attacks are replayed on an operator machine. The operator can read your attack.',
@@ -22,99 +19,12 @@ const notes = {
     'The verifier runs on OutLayer. Confidential model inference is not confirmed yet. ' +
     'Check the evidence before a private submission.',
 };
-const steps: [IconName, string, string][] = [
-  [
-    'lock',
-    '01 FREEZE',
-    'The project pins code, starting state and the rule of a break, and reserves the reward ' +
-      'in escrow. Its hash is on chain.',
-  ],
-  [
-    'mail',
-    '02 SEAL',
-    'The hacker encrypts the attack in the browser and commits its hash on NEAR. Nobody sees ' +
-      'the attack before the commit is final.',
-  ],
-  [
-    'play',
-    '03 REPLAY',
-    'The verifier replays it on a fresh sandbox chain, or runs the agent on a test ledger. ' +
-      'The judge checks the frozen rule.',
-  ],
-  [
-    'coins',
-    '04 SETTLE',
-    'A signed verdict reaches the contract. The first valid break is paid automatically; ' +
-      'anything else earns zero.',
-  ],
-];
-const sides: {
-  icon: IconName;
-  kicker: string;
-  title: string;
-  items: string[];
-  links: [string, string][];
-}[] = [
-  {
-    icon: 'bug',
-    kicker: 'FOR HACKERS',
-    title: 'Break it. Prove it. Get paid.',
-    items: [
-      'Pick an open program. What counts as a break is written down and frozen.',
-      'Write the attack, test it on your machine, seal it in the browser.',
-      'The contract pays the first valid break. Nobody triages your report.',
-    ],
-    links: [
-      ['#/programs', 'Browse programs →'],
-      ['#/me', 'My claims'],
-    ],
-  },
-  {
-    icon: 'tools',
-    kicker: 'FOR PROJECTS',
-    title: 'Pay only for a proved break.',
-    items: [
-      'Upload your contract, point to its code on mainnet, or describe your AI agent.',
-      'Set the starting state and what counts as a break. A test run checks it before you pay.',
-      'Reserve the reward. If nobody breaks it, take it back after the deadline.',
-    ],
-    links: [
-      ['#/projects/new', 'Launch a program →'],
-      ['#/projects', 'How it works for projects'],
-    ],
-  },
-];
 const targets = [
-  [
-    'CONTRACT',
-    'Vault with user deposits',
-    "A contract that holds other people's money.",
-    'Broken build: caught (deposit 1, withdraw 10). Fixed build: passed.',
-  ],
-  [
-    'TOKEN',
-    'Wrapped NEAR',
-    'The real wrap.near code, copied from mainnet.',
-    '3 known attacks, no break found.',
-  ],
-  [
-    'INTENTS',
-    'NEAR Intents',
-    'The real intents.near code. Also checks that a user is not blocked from their funds.',
-    '3 known attacks, no break found.',
-  ],
-  [
-    'AGENT WALLET',
-    'Payment agent wallet',
-    'The on-chain wallet an AI agent pays from.',
-    'Full-access key: drained. Limited key: held.',
-  ],
-  [
-    'AI AGENT',
-    'Payment agent with a model',
-    'An agent that reads invoices and pays them. Runs on OutLayer or on an operator machine.',
-    'Crafted invoice on testnet: the weak agent paid 1 NEAR, the guarded one 0.',
-  ],
+  ['CONTRACT', 'Vault', 'bug caught, fix held'],
+  ['TOKEN', 'wrap.near', '3 attacks held'],
+  ['INTENTS', 'intents.near', '3 attacks held'],
+  ['AGENT WALLET', 'Agent wallet', 'scoped key held'],
+  ['AI AGENT', 'Invoice agent', 'guarded agent paid 0'],
 ];
 
 export function trustNotes(meta: Meta): string[] {
@@ -150,77 +60,214 @@ export function Account({ name }: { name: string }) {
   );
 }
 
-function LastVerdict({ entries }: { entries?: Entry[] }) {
-  const t = useT();
-  const last = entries?.filter((entry) => entry.bounty.state === 'Paid').at(-1);
-  if (!last) {
-    return (
-      <div className="verdict-card">
-        <div className="verdict-bar">{t('LAST VERDICT')}</div>
-        <p className="muted">
-          {t(entries ? 'No payouts yet. The first proved break will appear here.' : 'Loading…')}
-        </p>
-      </div>
-    );
+type Segment = { k: 's'; ax: number; ay: number; bx: number; by: number };
+type Part =
+  | Segment
+  | { k: 'a'; cx: number; cy: number; r: number; a0: number; a1: number }
+  | { k: 'e'; cx: number; cy: number; rx: number; ry: number }
+  | { k: 'd'; cx: number; cy: number; r: number };
+
+const P = Math.PI;
+const seg = (ax: number, ay: number, bx: number, by: number): Segment => ({
+  k: 's',
+  ax,
+  ay,
+  bx,
+  by,
+});
+const arc = (cx: number, cy: number, r: number, a0: number, a1: number): Part => ({
+  k: 'a',
+  cx,
+  cy,
+  r,
+  a0,
+  a1,
+});
+const ring = (cx: number, cy: number, rx: number, ry: number): Part => ({ k: 'e', cx, cy, rx, ry });
+const dot = (cx: number, cy: number, r: number): Part => ({ k: 'd', cx, cy, r });
+const box = (x0: number, y0: number, x1: number, y1: number) => [
+  seg(x0, y0, x1, y0),
+  seg(x1, y0, x1, y1),
+  seg(x1, y1, x0, y1),
+  seg(x0, y1, x0, y0),
+];
+const mirror = (list: Segment[]) => list.flatMap((p) => [p, { ...p, ax: -p.ax, bx: -p.bx }]);
+const shift = (dy: number, list: Part[]): Part[] =>
+  list.map((p) => (p.k === 's' ? { ...p, ay: p.ay + dy, by: p.by + dy } : { ...p, cy: p.cy + dy }));
+const glyphs: Part[][] = [
+  shift(-0.25, [
+    arc(0, -3.5, 4.5, P, 2 * P),
+    seg(-4.5, -3.5, -4.5, -0.5),
+    seg(4.5, -3.5, 4.5, -0.5),
+    ...box(-7.5, -0.5, 7.5, 8.5),
+    dot(0, 3.2, 0.9),
+    seg(0, 3.2, 0, 5.8),
+  ]),
+  shift(0.5, [
+    seg(0, -8.5, 9, 7.5),
+    seg(9, 7.5, -9, 7.5),
+    seg(-9, 7.5, 0, -8.5),
+    seg(0, -3, 0, 2.4),
+    dot(0, 5, 0.5),
+  ]),
+  [
+    ring(0, 0, 9, 9),
+    seg(-3.6, -4.6, -3.6, 4.6),
+    seg(3.6, -4.6, 3.6, 4.6),
+    seg(-3.6, -4.6, 3.6, 4.6),
+    seg(-3.6, 4.6, -1.3, 1.66),
+    seg(3.6, -4.6, 1.3, -1.66),
+  ],
+  shift(0.75, [
+    ring(0, 1.8, 4, 5),
+    ring(0, -4.6, 2.2, 1.8),
+    seg(0, -2.8, 0, 6.8),
+    ...mirror([
+      seg(-1.2, -6.2, -3, -8.5),
+      seg(-4, -0.5, -8, -2.5),
+      seg(-4.1, 2, -8.5, 2),
+      seg(-3.8, 4.6, -7.8, 7),
+    ]),
+  ]),
+  shift(-0.4, [arc(0, -3, 3.4, P / 2, 5.93), arc(0, 3.8, 3.4, -P / 2, 2.79), seg(0, -8.4, 0, 9.2)]),
+];
+
+function distance(list: Part[], x: number, y: number): number {
+  let best = 99;
+  for (const p of list) {
+    let d: number;
+    if (p.k === 's') {
+      const vx = p.bx - p.ax,
+        vy = p.by - p.ay;
+      const t = Math.max(0, Math.min(1, ((x - p.ax) * vx + (y - p.ay) * vy) / (vx * vx + vy * vy)));
+      d = Math.hypot(x - p.ax - t * vx, y - p.ay - t * vy);
+    } else if (p.k === 'd') {
+      d = Math.max(0, Math.hypot(x - p.cx, y - p.cy) - p.r);
+    } else if (p.k === 'e') {
+      const u = (x - p.cx) / p.rx,
+        v = (y - p.cy) / p.ry,
+        k = Math.hypot(u, v);
+      d = k < 1e-3 ? Math.min(p.rx, p.ry) : (Math.abs(k - 1) * k) / Math.hypot(u / p.rx, v / p.ry);
+    } else {
+      let a = Math.atan2(y - p.cy, x - p.cx);
+      while (a < p.a0) a += 2 * P;
+      while (a >= p.a0 + 2 * P) a -= 2 * P;
+      const end = (b: number) =>
+        Math.hypot(x - p.cx - p.r * Math.cos(b), y - p.cy - p.r * Math.sin(b));
+      d =
+        a <= p.a1 ? Math.abs(Math.hypot(x - p.cx, y - p.cy) - p.r) : Math.min(end(p.a0), end(p.a1));
+    }
+    if (d < best) best = d;
   }
+  return best;
+}
+
+function noise(i: number, n: number): number {
+  const x = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function frame(ms: number): string {
+  const hold = 1600,
+    morph = 1000,
+    H = 24,
+    a = 9.2 / 12,
+    W = Math.round(24 / a),
+    hw = 0.55;
+  const k = Math.floor(ms / (hold + morph)),
+    p = ms % (hold + morph);
+  const from = glyphs[k % glyphs.length]!,
+    to = glyphs[(k + 1) % glyphs.length]!;
+  const s = p < hold ? -1 : ((p - hold) / morph) * 1.3 - 0.15;
+  const tick = Math.floor(ms / 80);
+  const ry = 0.38 * Math.sin(ms / 1500),
+    rz = 0.09 * Math.sin(ms / 2300 + 1),
+    bob = 0.6 * Math.sin(ms / 1100);
+  const cy = Math.cos(ry),
+    sy = Math.sin(ry),
+    cz = Math.cos(rz),
+    sz = Math.sin(rz);
+  const ramp = ' .:-=+*#%@';
+  let out = '';
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const X = (x + 0.5 - W / 2) * a,
+        Y = y + 0.5 - H / 2 - bob;
+      const xr = X * cz + Y * sz,
+        yr = -X * sz + Y * cz;
+      const gx = xr / (cy - (xr * sy) / 40),
+        gy = yr * (1 + (gx * sy) / 40);
+      const i = y * W + x;
+      const dF = distance(from, gx, gy),
+        dT = s < 0 ? 99 : distance(to, gx, gy);
+      const r = 0.55 * noise(i, k) + 0.45 * Math.min(1, Math.hypot(gx, gy) / 10);
+      let g = from,
+        d = dF;
+      if (s >= 0 && r < s - 0.15) {
+        g = to;
+        d = dT;
+      } else if (s >= 0 && r <= s + 0.15) {
+        out +=
+          Math.min(dF, dT) < hw + 1.2 && noise(i, tick) > 0.4
+            ? ramp[2 + Math.floor(noise(i + 7, tick) * 8)]
+            : ' ';
+        continue;
+      }
+      const c = 0.5 + (hw - d) / 0.8;
+      if (c > 0.08) {
+        const v = Math.min(1, c + (distance(g, gx - 0.4, gy - 0.4) < d ? -0.2 : 0.15));
+        out += noise(i, tick + 5) < 0.015 ? '%' : ramp[Math.max(1, Math.min(9, Math.round(v * 9)))];
+      } else out += distance(g, gx - 0.9, gy - 0.9) < hw ? ':' : ' ';
+    }
+    out += '\n';
+  }
+  return out;
+}
+
+function Sign() {
+  const [ms, setMs] = useState(0);
+  useEffect(() => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const start = Date.now();
+    const timer = setInterval(() => document.hidden || setMs(Date.now() - start), 80);
+    return () => clearInterval(timer);
+  }, []);
   return (
-    <div className="verdict-card">
-      <div className="verdict-bar">
-        <span>
-          {t('VERDICT · PROGRAM #')}
-          {last.id}
-        </span>
-        <span>{t('VALID')}</span>
-      </div>
-      <dl>
-        <dt>{t('payout')}</dt>
-        <dd>
-          {near(last.bounty.reward)} → <Account name={last.bounty.winner!} />
-        </dd>
-        <dt>{t('rule hash')}</dt>
-        <dd>
-          <code>{last.bounty.rules_hash.slice(0, 16)}…</code>
-        </dd>
-        <dt>{t('state')}</dt>
-        <dd>{t('Paid by the contract')}</dd>
-      </dl>
-      <a href={'#/programs/' + last.id}>{t('Open the program →')}</a>
-    </div>
+    <pre className="sign" aria-hidden="true">
+      {frame(ms)}
+    </pre>
   );
 }
 
-function Hero({ entries }: { entries?: Entry[] }) {
+function Hero() {
   const t = useT();
   return (
     <section className="hero">
-      <div className="eyebrow">{t('AUTOMATED BUG BOUNTY ON NEAR')}</div>
-      <h1>
-        <span>{t('If it breaks,')}</span>
-        <span>{t('it pays.')}</span>
-      </h1>
-      <div className="hero-grid">
-        <div className="hero-copy">
-          <p className="lead">{t(lead)}</p>
-          <div className="doors">
-            <a className="door-button" href="#/programs">
-              <Icon name="bug" size={32} />
-              <span>
-                <b>{t('I HACK')}</b>
-                {t('find a program →')}
-              </span>
-            </a>
-            <a className="door-button secondary" href="#/projects">
-              <Icon name="tools" size={32} />
-              <span>
-                <b>{t('I BUILD')}</b>
-                {t('launch a bounty →')}
-              </span>
-            </a>
-          </div>
-          <TrustNotice />
+      <div className="hero-copy">
+        <div className="eyebrow">{t('AUTOMATED BUG BOUNTY ON NEAR')}</div>
+        <h1>
+          <span>{t('If it breaks,')}</span>
+          <span>{t('it pays.')}</span>
+        </h1>
+        <p className="lead">{t(lead)}</p>
+        <div className="doors">
+          <a className="door-button" href="#/programs">
+            <Icon name="bug" size={32} />
+            <span>
+              <b>{t('I HACK')}</b>
+              {t('find a program →')}
+            </span>
+          </a>
+          <a className="door-button secondary" href="#/projects">
+            <Icon name="tools" size={32} />
+            <span>
+              <b>{t('I BUILD')}</b>
+              {t('launch a bounty →')}
+            </span>
+          </a>
         </div>
-        <LastVerdict entries={entries} />
       </div>
+      <Sign />
     </section>
   );
 }
@@ -257,46 +304,45 @@ function Numbers({ entries, height }: { entries: Entry[]; height: bigint }) {
 
 function HowItWorks() {
   const t = useT();
+  const node = (area: string, icon: IconName, title: string, text: string) => (
+    <div className={'node ' + area}>
+      <Icon name={icon} size={24} />
+      <span>
+        <b>{t(title)}</b>
+        {t(text)}
+      </span>
+    </div>
+  );
+  const edge = (area: string, lines: [string, string, boolean?][]) => (
+    <div className={'edge ' + area}>
+      {lines.map(([n, text, pay]) => (
+        <span key={n + text} className={pay ? 'pay' : undefined}>
+          <i>{n}</i>
+          {t(text)}
+        </span>
+      ))}
+    </div>
+  );
   return (
     <section id="how" className="band">
       <div className="eyebrow">{t('HOW IT WORKS')}</div>
-      <h2>{t('Four steps. One frozen rule.')}</h2>
-      <div className="steps">
-        {steps.map(([icon, tag, text]) => (
-          <div key={tag} className="card">
-            <Icon name={icon} size={32} />
-            <div className="step-number">{t(tag)}</div>
-            <p>{t(text)}</p>
-          </div>
-        ))}
+      <h2>{t('One frozen rule decides.')}</h2>
+      <div className="flow-map">
+        {node('project', 'tools', 'PROJECT', 'code, rule, reward')}
+        {edge('pc', [
+          ['1', 'rule + reward →'],
+          ['5', '← no break: refund'],
+        ])}
+        {node('contract', 'lock', 'CONTRACT', 'escrow on NEAR')}
+        {edge('ch', [
+          ['2', '← sealed hash'],
+          ['5', 'pays the break →', true],
+        ])}
+        {node('hacker', 'bug', 'HACKER', 'finds a break')}
+        {edge('hv', [['3', '← encrypted attack']])}
+        {node('verifier', 'play', 'VERIFIER', 'replays the attack')}
+        {edge('vc', [['4', '↑ signed verdict']])}
       </div>
-    </section>
-  );
-}
-
-function Sides() {
-  const t = useT();
-  return (
-    <section className="band sides" aria-label={t('Choose your side')}>
-      {sides.map((side) => (
-        <div key={side.kicker} className="card side">
-          <Icon name={side.icon} size={48} />
-          <div className="kicker">{t(side.kicker)}</div>
-          <h2>{t(side.title)}</h2>
-          <ol>
-            {side.items.map((item) => (
-              <li key={item}>{t(item)}</li>
-            ))}
-          </ol>
-          <div className="row">
-            {side.links.map(([href, label], index) => (
-              <a key={href} href={href} className={index ? 'button secondary' : 'button'}>
-                {t(label)}
-              </a>
-            ))}
-          </div>
-        </div>
-      ))}
     </section>
   );
 }
@@ -305,26 +351,18 @@ function Targets() {
   const t = useT();
   return (
     <section id="evidence" className="band">
-      <div className="eyebrow">{t('WHAT CAN BE PUT UNDER A BOUNTY')}</div>
-      <h2>{t('Contracts, tokens, intents and AI agents.')}</h2>
-      <p className="muted">
-        {t(
-          'Each of these already went through our judge on known attacks. Below is what it found.',
-        )}
-      </p>
+      <div className="eyebrow">{t('ALREADY TESTED')}</div>
+      <h2>{t('Contracts, tokens, intents, AI agents.')}</h2>
       <div className="tiles">
-        {targets.map(([kind, title, text, result]) => (
-          <div key={title} className="card tile">
-            <span className="kicker">{t(kind!)}</span>
+        {targets.map(([kind, title, result]) => (
+          <div key={title} className="tile">
+            <span className="tag">{t(kind!)}</span>
             <strong>{t(title!)}</strong>
-            <span className="muted">{t(text!)}</span>
-            <span>{t(result!)}</span>
+            <span className="muted">{t(result!)}</span>
           </div>
         ))}
       </div>
-      <p className="row">
-        <a href="#/docs/coverage">{t('Full results, case by case →')}</a>
-      </p>
+      <a href="#/docs/coverage">{t('All results →')}</a>
     </section>
   );
 }
@@ -335,7 +373,7 @@ export function Landing() {
   const data = useAsync(() => chain.allBounties(), []);
   return (
     <div className="wrap">
-      <Hero entries={data.value?.entries} />
+      <Hero />
       {data.value && <Numbers entries={data.value.entries} height={data.value.height} />}
       {data.loading && !data.value && <p className="muted">{t('Loading chain data…')}</p>}
       {data.error && (
@@ -347,7 +385,6 @@ export function Landing() {
         </p>
       )}
       <HowItWorks />
-      <Sides />
       <Targets />
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { canonical, digest, randomHex, sealReport, unbase64, type SealedReport } from './crypto.js';
 import { settlementState, type ChainCommitment, type SettlementState } from './settlement.js';
 import { isOpen, near, type Entry } from './chain.js';
@@ -16,7 +16,7 @@ import {
 } from './env.js';
 import { useT } from './i18n.js';
 import { TrustNotice } from './landing.js';
-import { attackSamples, Holders, programDigest, RuleList } from './checks.js';
+import { attackSamples, download as saveText, Holders, programDigest, RuleList } from './checks.js';
 
 type Step = 'encrypt' | 'wallet' | 'commit' | 'sandbox' | 'check' | 'payout';
 type StepState = 'active' | 'done' | 'error';
@@ -197,7 +197,7 @@ async function loadProgram(env: Env, id: string) {
   } catch (error) {
     problem = errorText(error);
   }
-  return { entry, standing: standing(env, entry, height), program, problem };
+  return { entry, height, standing: standing(env, entry, height), program, problem };
 }
 
 function canCommit(meta: Meta, program: Program): boolean {
@@ -508,103 +508,87 @@ function useSubmission(env: Env) {
   };
 }
 
-function WalletConnect() {
-  const { account, connect, notify } = useEnv(),
-    t = useT();
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  const t = useT();
   return (
-    <div className="card">
-      <div className="kicker">01 / WALLET</div>
-      <h3>{t('Protect your claim')}</h3>
-      {account ? (
-        <p>{t('Claiming as {account}.', { account })}</p>
-      ) : (
-        <>
-          <p>{t('Connect a NEAR wallet to protect your claim.')}</p>
-          <button
-            type="button"
-            className="button secondary"
-            onClick={() => connect().catch((e) => notify(errorText(e), true))}
-          >
-            {t('Connect wallet')}
-          </button>
-        </>
-      )}
+    <div className="detail-row">
+      <span className="kicker">{t(label)}</span>
+      <div>{children}</div>
     </div>
   );
 }
 
-function WorldRules({ program }: { program: Extract<Program, { kind: 'world' }> }) {
-  const t = useT();
+function Details({ id, program }: { id: string; program: Program }) {
+  const { chain } = useEnv(),
+    t = useT();
+  const { bounty } = program;
+  const world = program.kind === 'world';
+  const raw = program.kind === 'world' ? program.spec : program.config;
   return (
-    <>
-      <p className="rule-line">{t(program.spec.title)}</p>
-      <Holders spec={program.spec} />
-      <RuleList spec={program.spec} />
-      <div className="reward">{near(program.bounty.reward)}</div>
-      <details>
-        <summary>{t('Raw rules')}</summary>
-        <pre>{JSON.stringify(program.spec, null, 2)}</pre>
-      </details>
-    </>
+    <div className="details">
+      <Row label="BREAK">
+        <p className="rule-line">
+          {program.kind === 'world'
+            ? t('Make a protected account lose value.')
+            : t('Make the agent pay where it must not.')}
+        </p>
+        <p className="muted">{t(kinds[program.kind].rule)}</p>
+      </Row>
+      <Row label="SCOPE">
+        {program.kind === 'world' ? (
+          <Holders spec={program.spec} />
+        ) : (
+          <dl className="kv">
+            <dt>{t('Allowed recipient')}</dt>
+            <dd>{program.config.policy.allowedRecipients.join(', ')}</dd>
+            <dt>{t('Maximum per transfer')}</dt>
+            <dd>{program.config.policy.maxTransfer}</dd>
+            <dt>{t('Sandbox balance')}</dt>
+            <dd>{program.config.initialBalance}</dd>
+            <dt>{t('Model')}</dt>
+            <dd>{program.config.model}</dd>
+          </dl>
+        )}
+      </Row>
+      <Row label="RULE">
+        {program.kind === 'world' ? (
+          <RuleList spec={program.spec} />
+        ) : (
+          <p className={program.config.enforcePolicy ? 'guard on' : 'guard off'}>
+            {program.config.enforcePolicy
+              ? t('Spending control on: forbidden calls are blocked before they execute.')
+              : t('Spending control off: a forbidden call can execute.')}
+          </p>
+        )}
+      </Row>
+      <Row label="ROUTE">
+        <AttackRoute id={id} world={world} />
+      </Row>
+      <Row label="TRUST">
+        <dl className="kv">
+          <dt>{t('escrow')}</dt>
+          <dd>
+            <a href={chain.accountUrl(chain.contract)} target="_blank" rel="noopener noreferrer">
+              {chain.contract} ↗
+            </a>
+          </dd>
+          <dt>{t('owner')}</dt>
+          <dd>{bounty.owner}</dd>
+          <dt>{t('rules hash')}</dt>
+          <dd>
+            <code>{bounty.rules_hash}</code>
+          </dd>
+        </dl>
+        <details className="raw">
+          <summary>{t('Raw rules')}</summary>
+          <pre>{JSON.stringify(raw, null, 2)}</pre>
+        </details>
+      </Row>
+    </div>
   );
 }
 
-function FrozenRules({ program }: { program: Program }) {
-  if (program.kind === 'world') return <WorldRules program={program} />;
-  return <AgentRules program={program} />;
-}
-
-function AgentRules({ program }: { program: Extract<Program, { kind: 'agent' }> }) {
-  const t = useT(),
-    { config, bounty } = program;
-  const recipients = config.policy.allowedRecipients.join(', ');
-  const raw = {
-    bounty: program.id,
-    owner: bounty.owner,
-    rules_hash: bounty.rules_hash,
-    expires: bounty.expires,
-    settle_until: bounty.settle_until,
-    config,
-  };
-  return (
-    <>
-      <p className="rule-line">
-        {t('Pay only {recipients}. Maximum {max} per transfer.', {
-          recipients,
-          max: config.policy.maxTransfer,
-        })}
-      </p>
-      <ul className="rule-list">
-        <li>
-          <strong>{t('Allowed recipient')}</strong>
-          {recipients}
-        </li>
-        <li>
-          <strong>{t('Maximum per transfer')}</strong>
-          {config.policy.maxTransfer}
-        </li>
-        <li>
-          <strong>{t('Sandbox balance')}</strong>
-          {config.initialBalance}
-        </li>
-        <li>
-          <strong>{t('Model')}</strong>
-          {config.model}
-        </li>
-      </ul>
-      <p className={config.enforcePolicy ? 'guard on' : 'guard off'}>
-        {config.enforcePolicy
-          ? t('Spending control on: forbidden calls are blocked before they execute.')
-          : t('Spending control off: a forbidden call can execute.')}
-      </p>
-      <div className="reward">{near(bounty.reward)}</div>
-      <details>
-        <summary>{t('Raw rules')}</summary>
-        <pre>{JSON.stringify(raw, null, 2)}</pre>
-      </details>
-    </>
-  );
-}
+const phases = ['Wallet', 'Attack', 'Seal', 'Verdict'];
 
 function LoadReport({ busy, load }: { busy: boolean; load(file?: File): Promise<void> }) {
   const t = useT();
@@ -944,76 +928,145 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
     return () => window.removeEventListener('pagehide', clear);
   }, []);
   if (!id) return <Catalog visible={visible} />;
+  const progress = flow.progress;
+  const phase =
+    outcome || progress.sandbox || progress.check || progress.payout
+      ? 3
+      : progress.encrypt || progress.wallet || progress.commit
+        ? 2
+        : env.account
+          ? 1
+          : 0;
+  const attackable = data?.standing === 'open' || report?.bounty === id;
   return (
     <div className="wrap">
-      <div className="hunt-head">
-        <a className="back" href="#/programs">
-          {t('← All programs')}
-        </a>
+      <a className="back program-back" href="#/programs">
+        {t('← All programs')}
+      </a>
+      <section className="program-hero">
         <div className="eyebrow">
           {t(world ? 'PROGRAM #{id} · CONTRACT' : 'PROGRAM #{id} · AI PAYMENT AGENT', { id })}
         </div>
         <h1>
-          {world
-            ? t('Make a protected account lose value.')
-            : t('Make the agent pay where it must not.')}
+          {t(
+            data?.program?.kind === 'world'
+              ? data.program.spec.title
+              : kinds[world ? 'world' : 'agent'].title,
+          )}
         </h1>
         {data && (
-          <p className="lead">
-            {near(data.entry.bounty.reward)}{' '}
+          <div className="program-meta">
+            <span className="reward">{near(data.entry.bounty.reward)}</span>
             <span className={'tag ' + data.standing}>{t(standingLabels[data.standing])}</span>
-          </p>
+            <span className="muted">
+              {data.standing === 'open'
+                ? t('closes in {time}', { time: timeLeft(data.entry, data.height) })
+                : data.entry.bounty.winner
+                  ? t('won by {account}', { account: data.entry.bounty.winner })
+                  : t('no winner')}
+            </span>
+            <span className="program-actions">
+              <button
+                type="button"
+                className="chip"
+                onClick={() =>
+                  navigator.clipboard.writeText(location.href).then(
+                    () => env.notify('Link copied'),
+                    () => env.notify('Copy failed', true),
+                  )
+                }
+              >
+                {t('Copy link')}
+              </button>
+              {data.program && (
+                <button
+                  type="button"
+                  className="chip"
+                  onClick={() =>
+                    saveText(
+                      `program-${id}.json`,
+                      JSON.stringify(
+                        data.program!.kind === 'world' ? data.program!.spec : data.program!.config,
+                        null,
+                        2,
+                      ),
+                    )
+                  }
+                >
+                  program.json ↓
+                </button>
+              )}
+            </span>
+          </div>
         )}
-        <TrustNotice />
-      </div>
+      </section>
       {!data && view.loading && <p className="muted">{t('Loading chain data…')}</p>}
       {view.error && <p className="error-text">{t(view.error)}</p>}
       {data && (
-        <div className="hunt-grid">
-          <aside className="sidebar">
-            {data.standing === 'open' && <WalletConnect />}
-            <div className="card">
-              <div className="kicker">02 / {t('FROZEN RULES')}</div>
-              {data.program ? (
-                <FrozenRules program={data.program} />
-              ) : (
-                <p className="muted">
-                  {t('Rules could not be loaded: {problem}', { problem: t(data.problem ?? '') })}
-                </p>
-              )}
+        <div className="program-grid">
+          <div>
+            {data.program ? (
+              <Details id={id} program={data.program} />
+            ) : (
+              <p className="muted">
+                {t('Rules could not be loaded: {problem}', { problem: t(data.problem ?? '') })}
+              </p>
+            )}
+            <TrustNotice />
+          </div>
+          <aside className="summary submit" aria-label={t('Submit an attack')}>
+            <div className="summary-head">
+              <span>{t('SUBMIT AN ATTACK')}</span>
+              <span>{attackable ? `${phase + 1}/4` : t('closed')}</span>
             </div>
-          </aside>
-          <div className="workspace">
-            {data.standing === 'open' || report?.bounty === id ? (
-              <section className="card">
-                <div className="kicker">03 / {t('YOUR ATTACK')}</div>
-                <h2>
-                  {world
-                    ? t('Write the transactions to replay.')
-                    : t('Write the invoice the agent will read.')}
-                </h2>
-                <AttackRoute id={id} world={world} />
-                {elsewhere ? (
-                  <p className="notice">
-                    {t('Saved encrypted invoice for program #{id}.', { id: elsewhere })}{' '}
-                    <a href={'#/programs/' + elsewhere}>{t('Open it →')}</a>
-                  </p>
-                ) : report ? (
-                  <p className="notice">
-                    {t('Saved encrypted invoice for program #{id}.', { id: report.bounty })}
-                  </p>
-                ) : (
-                  <InvoiceComposer
-                    value={invoice}
-                    busy={busy}
-                    world={world}
-                    hash={data.entry.bounty.rules_hash}
-                    onChange={setInvoice}
-                  />
-                )}
-                {report ? (
-                  <>
-                    <div className="row">
+            {attackable ? (
+              <>
+                <div className="summary-block">
+                  <ol className="phases" style={{ '--n': phases.length } as CSSProperties}>
+                    {phases.map((name, i) => (
+                      <li key={name} className={i < phase ? 'done' : i === phase ? 'now' : ''}>
+                        {i < phase ? '✓' : i + 1} {t(name)}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <div className="summary-block">
+                  {env.account ? (
+                    <p className="muted">{t('Claiming as {account}.', { account: env.account })}</p>
+                  ) : (
+                    <>
+                      <p>{t('The reward goes to the wallet that commits.')}</p>
+                      <button
+                        type="button"
+                        className="button secondary"
+                        onClick={() => env.connect().catch((e) => env.notify(errorText(e), true))}
+                      >
+                        {t('Connect wallet')}
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div className="summary-block">
+                  {elsewhere ? (
+                    <p className="notice">
+                      {t('Saved encrypted invoice for program #{id}.', { id: elsewhere })}{' '}
+                      <a href={'#/programs/' + elsewhere}>{t('Open it →')}</a>
+                    </p>
+                  ) : report ? (
+                    <p className="notice">
+                      {t('Saved encrypted invoice for program #{id}.', { id: report.bounty })}
+                    </p>
+                  ) : (
+                    <InvoiceComposer
+                      value={invoice}
+                      busy={busy}
+                      world={world}
+                      hash={data.entry.bounty.rules_hash}
+                      onChange={setInvoice}
+                    />
+                  )}
+                  {report ? (
+                    <>
                       <button
                         type="button"
                         className="button secondary"
@@ -1021,8 +1074,6 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                       >
                         {t('Save sealed-report-{id}.json', { id: report.bounty })}
                       </button>
-                    </div>
-                    <div className="row">
                       <button
                         type="button"
                         className="button"
@@ -1036,11 +1087,9 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                           {t('Discard saved invoice')}
                         </button>
                       )}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="row">
+                    </>
+                  ) : (
+                    <>
                       <button
                         type="button"
                         className="button"
@@ -1049,31 +1098,25 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                       >
                         {t('Encrypt, commit and check · {deposit}', { deposit }) + first}
                       </button>
-                    </div>
-                    <LoadReport busy={busy} load={flow.load} />
-                  </>
-                )}
-                <p className="hint">
-                  {t(
-                    'One wallet confirmation, two transactions: {deposit} claim storage (not refundable) and about 0.03 NEAR for the TEE run, unused part comes back. The invoice is encrypted here; only the TEE can open it.',
-                    { deposit },
+                      <LoadReport busy={busy} load={flow.load} />
+                    </>
                   )}
-                </p>
-              </section>
+                  <p className="hint">
+                    {t(
+                      'One wallet confirmation, two transactions: {deposit} claim storage (not refundable) and about 0.03 NEAR for the TEE run, unused part comes back. The invoice is encrypted here; only the TEE can open it.',
+                      { deposit },
+                    )}
+                  </p>
+                </div>
+              </>
             ) : (
-              <section className="card">
-                <div className="kicker">03 / {t('YOUR ATTACK')}</div>
+              <div className="summary-block">
                 <p>{t('This program is closed for new attacks.')}</p>
                 {!report && <LoadReport busy={busy} load={flow.load} />}
-                <a className="button secondary" href="#/programs">
-                  {t('← All programs')}
-                </a>
-              </section>
+              </div>
             )}
             {started && (
-              <section className="card">
-                <div className="kicker">04 / {t('PROGRESS')}</div>
-                <h3>{t('The route to a verdict')}</h3>
+              <div className="summary-block">
                 <HuntStepper progress={flow.progress} text={flow.text} />
                 {outcome && (
                   <VerdictCard
@@ -1092,9 +1135,9 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                     <pre>{JSON.stringify(record, null, 2)}</pre>
                   </details>
                 )}
-              </section>
+              </div>
             )}
-          </div>
+          </aside>
         </div>
       )}
     </div>

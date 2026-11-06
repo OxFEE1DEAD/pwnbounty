@@ -366,6 +366,24 @@ pre {
 .kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 14px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; overflow-wrap: anywhere; }
+.program-back { margin-top: 28px; }
+.program-hero { display: grid; gap: 12px; padding: 8px 0 28px; border-bottom: 1px solid var(--line); }
+.program-hero h1 { margin: 0; }
+.program-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.program-meta .reward { margin: 0; line-height: 1; }
+.program-actions { display: flex; gap: 8px; margin-left: auto; }
+.program-grid { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 48px; align-items: start; padding: 16px 0 48px; }
+.program-grid .notice { margin-top: 24px; }
+.detail-row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.detail-row > .kicker { padding-top: 3px; }
+.detail-row p, .detail-row .route, .detail-row .rule-list { margin: 0 0 8px; }
+.summary.submit { position: static; margin-top: 24px; }
+.summary-block > .button { width: 100%; }
+.summary-block .samples .chip { font-size: 12px; }
+.phases { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.phases li { padding-top: 10px; color: var(--muted); font: 11px var(--pixel); letter-spacing: .5px; text-transform: uppercase; white-space: nowrap; border-top: 3px solid var(--line); }
+.phases .done { color: var(--ink); border-color: var(--muted); }
+.phases .now { color: var(--ink); border-color: var(--ink); }
 .account-list { display: grid; gap: 8px; }
 .account-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 150px 120px 44px; gap: 8px; align-items: center; }
 .account-row label.field { margin: 0; font-size: 0; }
@@ -568,6 +586,9 @@ summary { cursor: pointer; font-weight: 600; }
   .tiles { grid-template-columns: repeat(2, 1fr); }
   .wizard { grid-template-columns: 1fr; }
   .summary { position: static; }
+  .program-grid { grid-template-columns: 1fr; gap: 0; }
+  .detail-row { grid-template-columns: 1fr; gap: 8px; }
+  .program-actions { margin-left: 0; }
 }
 
 @media (max-width: 560px) {

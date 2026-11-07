@@ -161,7 +161,7 @@ function standing(env: Env, entry: Entry, height: bigint): Standing {
 }
 
 function timeLeft(entry: Entry, height: bigint): string {
-  const minutes = (Number(BigInt(entry.bounty.expires) - height) * 1.2) / 60;
+  const minutes = (Number(BigInt(entry.bounty.expires) - height) * 0.6) / 60;
   return minutes < 90
     ? `~${Math.max(1, Math.round(minutes))} min`
     : `~${Math.round(minutes / 60)} h`;

@@ -390,7 +390,7 @@ pre {
 .docs-table .table-row { grid-template-columns: 100px minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 1fr); }
 .table-row .button { justify-self: stretch; }
 .account-list { display: grid; gap: 8px; }
-.account-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 150px 120px 44px; gap: 8px; align-items: center; }
+.account-row { display: grid; grid-template-columns: 24px minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, .8fr) 44px; gap: 8px; align-items: center; }
 .account-row label.field { margin: 0; font-size: 0; }
 .account-row label.field > * { margin-top: 0; font-size: 14px; }
 .account-row .chip { height: 46px; }

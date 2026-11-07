@@ -69,10 +69,22 @@ interface Scope {
   keys: string[];
   sources: Record<string, Source>;
   methodsOf(account: string): Methods;
+  decimalsOf(account: string): number;
 }
 
+const NEAR = 24;
 const YOCTO = 10n ** 24n;
 const TGAS = 10n ** 12n;
+const STORAGE = '1250000000000000000000';
+const ONE_YOCTO = /^(ft|nft)_transfer(_call)?$/;
+const strings = (...names: string[]) => names.map((name) => ({ name, type: 'string', text: true }));
+const standard: Record<string, Param[]> = {
+  ft_transfer: strings('receiver_id', 'amount', 'memo'),
+  ft_transfer_call: strings('receiver_id', 'amount', 'memo', 'msg'),
+  nft_transfer: strings('receiver_id', 'token_id'),
+  nft_transfer_call: strings('receiver_id', 'token_id', 'msg'),
+  storage_deposit: strings('account_id'),
+};
 const ACCOUNT = /^[a-z0-9]+(?:[-_][a-z0-9]+)*\.test\.near$/;
 const FLOOR = '100000000000000000000000';
 const roles: Role[] = ['protected', 'neutral', 'attacker'];
@@ -92,22 +104,28 @@ const limitFields: [keyof Limits, string, boolean][] = [
 
 const nearOf = (amount: number) => (BigInt(amount) * YOCTO).toString();
 const gasOf = (tera: number) => (BigInt(tera) * TGAS).toString();
-const toYocto = (value: string) => {
-  const match = /^(\d{1,12})(?:\.(\d{1,24}))?$/.exec(value.trim());
-  if (!match) return undefined;
-  return (BigInt(match[1]!) * YOCTO + BigInt((match[2] ?? '').padEnd(24, '0'))).toString();
+const toUnits = (decimals: number) => (value: string) => {
+  const match = /^(\d{1,30})(?:\.(\d*))?$/.exec(value.trim());
+  const fraction = match?.[2] ?? '';
+  if (!match || fraction.length > decimals) return undefined;
+  const scale = 10n ** BigInt(decimals);
+  return (BigInt(match[1]!) * scale + BigInt(fraction.padEnd(decimals, '0') || '0')).toString();
 };
-const toNear = (value: string) => {
+const fromUnits = (decimals: number) => (value: string) => {
   const amount = BigInt(value);
-  const fraction = (amount % YOCTO).toString().padStart(24, '0').replace(/0+$/, '');
-  return `${amount / YOCTO}${fraction ? '.' + fraction : ''}`;
+  const scale = 10n ** BigInt(decimals);
+  const fraction = (amount % scale).toString().padStart(decimals, '0').replace(/0+$/, '');
+  return `${amount / scale}${fraction ? '.' + fraction : ''}`;
 };
+const toNear = fromUnits(NEAR);
 const toGas = (value: string) =>
   /^\d{1,4}$/.test(value.trim()) ? (BigInt(value.trim()) * TGAS).toString() : undefined;
-const units = {
-  near: [toYocto, toNear],
-  tgas: [toGas, (value: string) => (BigInt(value) / TGAS).toString()],
-} as const;
+const unitsOf = (
+  unit: 'tgas' | number,
+): [(value: string) => string | undefined, (value: string) => string] =>
+  unit === 'tgas'
+    ? [toGas, (value: string) => (BigInt(value) / TGAS).toString()]
+    : [toUnits(unit), fromUnits(unit)];
 
 const blank = (): Program => ({
   version: '2',
@@ -154,21 +172,37 @@ function sourcesOf(codes: Code[], methods: Record<string, string[]> = {}): Recor
   );
 }
 
-async function chainCode(account: string): Promise<Source> {
-  const network = account.endsWith('.testnet') ? 'testnet' : 'mainnet';
+async function query(network: keyof typeof rpcs, params: Record<string, string>) {
   const response = await fetch(rpcs[network], {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       jsonrpc: '2.0',
-      id: 'code',
+      id: 'query',
       method: 'query',
-      params: { request_type: 'view_code', finality: 'final', account_id: account },
+      params: { finality: 'final', ...params },
     }),
     signal: AbortSignal.timeout(30000),
   });
-  const body = JSON.parse(new TextDecoder().decode(await readLimited(response, 8_388_608)));
-  const result = body?.result as { code_base64?: string; block_height?: number } | undefined;
+  return JSON.parse(new TextDecoder().decode(await readLimited(response, 8_388_608)))?.result;
+}
+
+async function ftDecimals(code: Code): Promise<number | undefined> {
+  if (code.source !== 'chain-code') return undefined;
+  const result = await query(code.network, {
+    request_type: 'call_function',
+    account_id: code.account,
+    method_name: 'ft_metadata',
+    args_base64: btoa('{}'),
+  });
+  const decimals = JSON.parse(String.fromCharCode(...(result?.result ?? []))).decimals;
+  return Number.isInteger(decimals) && decimals <= NEAR ? decimals : undefined;
+}
+
+async function chainCode(account: string): Promise<Source> {
+  const network = account.endsWith('.testnet') ? 'testnet' : 'mainnet';
+  const result = (await query(network, { request_type: 'view_code', account_id: account })) as
+    { code_base64?: string; block_height?: number } | undefined;
   if (!result?.code_base64) throw new Error('No contract is deployed on this account');
   const bytes = Uint8Array.from(atob(result.code_base64), (c) => c.charCodeAt(0));
   const block = String(result.block_height);
@@ -283,11 +317,11 @@ function Amount({
   onChange,
 }: {
   label: string;
-  unit: keyof typeof units;
+  unit: 'tgas' | number;
   value: string;
   onChange(value: string): void;
 }) {
-  const [parse, show] = units[unit];
+  const [parse, show] = unitsOf(unit);
   const shown = () => (/^\d+$/.test(value) ? show(value) : '');
   const [draft, setDraft] = useState(shown);
   useEffect(() => {
@@ -373,10 +407,12 @@ function MethodInput({
 function Args({
   value,
   params,
+  decimals,
   onChange,
 }: {
   value: Json;
   params?: Param[];
+  decimals?: number;
   onChange(value: Json): void;
 }) {
   const t = useT();
@@ -392,6 +428,16 @@ function Args({
           const param = params?.find((p) => p.name === name);
           const current = object[name];
           const text = param?.text ?? (current === undefined || typeof current === 'string');
+          if (name === 'amount' && decimals !== undefined)
+            return (
+              <Amount
+                key={name}
+                label={t('amount, tokens')}
+                unit={decimals}
+                value={typeof current === 'string' ? current : ''}
+                onChange={(amount) => onChange({ ...object, amount })}
+              />
+            );
           return (
             <label key={name} className="field">
               {name}
@@ -468,17 +514,24 @@ function CallFields({
         label={t('Method')}
         value={call.method}
         methods={methods}
-        onChange={(method) => set({ method, args: keep(call.args, methods[method]?.params) })}
+        onChange={(method) =>
+          set({
+            method,
+            args: keep(call.args, methods[method]?.params),
+            ...(ONE_YOCTO.test(method) && { deposit: '1' }),
+          })
+        }
       />
       <Args
         value={call.args}
         params={methods[call.method]?.params}
+        decimals={call.method.startsWith('ft_') ? scope.decimalsOf(call.receiver) : undefined}
         onChange={(args) => set({ args })}
       />
       <div className="pair">
         <Amount
           label={t('Deposit, NEAR')}
-          unit="near"
+          unit={NEAR}
           value={call.deposit}
           onChange={(deposit) => set({ deposit })}
         />
@@ -621,7 +674,7 @@ function StepCard({
         />
         <Amount
           label={t('Balance, NEAR')}
-          unit="near"
+          unit={NEAR}
           value={step.near}
           onChange={(near) => onChange({ ...step, near })}
         />
@@ -850,6 +903,7 @@ export function WorldLaunch() {
     () => structuredClone(first.variants[start.variant]) as unknown as Program,
   );
   const [sources, setSources] = useState(() => sourcesOf(program.codes, first.methods));
+  const [fetched, setFetched] = useState<Record<string, number>>({});
   const [reward, setReward] = useState(nearOf(5));
   const [hashed, setHashed] = useState({ text: '', hash: '' });
   const [round, setRound] = useState(0);
@@ -878,7 +932,20 @@ export function WorldLaunch() {
     contracts: [...codeOf.keys()],
     keys: Array.from({ length: program.attackerKeys }, (_, i) => `key:${i}`),
     sources,
-    methodsOf: (account) => sources[codeOf.get(account) ?? '']?.methods ?? {},
+    methodsOf: (account) =>
+      Object.fromEntries(
+        Object.entries(sources[codeOf.get(account) ?? '']?.methods ?? {}).map(([name, method]) => [
+          name,
+          method.params || !standard[name] ? method : { ...method, params: standard[name] },
+        ]),
+      ),
+    decimalsOf: (account) => {
+      const deploy = program.steps.find((s) => s.op === 'deploy' && s.id === account);
+      if (deploy?.op !== 'deploy') return NEAR;
+      const own = (deploy.init?.args as { metadata?: { decimals?: unknown } } | undefined)?.metadata
+        ?.decimals;
+      return typeof own === 'number' ? own : (fetched[deploy.code] ?? NEAR);
+    },
   };
   const used = new Set(codeOf.values());
   const spec: Program = {
@@ -933,6 +1000,16 @@ export function WorldLaunch() {
     };
   }, [text]);
 
+  useEffect(() => {
+    for (const { code, methods } of Object.values(sources))
+      if ('ft_metadata' in methods && !(code.sha256 in fetched))
+        ftDecimals(code).then(
+          (decimals) =>
+            decimals !== undefined && setFetched((all) => ({ ...all, [code.sha256]: decimals })),
+          () => undefined,
+        );
+  }, [sources]);
+
   const steps = (change: (steps: Step[]) => Step[]) =>
     setProgram((p) => ({ ...p, steps: change(p.steps) }));
   const rules = (change: (rules: Rule[]) => Rule[]) =>
@@ -976,6 +1053,35 @@ export function WorldLaunch() {
       }, all),
     );
   const contract = `contract${scope.contracts.length + 1}.test.near`;
+  const registry = scope.contracts.filter((id) => 'storage_deposit' in scope.methodsOf(id));
+  const registration = (token: string, account: string) =>
+    program.steps.findIndex(
+      (s) =>
+        s.op === 'call' &&
+        s.call.receiver === token &&
+        s.call.method === 'storage_deposit' &&
+        (s.call.args as { account_id?: Json } | null)?.account_id === account,
+    );
+  const register = (token: string, account: string) => {
+    const index = registration(token, account);
+    const call: Step = {
+      op: 'call',
+      call: {
+        signer: roleOf.get(account) === 'attacker' ? victim : account,
+        receiver: token,
+        method: 'storage_deposit',
+        args: { account_id: account },
+        deposit: STORAGE,
+        gas: gasOf(30),
+      },
+    };
+    steps((all) => {
+      if (index >= 0) return all.filter((_, i) => i !== index);
+      const at = all.findIndex((s) => s.op === 'call');
+      return at < 0 ? [...all, call] : [...all.slice(0, at), call, ...all.slice(at)];
+    });
+  };
+  const decimals = (token: string) => 10n ** BigInt(scope.decimalsOf(token));
   const list = (op: Step['op']) => {
     const shown = program.steps.flatMap((step, index) => (step.op === op ? [index] : []));
     return shown.map((index, pos) => (
@@ -1090,6 +1196,46 @@ export function WorldLaunch() {
           )}
         </p>
       </section>
+      {registry.length > 0 && (
+        <section className="card">
+          <div className="kicker">{t('REGISTERED IN TOKENS')}</div>
+          {registry.map((token) => (
+            <div key={token} className="field">
+              {token}
+              <div className="samples">
+                {scope.accounts
+                  .filter((id) => id !== token)
+                  .map((id) => chip(registration(token, id) >= 0, id, () => register(token, id)))}
+              </div>
+            </div>
+          ))}
+          <p className="hint">
+            {t(
+              'An account holds a token only after it registers. Each mark adds a storage_deposit call.',
+            )}
+          </p>
+        </section>
+      )}
+      <section className="card">
+        <div className="kicker">{t('SETUP CALLS')}</div>
+        <div className="step-list">{list('call')}</div>
+        <div className="row">
+          {chip(false, '+ Add call', () =>
+            add({
+              op: 'call',
+              call: {
+                signer: victim,
+                receiver: scope.contracts[0] ?? '',
+                method: '',
+                args: {},
+                deposit: '0',
+                gas: gasOf(30),
+              },
+            }),
+          )}
+        </div>
+        <p className="hint">{t('Runs before every attack, in this order.')}</p>
+      </section>
       <section className="card">
         <div className="kicker">{t('KEYS GIVEN TO THE ATTACKER')}</div>
         <label className="field">
@@ -1113,25 +1259,6 @@ export function WorldLaunch() {
       </section>
     </>,
     <>
-      <div className="step-list">{list('call')}</div>
-      <div className="row">
-        {chip(false, '+ Add call', () =>
-          add({
-            op: 'call',
-            call: {
-              signer: victim,
-              receiver: scope.contracts[0] ?? '',
-              method: '',
-              args: {},
-              deposit: '0',
-              gas: gasOf(30),
-            },
-          }),
-        )}
-      </div>
-      <p className="hint">{t('Runs before every attack, in this order.')}</p>
-    </>,
-    <>
       <section className="card">
         <div className="kicker">{t('A BREAK IS')}</div>
         <label className="check">
@@ -1148,7 +1275,7 @@ export function WorldLaunch() {
         </label>
         <Amount
           label={t('Ignore moves smaller than (NEAR)')}
-          unit="near"
+          unit={NEAR}
           value={threshold}
           onChange={(value) =>
             rules((all) =>
@@ -1200,8 +1327,8 @@ export function WorldLaunch() {
               />
             </div>
             <Amount
-              label={t('It pays without an attack, NEAR or token units with 24 decimals')}
-              unit="near"
+              label={t('It pays without an attack, {token}', { token: block.expect.token })}
+              unit={block.expect.token === 'NEAR' ? NEAR : scope.decimalsOf(block.expect.token)}
               value={block.expect.amount}
               onChange={(amount) => setBlock({ ...block, expect: { ...block.expect, amount } })}
             />
@@ -1223,27 +1350,32 @@ export function WorldLaunch() {
                 }))
               }
             />
-            <label className="field">
-              {t('yoctoNEAR per token unit')}
-              <input
-                value={token.rate}
-                inputMode="numeric"
-                onChange={(e) =>
-                  /^\d{0,39}$/.test(e.target.value) &&
-                  setProgram((p) => ({
-                    ...p,
-                    tokens: p.tokens.map((x, j) => (j === i ? { ...x, rate: e.target.value } : x)),
-                  }))
-                }
-              />
-            </label>
+            <Amount
+              label={t('1 token = … NEAR')}
+              unit={NEAR}
+              value={(BigInt(token.rate || '0') * decimals(token.contract)).toString()}
+              onChange={(value) =>
+                setProgram((p) => ({
+                  ...p,
+                  tokens: p.tokens.map((x, j) =>
+                    j === i ? { ...x, rate: (BigInt(value) / decimals(x.contract)).toString() } : x,
+                  ),
+                }))
+              }
+            />
           </div>
         ))}
         <div className="row">
           {chip(false, '+ token', () =>
             setProgram((p) => ({
               ...p,
-              tokens: [...p.tokens, { contract: scope.contracts[0] ?? '', rate: '1' }],
+              tokens: [
+                ...p.tokens,
+                {
+                  contract: scope.contracts[0] ?? '',
+                  rate: (YOCTO / decimals(scope.contracts[0] ?? '')).toString(),
+                },
+              ],
             })),
           )}
           {program.tokens.length > 0 &&
@@ -1255,41 +1387,43 @@ export function WorldLaunch() {
           {t('NEAR always counts. The verifier compares balances before and after the attack.')}
         </p>
       </section>
+      <section className="card">
+        <Amount label={t('Reward (NEAR)')} unit={NEAR} value={reward} onChange={setReward} />
+        <details className="raw">
+          <summary>{t('Advanced: limits for one attack')}</summary>
+          <div className="pair">
+            {limitFields.map(([key, label, gas]) =>
+              gas ? (
+                <Amount
+                  key={key}
+                  label={t(label)}
+                  unit="tgas"
+                  value={String(program.limits[key])}
+                  onChange={(value) =>
+                    setProgram((p) => ({ ...p, limits: { ...p.limits, [key]: value } }))
+                  }
+                />
+              ) : (
+                <label key={key} className="field">
+                  {t(label)}
+                  <input
+                    value={program.limits[key]}
+                    inputMode="numeric"
+                    onChange={(e) =>
+                      /^\d{1,7}$/.test(e.target.value) &&
+                      setProgram((p) => ({
+                        ...p,
+                        limits: { ...p.limits, [key]: Number(e.target.value) },
+                      }))
+                    }
+                  />
+                </label>
+              ),
+            )}
+          </div>
+        </details>
+      </section>
     </>,
-    <section className="card">
-      <Amount label={t('Reward (NEAR)')} unit="near" value={reward} onChange={setReward} />
-      <div className="kicker">{t('LIMITS FOR ONE ATTACK')}</div>
-      <div className="pair">
-        {limitFields.map(([key, label, gas]) =>
-          gas ? (
-            <Amount
-              key={key}
-              label={t(label)}
-              unit="tgas"
-              value={String(program.limits[key])}
-              onChange={(value) =>
-                setProgram((p) => ({ ...p, limits: { ...p.limits, [key]: value } }))
-              }
-            />
-          ) : (
-            <label key={key} className="field">
-              {t(label)}
-              <input
-                value={program.limits[key]}
-                inputMode="numeric"
-                onChange={(e) =>
-                  /^\d{1,7}$/.test(e.target.value) &&
-                  setProgram((p) => ({
-                    ...p,
-                    limits: { ...p.limits, [key]: Number(e.target.value) },
-                  }))
-                }
-              />
-            </label>
-          ),
-        )}
-      </div>
-    </section>,
     <section className="card">
       {problems.length ? (
         <ul className="problems">
@@ -1436,11 +1570,9 @@ export function WorldLaunch() {
     <Wizard
       steps={[
         ['Code', 'what gets attacked'],
-        ['Accounts', 'who holds what'],
-        ['Setup', 'calls before an attack'],
-        ['Rule', 'what counts as a break'],
-        ['Reward', 'reward and limits'],
-        ['Publish', 'test run, then the CLI'],
+        ['Who holds what', 'accounts, setup, keys'],
+        ['Rule & reward', 'what counts as a break'],
+        ['Check', 'test run, then the CLI'],
       ]}
       at={at}
       onAt={setAt}

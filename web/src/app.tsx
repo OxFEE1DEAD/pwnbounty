@@ -311,6 +311,11 @@ function MyAttempts() {
 
 function Toast({ note, close }: { note?: Note; close(): void }) {
   const t = useT();
+  useEffect(() => {
+    if (!note) return;
+    const timer = setTimeout(close, note.error ? 10000 : 5000);
+    return () => clearTimeout(timer);
+  }, [note]);
   if (!note) return null;
   return (
     <div className={'toast' + (note.error ? ' error' : '')} role="status" aria-live="polite">

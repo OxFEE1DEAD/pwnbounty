@@ -10,6 +10,7 @@ use near_sdk::{
 const BOUNTY_STORAGE: u128 = 10_000_000_000_000_000_000_000;
 const CLAIM_STORAGE: u128 = 100_000_000_000_000_000_000_000;
 const MAX_PROGRAM: usize = 16_384;
+const MAX_ABOUT: usize = 1_024;
 const MAX_CIPHERTEXT: usize = 65_536;
 const MAX_DISCLOSURE: usize = 8_192;
 const CALLBACK_GAS: Gas = Gas::from_tgas(80);
@@ -101,6 +102,7 @@ impl Contract {
         expires: U64,
         settle_until: U64,
         program: String,
+        about: Option<String>,
     ) -> U64 {
         hash(&rules_hash);
         let verifier = self.verifier.clone().expect("verifier not provisioned");
@@ -109,6 +111,11 @@ impl Contract {
             program.len() <= MAX_PROGRAM
                 && serde_json::from_str::<Value>(&program).is_ok_and(|v| v.is_object()),
             "invalid program"
+        );
+        require!(
+            about.as_deref().is_none_or(|a| a.len() <= MAX_ABOUT
+                && serde_json::from_str::<Value>(a).is_ok_and(|v| v.is_object())),
+            "invalid about"
         );
         require!(reward.0 > 0, "zero reward");
         require!(
@@ -119,8 +126,8 @@ impl Contract {
             settle_until.0 - expires.0 <= 100_000,
             "settlement window too long"
         );
-        let storage =
-            BOUNTY_STORAGE + program.len() as u128 * env::storage_byte_cost().as_yoctonear();
+        let bytes = program.len() + about.as_ref().map_or(0, String::len);
+        let storage = BOUNTY_STORAGE + bytes as u128 * env::storage_byte_cost().as_yoctonear();
         let required = reward.0.checked_add(storage).expect("deposit overflow");
         require!(
             env::attached_deposit().as_yoctonear() == required,
@@ -141,6 +148,7 @@ impl Contract {
                 verifier,
                 state: PaymentState::Available,
                 winner: None,
+                about,
             },
         );
         self.programs.insert(id, program);
@@ -615,6 +623,7 @@ mod tests {
                 },
                 state,
                 winner: Some("hunter.testnet".parse().unwrap()),
+                about: None,
             },
         );
         contract
@@ -636,6 +645,7 @@ mod tests {
             U64(100),
             U64(200),
             PROGRAM.into(),
+            None,
         );
         assert_eq!(id.0, 0);
         let bounty = contract.get_bounty(id).unwrap();
@@ -655,6 +665,7 @@ mod tests {
             U64(100),
             U64(200),
             PROGRAM.into(),
+            None,
         );
     }
 

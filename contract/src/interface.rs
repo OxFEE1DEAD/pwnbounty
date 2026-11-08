@@ -30,6 +30,7 @@ pub struct Bounty {
     pub verifier: Verifier,
     pub state: PaymentState,
     pub winner: Option<AccountId>,
+    pub about: Option<String>,
 }
 #[near(serializers = [borsh, json])]
 #[derive(Clone)]

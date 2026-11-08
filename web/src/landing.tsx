@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { near, overview, type Entry } from './chain.js';
 import { Coverage } from './checks.js';
 import { useAsync, useEnv, type Meta } from './env.js';
@@ -320,22 +320,54 @@ function Hero() {
   );
 }
 
-function Numbers({ entries, height }: { entries: Entry[]; height: bigint }) {
+const garbleChars = '$#@!%&*?<>+=/0123456789';
+const garble = (length: number) =>
+  Array.from({ length }, () => garbleChars[Math.floor(Math.random() * garbleChars.length)]).join(
+    '',
+  );
+
+export function Scramble({ value, size = 6 }: { value?: string; size?: number }) {
+  const [text, setText] = useState(() => garble(value?.length ?? size));
+  const [seen, setSeen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => entry?.isIntersecting && setSeen(true));
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (value !== undefined && matchMedia('(prefers-reduced-motion: reduce)').matches)
+      return setText(value);
+    const start = Date.now();
+    const timer = setInterval(() => {
+      if (value === undefined || !seen) return setText(garble(value?.length ?? size));
+      const done = Math.floor((Date.now() - start - 250) / 45);
+      setText(value.slice(0, Math.max(0, done)) + garble(Math.max(0, value.length - done)));
+      if (done >= value.length) clearInterval(timer);
+    }, 45);
+    return () => clearInterval(timer);
+  }, [value, seen, size]);
+  return <span ref={ref}>{text}</span>;
+}
+
+function Numbers({ data }: { data?: { entries: Entry[]; height: bigint } }) {
   const { meta } = useEnv(),
     t = useT();
-  const stats = overview(entries, height, BigInt(meta.min_prepare_window_blocks));
-  const items: [string, string][] = [
-    [String(stats.total), 'programs launched'],
-    [String(stats.open), 'open right now'],
-    [near(stats.paid), 'paid to hackers'],
-    [String(stats.breaks), 'breaks proved'],
+  const stats = data && overview(data.entries, data.height, BigInt(meta.min_prepare_window_blocks));
+  const items: [string | undefined, string][] = [
+    [stats && String(stats.total), 'programs launched'],
+    [stats && String(stats.open), 'open right now'],
+    [stats && near(stats.paid), 'paid to hackers'],
+    [stats && String(stats.breaks), 'breaks proved'],
   ];
   return (
     <>
       <section className="stats" aria-label={t('Live numbers')}>
         {items.map(([value, label]) => (
           <div key={label} className="stat">
-            <strong>{value}</strong>
+            <strong>
+              <Scramble value={value} size={3} />
+            </strong>
             <span>{t(label)}</span>
           </div>
         ))}
@@ -409,7 +441,9 @@ function Why() {
             <span className="when">
               {name} · {t(when)}
             </span>
-            <b className="loss">{loss}</b>
+            <b className="loss">
+              <Scramble value={loss} />
+            </b>
             <span>{t(text)}</span>
             <span className="source">{source} ↗</span>
           </a>
@@ -438,8 +472,7 @@ export function Landing() {
   return (
     <div className="wrap">
       <Hero />
-      {data.value && <Numbers entries={data.value.entries} height={data.value.height} />}
-      {data.loading && !data.value && <p className="muted">{t('Loading chain data…')}</p>}
+      <Numbers data={data.value} />
       {data.error && (
         <p className="error-text">
           {t('Chain data unavailable. Try again.')}{' '}

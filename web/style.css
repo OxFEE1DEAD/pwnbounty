@@ -46,6 +46,7 @@
   --ok: #6FCF97;
   --hack: #FF5FB5;
   --hack-ink: #0A0A0A;
+  --info: #5CC8FF;
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
   --pixel: Silkscreen, var(--mono);
   font: 15px/1.6 var(--mono);
@@ -71,6 +72,7 @@
     --ok: #1E7B45;
     --hack: #C2187A;
     --hack-ink: #FFFFFF;
+    --info: #0B6FA4;
     color-scheme: light;
   }
 }
@@ -161,7 +163,8 @@ pre {
 }
 
 .lang { height: 44px; padding: 0 12px; color: var(--ink); cursor: pointer; }
-.tag.open, .tag.paid { color: var(--inv-ink); background: var(--inv-bg); border-color: var(--inv-bg); }
+.tag.open { color: var(--inv-ink); background: var(--inv-bg); border-color: var(--inv-bg); }
+.tag.paid { color: var(--bg); background: var(--ok); border-color: var(--ok); }
 .tag.retryable, .tag.pending, .tag.payout-pending { color: var(--warn); border-color: var(--warn); }
 .tag.protected { color: var(--ink); border-color: var(--ink); }
 .tag.attacker { color: var(--fail); border-color: var(--fail); }
@@ -281,7 +284,14 @@ main[data-side='bug'] .chip.current { border-color: var(--hack); }
 main[data-side='bug'] .tag.open { color: var(--hack-ink); background: var(--hack); border-color: var(--hack); }
 .top nav a .icon:first-child { transition: color .15s ease; }
 .top nav a[href='#/programs'] .icon, .footer .hack { color: var(--hack); }
-.door-button.secondary { background: transparent; color: var(--ink); border-color: var(--ink); }
+.top nav a[href='#/projects'] .icon { color: var(--info); }
+main[data-side='tools'] .button:not(.secondary) { color: var(--inv-ink); background: var(--info); border-color: var(--info); }
+main[data-side='tools'] .chip.current { border-color: var(--info); }
+.node.project .icon { color: var(--info); }
+.node.hacker .icon { color: var(--hack); }
+.node.verifier .icon { color: var(--ok); }
+.door-button.secondary { background: transparent; color: var(--ink); border-color: var(--info); }
+.door-button.secondary .icon { color: var(--info); }
 .door-button.secondary:hover { color: var(--ink); background: var(--panel); opacity: 1; }
 .door-button b { display: block; font: 18px var(--pixel); letter-spacing: 1px; }
 
@@ -320,7 +330,11 @@ main[data-side='bug'] .tag.open { color: var(--hack-ink); background: var(--hack
 .stat { display: flex; flex-direction: column; gap: 4px; padding: 28px 24px 24px; min-width: 0; }
 .stat + .stat { border-left: 1px solid var(--line); }
 .stat strong { font: 400 44px/1 var(--pixel); overflow-wrap: anywhere; }
-.stat span { color: var(--muted); font-size: 13px; }
+.stat > span { color: var(--muted); font-size: 13px; }
+.stat:nth-child(1) strong { color: var(--info); }
+.stat:nth-child(2) strong { color: var(--hack); }
+.stat:nth-child(3) strong { color: var(--ok); }
+.stat:nth-child(4) strong { color: var(--warn); }
 
 .payout-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
 .payout-head span { color: var(--muted); font-size: 13px; }
@@ -348,10 +362,9 @@ main[data-side='bug'] .tag.open { color: var(--hack-ink); background: var(--hack
 .showcase .logo { display: grid; place-items: center; width: 48px; height: 48px; overflow: hidden; color: #0A0A0A; background: #FFFFFF; filter: grayscale(1); opacity: .75; transition: filter .2s ease, opacity .2s ease; }
 .showcase .logo img { width: 100%; height: 100%; object-fit: cover; }
 .showcase a:hover .logo { filter: none; opacity: 1; }
-.showcase span { color: var(--muted); }
+.showcase a > span { color: var(--muted); }
 .showcase .when { color: var(--ink); font-weight: 600; }
-.showcase .loss { font: 22px var(--pixel); letter-spacing: 1px; color: var(--ink); }
-.showcase a:hover .loss { color: var(--fail); }
+.showcase .loss { font: 22px var(--pixel); letter-spacing: 1px; color: var(--warn); white-space: nowrap; overflow: hidden; }
 .showcase .source { align-self: end; font-size: 12px; text-decoration: underline; }
 .targets { display: grid; gap: 16px; padding-bottom: 48px; }
 .target h3 { margin: 4px 0; }

@@ -425,7 +425,7 @@ function AgentLaunch() {
               onClick={() => void publish()}
             >
               {account
-                ? t('Publish with wallet · {amount}', { amount: deposit ? near(deposit) : '…' })
+                ? t('Fund and publish · {amount}', { amount: deposit ? near(deposit) : '…' })
                 : t('Connect wallet')}
             </button>
           </div>
@@ -446,30 +446,34 @@ function AgentLaunch() {
   const aside = (
     <>
       <Summary title="AGENT" ok={!problems[0]}>
-        {meta.about && (
-          <p>
-            <strong>{name.trim() || <NotSet />}</strong>
-          </p>
-        )}
-        <p>
-          {allowed.length ? (
-            t('pays only {recipients}', { recipients: allowed.join(', ') })
-          ) : (
-            <NotSet />
+        <dl className="kv">
+          {meta.about && (
+            <>
+              <dt>{t('name')}</dt>
+              <dd>{name.trim() || <NotSet />}</dd>
+            </>
           )}
-        </p>
-        <p>{t('at most {max} per payment, wallet {balance} test NEAR', { max, balance })}</p>
-        <p className="hint">
-          {meta.model} · {t(enforce ? 'wallet limit on' : 'wallet limit off')}
-        </p>
+          <dt>{t('pays only')}</dt>
+          <dd>{allowed.length ? allowed.join(', ') : <NotSet />}</dd>
+          <dt>{t('per payment')}</dt>
+          <dd>{t('up to {n} test NEAR', { n: max })}</dd>
+          <dt>{t('agent wallet')}</dt>
+          <dd>{t('{n} test NEAR', { n: balance })}</dd>
+          <dt>{t('wallet limit')}</dt>
+          <dd>{t(enforce ? 'on' : 'off')}</dd>
+          <dt>{t('model')}</dt>
+          <dd>{meta.model}</dd>
+        </dl>
       </Summary>
       <Summary title="REWARD" ok={!problems[1]}>
-        <p>
-          {amount ? near(amount) : <NotSet />} · {days ? t('{n} days', { n: days }) : <NotSet />}
-        </p>
-        <p>
-          {t('team key')}: {team && kept ? t('saved') : <NotSet />}
-        </p>
+        <dl className="kv">
+          <dt>{t('reward')}</dt>
+          <dd>{amount ? near(amount) : <NotSet />}</dd>
+          <dt>{t('open for')}</dt>
+          <dd>{days ? t('{n} days', { n: days }) : <NotSet />}</dd>
+          <dt>{t('team key')}</dt>
+          <dd>{team && kept ? t('saved') : <NotSet />}</dd>
+        </dl>
       </Summary>
       <Summary>
         <dl className="kv">

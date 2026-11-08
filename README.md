@@ -52,7 +52,7 @@ npm run build:web                         # static site in web/dist, no backend
 ```
 
 - Hackers: Programs → pick an open program → write the invoice → "Encrypt, commit and check". The wallet signs two transactions at once; the page shows the verdict when the escrow settles it. Without a connected wallet the button connects it first.
-- Projects: Launch a program → describe the agent and the spending rule → make and save the team key → "Publish with wallet". My programs → "Decrypt report" opens the winning attack with the saved key.
+- Projects: Launch a program → describe the agent and the spending rule → make and save the team key → "Fund and publish". My programs → "Decrypt report" opens the winning attack with the saved key.
 
 The page reads everything from NEAR RPC and signs through [NEAR Connect](https://docs.near.org/tools/near-connect). WebCrypto X25519 needs HTTPS or localhost.
 

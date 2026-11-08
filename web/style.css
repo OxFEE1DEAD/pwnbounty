@@ -446,6 +446,7 @@ input[aria-invalid='true'] { border-color: var(--fail); }
 .summary-block { display: grid; gap: 6px; padding: 16px 18px; border-bottom: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
 .summary-block:last-child { border-bottom: 0; }
 .summary-block p { margin: 0; }
+.summary .kv { grid-template-columns: 15ch minmax(0, 1fr); font-size: 13px; }
 .summary .holder { grid-template-columns: minmax(0, 1fr) 13ch 10ch; gap: 8px; align-items: center; }
 .summary .holder strong { text-align: right; }
 .summary .holder .tag { justify-self: start; }

@@ -456,7 +456,7 @@ function AgentLaunch() {
           <dt>{t('pays only')}</dt>
           <dd>{allowed.length ? allowed.join(', ') : <NotSet />}</dd>
           <dt>{t('per payment')}</dt>
-          <dd>{t('up to {n} test NEAR', { n: max })}</dd>
+          <dd>{t('≤ {n} test NEAR', { n: max })}</dd>
           <dt>{t('agent wallet')}</dt>
           <dd>{t('{n} test NEAR', { n: balance })}</dd>
           <dt>{t('wallet limit')}</dt>

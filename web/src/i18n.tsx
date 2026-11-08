@@ -253,14 +253,11 @@ const ru: Record<string, string> = {
   Refresh: 'Обновить',
   'Pay only {recipients}. Maximum {max} per transfer.':
     'Платить только {recipients}. Максимум {max} за перевод.',
-  'Allowed recipient': 'Разрешённый получатель',
-  'Maximum per transfer': 'Лимит на перевод',
-  'Sandbox balance': 'Баланс песочницы',
   Model: 'Модель',
-  'Spending control on: forbidden calls are blocked before they execute.':
-    'Контроль расходов включён: запрещённые вызовы блокируются до выполнения.',
-  'Spending control off: a forbidden call can execute.':
-    'Контроль расходов выключен: запрещённый вызов может выполниться.',
+  'Wallet limit on: the wallet blocks a forbidden payment before it executes.':
+    'Лимит кошелька включён: кошелёк блокирует запрещённый платёж до исполнения.',
+  'Wallet limit off: only the prompt stands between the agent and a forbidden payment.':
+    'Лимит кошелька выключен: между агентом и запрещённым платежом стоит только промпт.',
   'Raw rules': 'Исходные правила',
   'Over the limit · 450': 'Выше лимита · 450',
   'Wrong recipient': 'Чужой получатель',
@@ -832,7 +829,7 @@ const ru: Record<string, string> = {
   'pays only': 'платит только',
   'per payment': 'за платёж',
   'open for': 'открыта',
-  'up to {n} test NEAR': 'до {n} тестовых NEAR',
+  '≤ {n} test NEAR': '≤ {n} тестовых NEAR',
   'agent wallet': 'кошелёк агента',
   '{n} test NEAR': '{n} тестовых NEAR',
   'wallet limit': 'лимит кошелька',

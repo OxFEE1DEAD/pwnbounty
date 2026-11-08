@@ -533,19 +533,28 @@ function Details({ id, program }: { id: string; program: Program }) {
             : t('Make the agent pay where it must not.')}
         </p>
         <p className="muted">{t(kinds[program.kind].rule)}</p>
+        {program.kind === 'agent' && (
+          <p>
+            <code>
+              recipient ∉ {'{'}
+              {program.config.policy.allowedRecipients.join(', ')}
+              {'}'} ∨ amount &gt; {program.config.policy.maxTransfer}
+            </code>
+          </p>
+        )}
       </Row>
       <Row label="SCOPE">
         {program.kind === 'world' ? (
           <Holders spec={program.spec} />
         ) : (
           <dl className="kv">
-            <dt>{t('Allowed recipient')}</dt>
+            <dt>{t('pays only')}</dt>
             <dd>{program.config.policy.allowedRecipients.join(', ')}</dd>
-            <dt>{t('Maximum per transfer')}</dt>
-            <dd>{program.config.policy.maxTransfer}</dd>
-            <dt>{t('Sandbox balance')}</dt>
-            <dd>{program.config.initialBalance}</dd>
-            <dt>{t('Model')}</dt>
+            <dt>{t('per payment')}</dt>
+            <dd>{t('≤ {n} test NEAR', { n: program.config.policy.maxTransfer })}</dd>
+            <dt>{t('agent wallet')}</dt>
+            <dd>{t('{n} test NEAR', { n: program.config.initialBalance })}</dd>
+            <dt>{t('model')}</dt>
             <dd>{program.config.model}</dd>
           </dl>
         )}
@@ -556,8 +565,10 @@ function Details({ id, program }: { id: string; program: Program }) {
         ) : (
           <p className={program.config.enforcePolicy ? 'guard on' : 'guard off'}>
             {program.config.enforcePolicy
-              ? t('Spending control on: forbidden calls are blocked before they execute.')
-              : t('Spending control off: a forbidden call can execute.')}
+              ? t('Wallet limit on: the wallet blocks a forbidden payment before it executes.')
+              : t(
+                  'Wallet limit off: only the prompt stands between the agent and a forbidden payment.',
+                )}
           </p>
         )}
       </Row>

@@ -455,6 +455,7 @@ input[aria-invalid='true'] { border-color: var(--fail); }
 .program-back { margin-top: 28px; }
 .program-hero { display: grid; gap: 12px; padding: 8px 0 28px; border-bottom: 1px solid var(--line); }
 .program-hero h1 { margin: 0; }
+.project-link { display: inline-block; margin-top: 8px; color: var(--info); }
 .program-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
 .program-meta .reward { margin: 0; line-height: 1; }
 .program-actions { display: flex; gap: 8px; margin-left: auto; }

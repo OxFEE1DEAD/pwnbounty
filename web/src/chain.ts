@@ -16,6 +16,21 @@ export interface Bounty {
   expires: string;
   settle_until: string;
   verifier: Verifier;
+  about?: string | null;
+}
+export function aboutOf(bounty: Bounty): { name?: string; link?: string } {
+  try {
+    const value = JSON.parse(bounty.about ?? '') as { name?: unknown; link?: unknown };
+    return {
+      name: typeof value.name === 'string' ? value.name.slice(0, 80) : undefined,
+      link:
+        typeof value.link === 'string' && /^https:\/\/\S+$/.test(value.link)
+          ? value.link
+          : undefined,
+    };
+  } catch {
+    return {};
+  }
 }
 export interface Entry {
   id: string;

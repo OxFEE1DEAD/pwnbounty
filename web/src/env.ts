@@ -7,6 +7,7 @@ import type { Spec } from './checks.js';
 export interface Meta {
   network: Network;
   contract: string;
+  about: boolean;
   signing_public_key: string;
   trust_mode: string;
   confidential_inference_verified: boolean;
@@ -53,15 +54,18 @@ export interface Env extends Ports {
   setTeam(draft: TeamDraft): void;
 }
 
-const deployments: Record<Network, { contract: string; model: string; model_policy_hash: string }> =
-  {
-    testnet: {
-      contract: 'pwnbounty-bd056a.testnet',
-      model: 'Qwen/Qwen3.8-27B',
-      model_policy_hash: '4f1190fd7dc6ed7c65e718bc85909591c7f1658512ba534871e07f4d9481b087',
-    },
-    mainnet: { contract: '', model: '', model_policy_hash: '' },
-  };
+const deployments: Record<
+  Network,
+  { contract: string; model: string; model_policy_hash: string; about: boolean }
+> = {
+  testnet: {
+    contract: 'pwnbounty-bd056a.testnet',
+    model: 'Qwen/Qwen3.8-27B',
+    model_policy_hash: '4f1190fd7dc6ed7c65e718bc85909591c7f1658512ba534871e07f4d9481b087',
+    about: false,
+  },
+  mainnet: { contract: '', model: '', model_policy_hash: '', about: true },
+};
 
 const kindOf = (raw: string): Program['kind'] =>
   'model' in (JSON.parse(raw) as object) ? 'agent' : 'world';
@@ -131,7 +135,7 @@ export class ChainVerifier implements VerifierApi {
 export async function loadMeta(): Promise<Meta> {
   const network: Network =
     new URLSearchParams(location.search).get('network') === 'mainnet' ? 'mainnet' : 'testnet';
-  const { contract, model, model_policy_hash } = deployments[network];
+  const { contract, model, model_policy_hash, about } = deployments[network];
   if (!contract) throw new Error('No escrow is deployed on this network yet');
   const config = await new Chain(network, contract).config();
   if (config.network !== network || !config.verifier) {
@@ -140,6 +144,7 @@ export async function loadMeta(): Promise<Meta> {
   return {
     network,
     contract,
+    about,
     signing_public_key: config.verifier.public_key,
     trust_mode: 'outlayer',
     confidential_inference_verified: true,

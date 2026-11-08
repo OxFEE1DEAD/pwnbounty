@@ -73,6 +73,7 @@ export interface CreateProgram {
   expires: string;
   settle_until: string;
   program: string;
+  about?: string;
 }
 
 export interface Wallet {

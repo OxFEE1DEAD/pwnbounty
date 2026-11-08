@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { canonical, digest, randomHex, sealReport, unbase64, type SealedReport } from './crypto.js';
 import { settlementState, type ChainCommitment, type SettlementState } from './settlement.js';
-import { isOpen, near, type Entry } from './chain.js';
+import { aboutOf, isOpen, near, type Entry } from './chain.js';
 import type { ChainReader } from './ports.js';
 import {
   context,
@@ -704,7 +704,7 @@ function Catalog({ visible }: { visible: boolean }) {
                 </span>
                 <span className={'tag ' + current}>{t(standingLabels[current])}</span>
               </span>
-              <strong>{t(info?.title ?? 'Program')}</strong>
+              <strong>{aboutOf(entry.bounty).name ?? t(info?.title ?? 'Program')}</strong>
               <span className="reward">{near(entry.bounty.reward)}</span>
               <span>
                 {current === 'open'
@@ -951,12 +951,23 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
           {t(world ? 'PROGRAM #{id} · CONTRACT' : 'PROGRAM #{id} · AI PAYMENT AGENT', { id })}
         </div>
         <h1>
-          {t(
-            data?.program?.kind === 'world'
-              ? data.program.spec.title
-              : kinds[world ? 'world' : 'agent'].title,
-          )}
+          {(data && aboutOf(data.entry.bounty).name) ??
+            t(
+              data?.program?.kind === 'world'
+                ? data.program.spec.title
+                : kinds[world ? 'world' : 'agent'].title,
+            )}
         </h1>
+        {data && aboutOf(data.entry.bounty).link && (
+          <a
+            className="project-link"
+            href={aboutOf(data.entry.bounty).link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {aboutOf(data.entry.bounty).link!.replace(/^https:\/\//, '')} ↗
+          </a>
+        )}
         {data && (
           <div className="program-meta">
             <span className="reward">{near(data.entry.bounty.reward)}</span>

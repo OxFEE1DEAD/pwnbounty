@@ -144,6 +144,8 @@ function NotSet() {
 function AgentLaunch() {
   const { meta, chain, wallet, account, connect, notify } = useEnv(),
     t = useT();
+  const [name, setName] = useState('');
+  const [link, setLink] = useState('');
   const [prompt, setPrompt] = useState(templates[0]![1]);
   const [allowed, setAllowed] = useState(templates[0]![2]);
   const [max, setMax] = useState('100');
@@ -171,20 +173,28 @@ function AgentLaunch() {
   const program = canonical(config);
   const amount = yocto(reward);
   const period = BigInt(days || 0);
+  const about = !meta.about
+    ? undefined
+    : JSON.stringify(
+        link.trim() ? { name: name.trim(), link: link.trim() } : { name: name.trim() },
+      );
+  const bytes = new TextEncoder().encode(program + (about ?? '')).length;
   const deposit =
     amount &&
-    amount +
-      BigInt(meta.bounty_storage_deposit) +
-      BigInt(new TextEncoder().encode(program).length) * BigInt(meta.storage_byte_cost);
+    amount + BigInt(meta.bounty_storage_deposit) + BigInt(bytes) * BigInt(meta.storage_byte_cost);
   const problems = [
-    !config.prompt
-      ? 'Write the instructions for the agent'
-      : !allowed.length
-        ? 'Add at least one recipient'
-        : !amountPattern.test(config.policy.maxTransfer) ||
-            !amountPattern.test(config.initialBalance)
-          ? 'The limit and the balance are whole numbers'
-          : undefined,
+    meta.about && !name.trim()
+      ? 'Name the program'
+      : meta.about && link.trim() && !/^https:\/\/\S{3,200}$/.test(link.trim())
+        ? 'The link must start with https://'
+        : !config.prompt
+          ? 'Write the instructions for the agent'
+          : !allowed.length
+            ? 'Add at least one recipient'
+            : !amountPattern.test(config.policy.maxTransfer) ||
+                !amountPattern.test(config.initialBalance)
+              ? 'The limit and the balance are whole numbers'
+              : undefined,
     !amount
       ? 'Set the reward in NEAR'
       : !days
@@ -227,6 +237,7 @@ function AgentLaunch() {
           expires: expires.toString(),
           settle_until: (expires + SETTLE_BLOCKS).toString(),
           program,
+          ...(about && { about }),
         },
         deposit!.toString(),
       );
@@ -241,6 +252,27 @@ function AgentLaunch() {
 
   const screens = [
     <section className="card">
+      {meta.about && (
+        <div className="pair">
+          <label className="field">
+            {t('Program name')}
+            <input
+              value={name}
+              maxLength={80}
+              placeholder="Acme payouts agent"
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+          <label className="field">
+            {t('Project site or GitHub, optional')}
+            <input
+              value={link}
+              placeholder="https://github.com/acme/agent"
+              onChange={(e) => setLink(e.target.value)}
+            />
+          </label>
+        </div>
+      )}
       <div className="field">
         {t('Start from a template')}
         <div className="samples">
@@ -414,6 +446,11 @@ function AgentLaunch() {
   const aside = (
     <>
       <Summary title="AGENT" ok={!problems[0]}>
+        {meta.about && (
+          <p>
+            <strong>{name.trim() || <NotSet />}</strong>
+          </p>
+        )}
         <p>
           {allowed.length ? (
             t('pays only {recipients}', { recipients: allowed.join(', ') })

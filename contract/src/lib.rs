@@ -10,7 +10,7 @@ use near_sdk::{
 const BOUNTY_STORAGE: u128 = 10_000_000_000_000_000_000_000;
 const CLAIM_STORAGE: u128 = 100_000_000_000_000_000_000_000;
 const MAX_PROGRAM: usize = 16_384;
-const MAX_ABOUT: usize = 1_024;
+const MAX_ABOUT: usize = 300;
 const MAX_CIPHERTEXT: usize = 65_536;
 const MAX_DISCLOSURE: usize = 8_192;
 const CALLBACK_GAS: Gas = Gas::from_tgas(80);
@@ -113,8 +113,7 @@ impl Contract {
             "invalid program"
         );
         require!(
-            about.as_deref().is_none_or(|a| a.len() <= MAX_ABOUT
-                && serde_json::from_str::<Value>(a).is_ok_and(|v| v.is_object())),
+            about.as_ref().is_none_or(|a| a.len() <= MAX_ABOUT),
             "invalid about"
         );
         require!(reward.0 > 0, "zero reward");

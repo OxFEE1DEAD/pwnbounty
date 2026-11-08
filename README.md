@@ -75,6 +75,7 @@ near contract call-function as-transaction pwnbounty-bd056a.testnet claim json-a
 ```sh
 npm run check && npm test
 cd contract && cargo build --target wasm32-unknown-unknown --release && cargo test
+wasm-opt -Oz --mvp-features --enable-bulk-memory --enable-bulk-memory-opt --enable-sign-ext --enable-mutable-globals --strip-debug --strip-producers target/wasm32-unknown-unknown/release/sealed_bounty.wasm -o target/sealed_bounty.wasm   # binaryen 133
 cargo build --offline --locked --release --target wasm32-wasip2 --manifest-path tee-runner/Cargo.toml
 cd tee-runner && cargo test
 ```

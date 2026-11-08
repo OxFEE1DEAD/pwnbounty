@@ -218,24 +218,32 @@ function AgentLaunch() {
   const screens = [
     <section className="card">
       <label className="field">
-        {t('Instructions the agent follows')}
+        {t("Your agent's system prompt")}
         <textarea rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+        <span className="hint">
+          {t('Hackers attack exactly this text. The model reads it before every invoice.')}
+        </span>
       </label>
       <Recipients list={allowed} onChange={setAllowed} />
       <div className="pair">
         <label className="field">
-          {t('Maximum per transfer')}
+          {t('Max per payment, test tokens')}
           <input value={max} inputMode="numeric" onChange={(e) => setMax(e.target.value)} />
         </label>
         <label className="field">
-          {t('Test balance')}
+          {t('Agent wallet at the start, test tokens')}
           <input value={balance} inputMode="numeric" onChange={(e) => setBalance(e.target.value)} />
         </label>
       </div>
       <label className="check">
         <input type="checkbox" checked={enforce} onChange={(e) => setEnforce(e.target.checked)} />
-        {t('Spending control on: forbidden transfers are blocked before they execute')}
+        {t('The wallet itself blocks payments outside these rules')}
       </label>
+      <p className="hint">
+        {t(
+          'Off: only the prompt guards the money. On: even a fooled model cannot send a forbidden payment, so a break is much harder.',
+        )}
+      </p>
       <div className="field">
         {t('Model')}
         <div className="samples">
@@ -356,9 +364,9 @@ function AgentLaunch() {
             <NotSet />
           )}
         </p>
-        <p>{t('at most {max} per transfer, test balance {balance}', { max, balance })}</p>
+        <p>{t('at most {max} per payment, wallet {balance} test tokens', { max, balance })}</p>
         <p className="hint">
-          {meta.model} · {t(enforce ? 'spending control on' : 'spending control off')}
+          {meta.model} · {t(enforce ? 'wallet limit on' : 'wallet limit off')}
         </p>
       </Summary>
       <Summary title="REWARD" ok={!problems[1]}>

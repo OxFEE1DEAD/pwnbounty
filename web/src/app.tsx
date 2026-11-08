@@ -140,7 +140,24 @@ function Header({ route }: { route: Route }) {
           {lang === 'en' ? 'EN / RU' : 'RU / EN'}
         </button>
         <div className="wallet-box">
-          <span className="net">{meta.network}</span>
+          <details className="net">
+            <summary>
+              <Icon name="near" size={14} />
+              {meta.network}
+            </summary>
+            <div className="menu">
+              {['testnet', 'mainnet'].map((network) => (
+                <a
+                  key={network}
+                  href={`?network=${network}${location.hash}`}
+                  className={network === meta.network ? 'current' : ''}
+                >
+                  <Icon name="near" size={12} />
+                  {network}
+                </a>
+              ))}
+            </div>
+          </details>
           <button type="button" className="wallet" onClick={wallet}>
             {account ?? t('Connect wallet')}
           </button>
@@ -426,6 +443,7 @@ function App() {
       <p className={error ? 'error-text' : 'muted'}>
         {error ? t(error) : t('Loading verification mode…')}
       </p>
+      {error && <a href={`?network=testnet${location.hash}`}>{t('Open testnet →')}</a>}
     </main>
   );
 }

@@ -140,58 +140,61 @@ function TargetCard({ target }: { target: Target }) {
   const variants = Object.keys(target.variants);
   const rules = Object.values(target.variants)[0]!.rules;
   return (
-    <article className="card target">
+    <article id={target.id} className="card target">
       <div className="kicker">{t(concepts[target.concept] ?? target.concept)}</div>
       <h3>{t(target.title)}</h3>
       <p className="muted">{t(target.source)}</p>
-      <ul className="rule-list">
-        {rules.map((r) => (
-          <li key={r.id}>
-            <b>{r.id}</b> {t(ruleNames[r.id] ?? r.id)}
-            {r.threshold && ` > ${near(r.threshold).replace('+', '')} NEAR`}
-          </li>
-        ))}
-      </ul>
-      <div className="matrix" style={{ '--n': variants.length } as CSSProperties}>
-        <span className="head">{t('Attack')}</span>
-        {variants.map((v) => (
-          <span key={v} className="head">
-            {t(v)}
-          </span>
-        ))}
-        {target.cases.map((c) => (
-          <div key={c.id} className="matrix-row">
-            <details>
-              <summary>{t(c.title)}</summary>
-              <pre>{JSON.stringify(c.attack, null, 1)}</pre>
-            </details>
-            {variants.map((v) => (
-              <div key={v}>
-                <Pill result={c.results[v]!} />
-                <Deltas result={c.results[v]!} />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="hash">
-        {variants.map((v) => (
-          <button
-            key={v}
-            type="button"
-            className="chip"
-            title={target.hashes[v]}
-            onClick={() =>
-              download(
-                `${target.id}-${v.replace(' ', '-')}.program.json`,
-                JSON.stringify(target.variants[v], null, 2),
-              )
-            }
-          >
-            {t(v)} · {target.hashes[v]!.slice(0, 12)}… ↓
-          </button>
-        ))}
-      </div>
+      <details open={location.hash.endsWith('/' + target.id)}>
+        <summary>{t('Show the {n} attacks', { n: String(target.cases.length) })}</summary>
+        <ul className="rule-list">
+          {rules.map((r) => (
+            <li key={r.id}>
+              <b>{r.id}</b> {t(ruleNames[r.id] ?? r.id)}
+              {r.threshold && ` > ${near(r.threshold).replace('+', '')} NEAR`}
+            </li>
+          ))}
+        </ul>
+        <div className="matrix" style={{ '--n': variants.length } as CSSProperties}>
+          <span className="head">{t('Attack')}</span>
+          {variants.map((v) => (
+            <span key={v} className="head">
+              {t(v)}
+            </span>
+          ))}
+          {target.cases.map((c) => (
+            <div key={c.id} className="matrix-row">
+              <details>
+                <summary>{t(c.title)}</summary>
+                <pre>{JSON.stringify(c.attack, null, 1)}</pre>
+              </details>
+              {variants.map((v) => (
+                <div key={v}>
+                  <Pill result={c.results[v]!} />
+                  <Deltas result={c.results[v]!} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="hash">
+          {variants.map((v) => (
+            <button
+              key={v}
+              type="button"
+              className="chip"
+              title={target.hashes[v]}
+              onClick={() =>
+                download(
+                  `${target.id}-${v.replace(' ', '-')}.program.json`,
+                  JSON.stringify(target.variants[v], null, 2),
+                )
+              }
+            >
+              {t(v)} · {target.hashes[v]!.slice(0, 12)}… ↓
+            </button>
+          ))}
+        </div>
+      </details>
     </article>
   );
 }
@@ -201,7 +204,7 @@ function AgentCard() {
   const byCase = new Map<string, AgentRow[]>();
   for (const row of coverage.agent.cases) byCase.set(row.id, [...(byCase.get(row.id) ?? []), row]);
   return (
-    <article className="card target">
+    <article id="agent" className="card target">
       <div className="kicker">{t('AI payment agent')}</div>
       <h3>{t('Invoice-paying agent')}</h3>
       <p className="muted">
@@ -212,7 +215,7 @@ function AgentCard() {
           <b>transfer</b> {t('an executed payment breaks the frozen recipient or limit')}
         </li>
       </ul>
-      <details>
+      <details open={location.hash.endsWith('/agent')}>
         <summary>
           {t('{n} invoices × 2 configs, {m} as expected', {
             n: String(byCase.size),
@@ -259,7 +262,7 @@ export function Coverage() {
         </div>
         <p>
           {t(
-            'Each result is a replay: a fresh local NEAR chain, the real code, one attack, and the judge that decides payouts.',
+            'We replay known attacks on a copy of each target. A vulnerable build should break, a fixed one should hold.',
           )}
         </p>
       </div>
@@ -268,15 +271,6 @@ export function Coverage() {
           <TargetCard key={target.id} target={target} />
         ))}
         <AgentCard />
-        <article className="card target next">
-          <div className="kicker">{t('Next')}</div>
-          <h3>{t('OutLayer apps')}</h3>
-          <p className="muted">
-            {t(
-              'WASI apps that read and sign for NEAR accounts, replayed against the same local chain.',
-            )}
-          </p>
-        </article>
       </div>
     </section>
   );
@@ -284,8 +278,9 @@ export function Coverage() {
 
 export function CoverageTable() {
   const t = useT();
-  const rows: [string, string, [string, number, number][]][] = [
-    ...coverage.targets.map((target): [string, string, [string, number, number][]] => [
+  const rows: [string, string, string, [string, number, number][]][] = [
+    ...coverage.targets.map((target): [string, string, string, [string, number, number][]] => [
+      target.id,
       target.title,
       concepts[target.concept] ?? target.concept,
       Object.keys(target.variants).map((variant) => [
@@ -295,6 +290,7 @@ export function CoverageTable() {
       ]),
     ]),
     [
+      'agent',
       'Invoice-paying agent',
       'AI payment agent',
       coverage.agent.variants.map((variant) => {
@@ -305,8 +301,8 @@ export function CoverageTable() {
   ];
   return (
     <div className="table">
-      {rows.map(([title, kind, variants]) => (
-        <div key={title} className="table-row">
+      {rows.map(([id, title, kind, variants]) => (
+        <a key={id} href={'#/docs/' + id} className="table-row">
           <strong>{t(title)}</strong>
           <span className="muted">{t(kind)}</span>
           <span className="samples">
@@ -322,7 +318,7 @@ export function CoverageTable() {
               </span>
             ))}
           </span>
-        </div>
+        </a>
       ))}
     </div>
   );

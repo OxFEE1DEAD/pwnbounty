@@ -316,6 +316,11 @@ export function Projects() {
           </div>
           <a href="#/docs/coverage">{t('Every attack, case by case →')}</a>
         </div>
+        <p className="lead">
+          {t(
+            'Before you fund a program, see how known attacks did on the same kind of target. Click a row for the attacks.',
+          )}
+        </p>
         <CoverageTable />
       </section>
     </div>

@@ -139,12 +139,13 @@ const ru: Record<string, string> = {
     '{runs} воспроизведений по {projects} проектам, {matched} как ожидалось, поймано взломов: {breaks}.',
   'Model, prompt and tools frozen': 'Модель, промпт и инструменты закреплены',
   'What a sealed bounty can check today': 'Что sealed bounty проверяет уже сейчас',
-  'Each result is a replay: a fresh local NEAR chain, the real code, one attack, and the judge that decides payouts.':
-    'Каждый результат - воспроизведение: свежая локальная сеть NEAR, настоящий код, одна атака и тот же судья, что решает выплаты.',
+  'We replay known attacks on a copy of each target. A vulnerable build should break, a fixed one should hold.':
+    'Мы повторяем известные атаки на копии каждой цели. Уязвимая сборка должна сломаться, исправленная - устоять.',
+  'Show the {n} attacks': 'Показать атаки: {n}',
+  'Open testnet →': 'Открыть тестнет →',
+  'Before you fund a program, see how known attacks did on the same kind of target. Click a row for the attacks.':
+    'Перед тем как пополнять программу, посмотрите, как известные атаки прошли на похожей цели. Нажмите на строку, чтобы увидеть атаки.',
   Next: 'Дальше',
-  'OutLayer apps': 'Приложения OutLayer',
-  'WASI apps that read and sign for NEAR accounts, replayed against the same local chain.':
-    'WASI-приложения, которые читают и подписывают за аккаунты NEAR, на той же локальной сети.',
   'Describe the code, who holds what, and what counts as a break. Hunters attack a fresh copy; the reward leaves escrow only for a proved break.':
     'Опишите код, у кого что лежит и что считается взломом. Охотники атакуют свежую копию; награда уходит из эскроу только за доказанный взлом.',
   'template build': 'сборка из шаблона',
@@ -628,10 +629,15 @@ const ru: Record<string, string> = {
   'Full report': 'Полный отчёт',
   'AI payment agent · checked in the TEE': 'AI-агент оплаты · проверка в TEE',
   'Contract · export for a local replay': 'Контракт · экспорт для локального прогона',
-  'Instructions the agent follows': 'Инструкции агента',
-  'Test balance': 'Тестовый баланс',
-  'Spending control on: forbidden transfers are blocked before they execute':
-    'Контроль трат включён: запрещённые переводы блокируются до исполнения',
+  "Your agent's system prompt": 'Системный промпт вашего агента',
+  'Hackers attack exactly this text. The model reads it before every invoice.':
+    'Хакеры атакуют именно этот текст. Модель читает его перед каждым счётом.',
+  'Max per payment, test tokens': 'Максимум за платёж, тестовые токены',
+  'Agent wallet at the start, test tokens': 'Кошелёк агента на старте, тестовые токены',
+  'The wallet itself blocks payments outside these rules':
+    'Кошелёк сам блокирует платежи вне этих правил',
+  'Off: only the prompt guards the money. On: even a fooled model cannot send a forbidden payment, so a break is much harder.':
+    'Выключено: деньги охраняет только промпт. Включено: даже обманутая модель не отправит запрещённый платёж, взломать гораздо сложнее.',
   REWARD: 'НАГРАДА',
   'No winner by the deadline: the reward comes back to you.':
     'Если до дедлайна победителя нет, награда возвращается вам.',
@@ -811,10 +817,10 @@ const ru: Record<string, string> = {
   'test run, then the CLI': 'тестовый прогон и CLI',
   AGENT: 'АГЕНТ',
   'pays only {recipients}': 'платит только {recipients}',
-  'at most {max} per transfer, test balance {balance}':
-    'не больше {max} за перевод, тестовый баланс {balance}',
-  'spending control on': 'контроль расходов включён',
-  'spending control off': 'контроль расходов выключен',
+  'at most {max} per payment, wallet {balance} test tokens':
+    'не больше {max} за платёж, в кошельке {balance} тестовых токенов',
+  'wallet limit on': 'лимит в кошельке включён',
+  'wallet limit off': 'лимит в кошельке выключен',
   '{n} days': '{n} дн.',
   'program hash': 'хэш программы',
   'Still needed: {what}': 'Осталось: {what}',

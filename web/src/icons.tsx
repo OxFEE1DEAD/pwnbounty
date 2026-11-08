@@ -1,4 +1,5 @@
 const paths = {
+  near: ['M4 4h3v16H4zm13 0h3v16h-3zM7 4h2v4H7zm2 3h2v4H9zm2 3h2v4h-2zm2 3h2v4h-2zm2 3h2v4h-2z'],
   lock: ['M5 8h14v2H5zm0 12h14v2H5zM3 10h2v10H3zm16 0h2v10h-2zM7 4h2v4H7zm2-2h6v2H9zm6 2h2v4h-2z'],
   bug: [
     'M2 5h2v4H2zm20 0h-2v4h2zM4 9h2v2H4zm16 0h-2v2h2zM2 13h4v2H2zm20 0h-4v2h4zM4 17h2v2H4zm16 0h-2v2h2zM2 19h2v2H2zm20 0h-2v2h2zM6 11h12v2H6z',

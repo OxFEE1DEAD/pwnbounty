@@ -58,7 +58,7 @@ const deployments: Record<Network, { contract: string; model: string; model_poli
     testnet: {
       contract: 'pwnbounty-409601.testnet',
       model: 'Qwen/Qwen3.8-27B',
-      model_policy_hash: '4f1190fd7dc6ed7c65e718bc85909591c7f1658512ba534871e07f4d9481b087',
+      model_policy_hash: '4903e892169b6638b8c9c2f1fffc0fb3da6b6a486ac744cdef113f2f5ec8c94c',
     },
     mainnet: { contract: '', model: '', model_policy_hash: '' },
   };

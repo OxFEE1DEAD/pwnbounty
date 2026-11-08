@@ -402,10 +402,10 @@ mod tests {
                 .unwrap();
         assert_eq!(
             policy.hash().unwrap(),
-            "4f1190fd7dc6ed7c65e718bc85909591c7f1658512ba534871e07f4d9481b087"
+            "4903e892169b6638b8c9c2f1fffc0fb3da6b6a486ac744cdef113f2f5ec8c94c"
         );
         policy
-            .require_hash("4f1190fd7dc6ed7c65e718bc85909591c7f1658512ba534871e07f4d9481b087")
+            .require_hash("4903e892169b6638b8c9c2f1fffc0fb3da6b6a486ac744cdef113f2f5ec8c94c")
             .unwrap();
         assert!(policy.require_hash(&"0".repeat(64)).is_err());
     }

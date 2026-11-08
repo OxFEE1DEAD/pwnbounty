@@ -24,7 +24,7 @@ escrow pwnbounty-bd056a.testnet ── request_execution ──▶ outlayer.test
 |---|---|
 | Escrow | [`pwnbounty-bd056a.testnet`](https://testnet.nearblocks.io/address/pwnbounty-bd056a.testnet), code hash `CsbXB17q…KddqDH7` = local `contract` release build |
 | Runner | OutLayer project `oxfee1dead.testnet/pwnbounty`, wasm sha256 `915eb9a80b038d07349b4a6cbb0e18307891d46eeea63219ef3607be025088e5` = local `tee-runner` release build |
-| Model | `Qwen/Qwen3.8-27B` on NEAR AI private inference, policy hash `4f1190fd…481b087` pinned in every program |
+| Model | `Qwen/Qwen3.8-27B` on NEAR AI private inference, policy hash `4903e892…ec8c94c` pinned in every program |
 | Secrets | NEAR AI key in OutLayer secrets, readable only by this build and only through the escrow |
 
 ## Evidence (testnet, 05.11.2026)

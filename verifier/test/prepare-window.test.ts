@@ -90,7 +90,7 @@ test('program source rejects a paid preparation when the settlement window is to
     config.modelPolicyHash = digest(canonical(policy));
     assert.equal(
       config.modelPolicyHash,
-      '4f1190fd7dc6ed7c65e718bc85909591c7f1658512ba534871e07f4d9481b087',
+      '4903e892169b6638b8c9c2f1fffc0fb3da6b6a486ac744cdef113f2f5ec8c94c',
     );
     hash = rulesHash(config);
     await writeFile(join(directory, hash + '.json'), JSON.stringify(config));

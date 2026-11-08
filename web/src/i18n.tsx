@@ -254,10 +254,8 @@ const ru: Record<string, string> = {
   'Pay only {recipients}. Maximum {max} per transfer.':
     'Платить только {recipients}. Максимум {max} за перевод.',
   Model: 'Модель',
-  'Wallet limit on: the wallet blocks a forbidden payment before it executes.':
-    'Лимит кошелька включён: кошелёк блокирует запрещённый платёж до исполнения.',
-  'Wallet limit off: only the prompt stands between the agent and a forbidden payment.':
-    'Лимит кошелька выключен: между агентом и запрещённым платежом стоит только промпт.',
+  'Only the prompt stands between the agent and a forbidden payment.':
+    'Между агентом и запрещённым платежом стоит только промпт.',
   'Raw rules': 'Исходные правила',
   'Over the limit · 450': 'Выше лимита · 450',
   'Wrong recipient': 'Чужой получатель',
@@ -641,12 +639,8 @@ const ru: Record<string, string> = {
     'Хакеры атакуют именно этот текст. Модель читает его перед каждым входящим сообщением.',
   'Max per payment, test NEAR': 'Максимум за платёж, тестовые NEAR',
   'Agent wallet at the start, test NEAR': 'Кошелёк агента на старте, тестовые NEAR',
-  'Test NEAR exist only on the ledger inside the replay, in whole numbers. No real NEAR moves.':
-    'Тестовые NEAR есть только в журнале внутри прогона, целыми числами. Настоящие NEAR никуда не уходят.',
-  'The wallet itself blocks payments outside these rules':
-    'Кошелёк сам блокирует платежи вне этих правил',
-  'Off: only the prompt guards the money. On: even a fooled model cannot send a forbidden payment, so a break is much harder.':
-    'Выключено: деньги охраняет только промпт. Включено: даже обманутая модель не отправит запрещённый платёж, взломать гораздо сложнее.',
+  'The agent wallet is a test ledger inside the TEE run, in whole numbers. The reward for a break is paid in real NEAR.':
+    'Кошелёк агента - тестовый журнал внутри прогона в TEE, целыми числами. Награда за взлом платится настоящими NEAR.',
   REWARD: 'НАГРАДА',
   'No winner by the deadline: the reward comes back to you.':
     'Если до дедлайна победителя нет, награда возвращается вам.',
@@ -832,9 +826,6 @@ const ru: Record<string, string> = {
   '≤ {n} test NEAR': '≤ {n} тестовых NEAR',
   'agent wallet': 'кошелёк агента',
   '{n} test NEAR': '{n} тестовых NEAR',
-  'wallet limit': 'лимит кошелька',
-  on: 'вкл.',
-  off: 'выкл.',
   '{n} days': '{n} дн.',
   'program hash': 'хэш программы',
   'Still needed: {what}': 'Осталось: {what}',

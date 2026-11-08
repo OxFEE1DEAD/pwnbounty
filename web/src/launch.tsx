@@ -150,7 +150,6 @@ function AgentLaunch() {
   const [allowed, setAllowed] = useState(templates[0]![2]);
   const [max, setMax] = useState('100');
   const [balance, setBalance] = useState('1000');
-  const [enforce, setEnforce] = useState(false);
   const [reward, setReward] = useState('');
   const [days, setDays] = useState('');
   const [team, setTeam] = useState<string>();
@@ -165,7 +164,7 @@ function AgentLaunch() {
     prompt: prompt.trim(),
     policy: { allowedRecipients: allowed, maxTransfer: max.trim() },
     initialBalance: balance.trim(),
-    enforcePolicy: enforce,
+    enforcePolicy: false,
     maxSteps: 3,
     timeoutMs: 75000,
     modelPolicyHash: meta.model_policy_hash,
@@ -318,16 +317,7 @@ function AgentLaunch() {
       </div>
       <p className="hint">
         {t(
-          'Test NEAR exist only on the ledger inside the replay, in whole numbers. No real NEAR moves.',
-        )}
-      </p>
-      <label className="check">
-        <input type="checkbox" checked={enforce} onChange={(e) => setEnforce(e.target.checked)} />
-        {t('The wallet itself blocks payments outside these rules')}
-      </label>
-      <p className="hint">
-        {t(
-          'Off: only the prompt guards the money. On: even a fooled model cannot send a forbidden payment, so a break is much harder.',
+          'The agent wallet is a test ledger inside the TEE run, in whole numbers. The reward for a break is paid in real NEAR.',
         )}
       </p>
       <div className="field">
@@ -459,8 +449,6 @@ function AgentLaunch() {
           <dd>{t('≤ {n} test NEAR', { n: max })}</dd>
           <dt>{t('agent wallet')}</dt>
           <dd>{t('{n} test NEAR', { n: balance })}</dd>
-          <dt>{t('wallet limit')}</dt>
-          <dd>{t(enforce ? 'on' : 'off')}</dd>
           <dt>{t('model')}</dt>
           <dd>{meta.model}</dd>
         </dl>

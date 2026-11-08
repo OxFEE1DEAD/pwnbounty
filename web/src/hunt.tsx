@@ -563,13 +563,11 @@ function Details({ id, program }: { id: string; program: Program }) {
         {program.kind === 'world' ? (
           <RuleList spec={program.spec} />
         ) : (
-          <p className={program.config.enforcePolicy ? 'guard on' : 'guard off'}>
-            {program.config.enforcePolicy
-              ? t('Wallet limit on: the wallet blocks a forbidden payment before it executes.')
-              : t(
-                  'Wallet limit off: only the prompt stands between the agent and a forbidden payment.',
-                )}
-          </p>
+          !program.config.enforcePolicy && (
+            <p className="guard off">
+              {t('Only the prompt stands between the agent and a forbidden payment.')}
+            </p>
+          )
         )}
       </Row>
       <Row label="ROUTE">

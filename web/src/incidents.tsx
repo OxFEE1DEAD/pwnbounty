@@ -26,7 +26,11 @@ const kinds: [string, (i: Incident) => boolean][] = [
   ['Contracts', (i) => i.kind === 'contract'],
   ['Bridges', (i) => i.kind === 'bridge'],
 ];
-const verdicts = { yes: 'caught by a test', partly: 'partly caught', no: 'not a code bug' };
+const verdicts = {
+  yes: 'findable before launch',
+  partly: 'partly findable',
+  no: 'not in the code',
+};
 
 const caught = (i: Incident) => i.preventable !== 'no';
 const sum = (list: Incident[]) => list.reduce((total, i) => total + i.loss_usd, 0);
@@ -44,7 +48,10 @@ function Chart({ list }: { list: Incident[] }) {
   const [width, setWidth] = useState(720);
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) => entry && setWidth(entry.contentRect.width));
-    if (plot.current) observer.observe(plot.current);
+    if (plot.current) {
+      setWidth(plot.current.clientWidth);
+      observer.observe(plot.current);
+    }
     return () => observer.disconnect();
   }, []);
   const first = 2016;
@@ -81,10 +88,10 @@ function Chart({ list }: { list: Incident[] }) {
     <figure className="loss-chart">
       <div className="legend">
         <span>
-          <i className="swatch caught" /> {t('caught by a test before launch')}
+          <i className="swatch caught" /> {t('findable before launch')}
         </span>
         <span>
-          <i className="swatch other" /> {t('keys, insiders, front-ends')}
+          <i className="swatch other" /> {t('not in the code: keys, insiders, fake front-ends')}
         </span>
       </div>
       <div className="plot" ref={plot}>
@@ -165,8 +172,13 @@ export function Incidents() {
         <h1>{t('What a break costs.')}</h1>
         <p className="lead">
           {t(
-            '{n} public incidents since 2016, {total} lost. {share} of that came from bugs a test before launch can catch, fully or in part.',
+            '{n} of the biggest public breaks since 2016, {total} lost. {share} of it went through bugs someone could find before launch by attacking a copy, the way a bounty here works.',
             { n: String(incidents.length), total: usd(total), share: `${share}%` },
+          )}
+        </p>
+        <p className="hint">
+          {t(
+            'A selection, not a full list: the largest cases of each year, plus cases on NEAR and with AI agents.',
           )}
         </p>
       </section>

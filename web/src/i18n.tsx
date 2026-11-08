@@ -649,7 +649,8 @@ const ru: Record<string, string> = {
   'The limit and the balance are whole numbers': 'Лимит и баланс - целые числа',
   'Set the reward in NEAR': 'Укажите награду в NEAR',
   'Allowed recipients': 'Разрешённые получатели',
-  'Not a NEAR account: {name}': 'Не NEAR-аккаунт: {name}',
+  'Not a NEAR account: {name}. Use name.near, name.testnet or an implicit address':
+    'Не NEAR-аккаунт: {name}. Нужно name.near, name.testnet или неявный адрес',
   'Add at least one recipient': 'Добавьте хотя бы одного получателя',
   'Pick how long it is open': 'Выберите, сколько программа открыта',
   soon: 'скоро',

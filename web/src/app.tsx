@@ -133,22 +133,26 @@ function Header({ route }: { route: Route }) {
             </a>
           ))}
         </nav>
-        <span className="badge">{meta.network}</span>
         <button type="button" className="lang" onClick={toggle} aria-label={t('Switch language')}>
           {lang === 'en' ? 'EN / RU' : 'RU / EN'}
         </button>
-        <button type="button" className="button wallet" onClick={wallet}>
-          {account ?? t('Connect wallet')}
-        </button>
-        {account && (
-          <button
-            type="button"
-            className="chip"
-            onClick={() => disconnect().catch((error) => notify(errorText(error), true))}
-          >
-            {t('Log out')}
+        <div className="wallet-box">
+          <span className="net">{meta.network}</span>
+          <button type="button" className="wallet" onClick={wallet}>
+            {account ?? t('Connect wallet')}
           </button>
-        )}
+          {account && (
+            <button
+              type="button"
+              className="out"
+              title={t('Log out')}
+              aria-label={t('Log out')}
+              onClick={() => disconnect().catch((error) => notify(errorText(error), true))}
+            >
+              <Icon name="close" />
+            </button>
+          )}
+        </div>
       </header>
       {side && (
         <nav className="subnav wrap" aria-label={t(side.label)}>

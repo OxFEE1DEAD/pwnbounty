@@ -16,11 +16,7 @@ const steps: [string, string][] = [
     'Start from a template or upload your .wasm build. Set the starting balances and what ' +
       'counts as a break.',
   ],
-  [
-    '02 TEST RUN',
-    'Replay your honest cases and the known attacks with one CLI command, before any money ' +
-      'moves.',
-  ],
+  ['02 TEST RUN', 'See how the known attacks did on the same template, before any money moves.'],
   [
     '03 FUND',
     'Create the program: the reward goes to escrow and you keep your team key. The program ' +
@@ -30,6 +26,32 @@ const steps: [string, string][] = [
     '04 READ REPORTS',
     'Decrypt the winning attack with your team key. Nobody broke it? Take the reward back ' +
       'after the deadline.',
+  ],
+];
+const showcase: [string, string, string, string][] = [
+  [
+    'Freysa',
+    new URL('./showcase/freysa.png', import.meta.url).href,
+    'https://freysa.ai',
+    'An agent that guarded a prize pool. A player talked it into sending about $47k.',
+  ],
+  [
+    'Payman',
+    new URL('./showcase/payman.svg', import.meta.url).href,
+    'https://paymanai.com',
+    'Agents pay people for tasks from a wallet with a budget. A task text can push a payment past it.',
+  ],
+  [
+    'Coinbase AgentKit',
+    new URL('./showcase/agentkit.png', import.meta.url).href,
+    'https://github.com/coinbase/agentkit',
+    'Gives an agent its own onchain wallet. Any page or message it reads can try to spend it.',
+  ],
+  [
+    'NEAR Shade Agents',
+    new URL('./showcase/shade.png', import.meta.url).href,
+    'https://docs.near.org/ai/shade-agents/introduction',
+    'Agents in a TEE that sign transactions on many chains. The TEE proves the code, not what a prompt talked it into.',
   ],
 ];
 const labels: Record<string, string> = {
@@ -312,6 +334,24 @@ export function Projects() {
           </li>
         ))}
       </ol>
+      <section className="band">
+        <div className="eyebrow">{t('WHO IT IS FOR')}</div>
+        <h2>{t('Agents that move money.')}</h2>
+        <p className="muted">
+          {t(
+            'If your agent pays, trades or signs after reading text you do not control, put it under a bounty first. Examples only, we are not affiliated.',
+          )}
+        </p>
+        <div className="showcase">
+          {showcase.map(([name, logo, href, text]) => (
+            <a key={name} href={href} target="_blank" rel="noopener noreferrer">
+              <img src={logo} alt="" />
+              <strong>{name} ↗</strong>
+              <span>{t(text)}</span>
+            </a>
+          ))}
+        </div>
+      </section>
       <section className="band">
         <div className="section-head">
           <div>

@@ -141,8 +141,6 @@ const ru: Record<string, string> = {
   'What a sealed bounty can check today': 'Что sealed bounty проверяет уже сейчас',
   'Each result is a replay: a fresh local NEAR chain, the real code, one attack, and the judge that decides payouts.':
     'Каждый результат - воспроизведение: свежая локальная сеть NEAR, настоящий код, одна атака и тот же судья, что решает выплаты.',
-  'Measured {date} · NEAR sandbox {v} · judge v{j} · {p}. Reproduce: npm run cli coverage':
-    'Измерено {date} · NEAR sandbox {v} · судья v{j} · {p}. Повторить: npm run cli coverage',
   Next: 'Дальше',
   'OutLayer apps': 'Приложения OutLayer',
   'WASI apps that read and sign for NEAR accounts, replayed against the same local chain.':
@@ -165,8 +163,6 @@ const ru: Record<string, string> = {
   'Hunters see this hash on the bounty. Any change to code, balances or rules changes it.':
     'Охотники видят этот хеш в награде. Любое изменение кода, балансов или правил меняет его.',
   'Download program.json': 'Скачать program.json',
-  'Write your own attack in the same format and replay it: npm run cli world-run program.json attack.json':
-    'Напишите свою атаку в том же формате и прогоните её: npm run cli world-run program.json attack.json',
   'Download a sample attack': 'Скачать пример атаки',
   'Test run on your machine': 'Пробный прогон у себя',
   'once: the CLI and a local NEAR chain (Node 22+)':
@@ -706,8 +702,8 @@ const ru: Record<string, string> = {
   '04 READ REPORTS': '04 ОТЧЁТЫ',
   'Start from a template or upload your .wasm build. Set the starting balances and what counts as a break.':
     'Начните с шаблона или загрузите свою сборку .wasm. Задайте начальные балансы и что считается взломом.',
-  'Replay your honest cases and the known attacks with one CLI command, before any money moves.':
-    'Прогоните честные кейсы и известные атаки одной CLI-командой, до того как двинутся деньги.',
+  'See how the known attacks did on the same template, before any money moves.':
+    'Посмотрите, как известные атаки прошли на таком же шаблоне, до того как двинутся деньги.',
   'Create the program: the reward goes to escrow and you keep your team key. The program appears in the hacker catalog.':
     'Создайте программу: награда уходит в эскроу, ключ команды остаётся у вас. Программа появляется в каталоге для хакеров.',
   'Decrypt the winning attack with your team key. Nobody broke it? Take the reward back after the deadline.':
@@ -731,6 +727,18 @@ const ru: Record<string, string> = {
   'Known attacks, real results.': 'Известные атаки, настоящие результаты.',
   'LAUNCH A PROGRAM': 'ЗАПУСК ПРОГРАММЫ',
   'Put your agent under a bounty.': 'Поставьте агента под баунти.',
+  'WHO IT IS FOR': 'ДЛЯ КОГО ЭТО',
+  'Agents that move money.': 'Агенты, которые двигают деньги.',
+  'If your agent pays, trades or signs after reading text you do not control, put it under a bounty first. Examples only, we are not affiliated.':
+    'Если ваш агент платит, торгует или подписывает, прочитав чужой текст, сначала поставьте его под баунти. Это только примеры, мы с ними не связаны.',
+  'An agent that guarded a prize pool. A player talked it into sending about $47k.':
+    'Агент охранял призовой фонд. Игрок уговорил его отправить около $47k.',
+  'Agents pay people for tasks from a wallet with a budget. A task text can push a payment past it.':
+    'Агенты платят людям за задачи из кошелька с бюджетом. Текст задачи может вытолкнуть платёж за лимит.',
+  'Gives an agent its own onchain wallet. Any page or message it reads can try to spend it.':
+    'Даёт агенту свой onchain-кошелёк. Любая страница или сообщение, которое он читает, может попытаться его потратить.',
+  'Agents in a TEE that sign transactions on many chains. The TEE proves the code, not what a prompt talked it into.':
+    'Агенты в TEE подписывают транзакции в разных сетях. TEE доказывает код, но не то, на что агента уговорил промпт.',
   'Put your contract under a bounty.': 'Поставьте контракт под баунти.',
   'YOUR PROGRAM': 'ВАША ПРОГРАММА',
   'Your program': 'Ваша программа',

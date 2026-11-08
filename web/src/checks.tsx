@@ -192,11 +192,6 @@ function TargetCard({ target }: { target: Target }) {
           </button>
         ))}
       </div>
-      <p className="hint">
-        {t(
-          'Write your own attack in the same format and replay it: npm run cli world-run program.json attack.json',
-        )}
-      </p>
     </article>
   );
 }
@@ -268,17 +263,6 @@ export function Coverage() {
           )}
         </p>
       </div>
-      <p className="hint">
-        {t(
-          'Measured {date} · NEAR sandbox {v} · judge v{j} · {p}. Reproduce: npm run cli coverage',
-          {
-            date: new Date(coverage.measured).toLocaleString(),
-            v: coverage.engine.sandbox,
-            j: coverage.engine.judge,
-            p: coverage.platform,
-          },
-        )}
-      </p>
       <div className="targets">
         {coverage.targets.map((target) => (
           <TargetCard key={target.id} target={target} />

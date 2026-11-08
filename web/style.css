@@ -143,7 +143,7 @@ pre {
 .subnav .pixel { font-size: 12px; }
 .subnav .route-line { margin-left: auto; color: var(--muted); }
 
-.lang, .badge, .tag {
+.lang, .tag {
   font: 12px var(--pixel);
   letter-spacing: 1px;
   padding: 4px 8px;
@@ -182,7 +182,13 @@ pre {
 .button:disabled { opacity: .4; cursor: not-allowed; }
 .button.secondary { color: var(--ink); background: transparent; border-color: var(--ink); }
 .button.secondary:hover:not(:disabled) { color: var(--ink); background: var(--panel); opacity: 1; }
-.wallet { max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wallet-box { display: inline-flex; align-items: stretch; height: 44px; border: 1px solid var(--ink); }
+.wallet-box .net { display: flex; align-items: center; padding: 0 10px; font: 12px var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); border-right: 1px solid var(--line); }
+.wallet-box button { border: 0; background: transparent; color: var(--ink); font-size: 14px; font-weight: 600; cursor: pointer; }
+.wallet-box .wallet { max-width: 220px; padding: 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wallet-box .wallet:hover { background: var(--panel); }
+.wallet-box .out { display: flex; align-items: center; padding: 0 10px; color: var(--muted); border-left: 1px solid var(--line); }
+.wallet-box .out:hover { color: var(--fail); }
 
 .chip {
   border: 1px solid var(--line);
@@ -322,6 +328,12 @@ pre {
 .tile { display: grid; gap: 10px; align-content: start; padding: 20px; border: 1px solid var(--line); font-size: 13px; }
 .tile .tag { justify-self: start; }
 .tile strong { font-size: 15px; }
+.showcase { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 28px; }
+.showcase a { display: grid; gap: 10px; align-content: start; padding: 20px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 13px; transition: border-color .15s ease; }
+.showcase a:hover { border-color: var(--ink); }
+.showcase img { width: 48px; height: 48px; object-fit: cover; background: #FFFFFF; filter: grayscale(1); opacity: .75; transition: filter .2s ease, opacity .2s ease; }
+.showcase a:hover img { filter: none; opacity: 1; }
+.showcase span { color: var(--muted); }
 .targets { display: grid; gap: 16px; padding-bottom: 48px; }
 .target h3 { margin: 4px 0; }
 .target.next { border-style: dashed; }

@@ -19,12 +19,60 @@ const notes = {
     'The verifier runs on OutLayer. Confidential model inference is not confirmed yet. ' +
     'Check the evidence before a private submission.',
 };
-const targets = [
-  ['CONTRACT', 'Vault', 'bug caught, fix held'],
-  ['TOKEN', 'wrap.near', '3 attacks held'],
-  ['INTENTS', 'intents.near', '3 attacks held'],
-  ['AGENT WALLET', 'Agent wallet', 'scoped key held'],
-  ['AI AGENT', 'Invoice agent', 'guarded agent paid 0'],
+const incidents: [string, string, string, string, string, string, string][] = [
+  [
+    'Grok × Bankr',
+    new URL('./showcase/bankr.png', import.meta.url).href,
+    'May 2026',
+    '~$150-200k',
+    'An X post hid an order in Morse code. Grok decoded it and the wallet bot sent the tokens.',
+    'OECD.AI',
+    'https://oecd.ai/en/incidents/2026-05-04-4a73',
+  ],
+  [
+    'Lobstar Wilde',
+    '',
+    'Feb 2026',
+    '~$250k',
+    'Asked for a 4 SOL tip, the trading agent sent its whole token stash to a stranger.',
+    'Cointelegraph',
+    'https://cointelegraph.com/news/openai-employee-s-ai-agent-accidentally-sent-442k-to-beggar',
+  ],
+  [
+    'AIXBT',
+    new URL('./showcase/aixbt.svg', import.meta.url).href,
+    'Mar 2025',
+    '55.5 ETH ~$106k',
+    'An attacker got into the operator dashboard and queued two prompts. The agent paid out.',
+    'AI Incident Database',
+    'https://incidentdatabase.ai/cite/1003',
+  ],
+  [
+    'Freysa',
+    new URL('./showcase/freysa.png', import.meta.url).href,
+    'Nov 2024',
+    '~$47k',
+    'A game agent was told never to release its prize pool. A player argued it into the transfer.',
+    'OECD.AI',
+    'https://oecd.ai/en/incidents/2024-11-29-2e31',
+  ],
+];
+const prices: [string, string, string][] = [
+  [
+    'YOU PAY',
+    'Only for a proved break',
+    'The reward waits in escrow. No break by the deadline, it comes back.',
+  ],
+  [
+    'YOU SKIP',
+    'Triage of junk reports',
+    'Every attack is replayed. A report that breaks nothing costs you nothing.',
+  ],
+  [
+    'YOU KEEP',
+    'The exploit private',
+    'The report is encrypted to your team key. Only the verdict is public.',
+  ],
 ];
 
 export function trustNotes(meta: Meta): string[] {
@@ -292,12 +340,6 @@ function Numbers({ entries, height }: { entries: Entry[]; height: bigint }) {
           </div>
         ))}
       </section>
-      <p className="hint">
-        {t('{network} · read from {contract} at the last final block', {
-          network: meta.network,
-          contract: meta.contract,
-        })}
-      </p>
     </>
   );
 }
@@ -347,22 +389,44 @@ function HowItWorks() {
   );
 }
 
-function Targets() {
+function Why() {
   const t = useT();
   return (
-    <section id="evidence" className="band">
-      <div className="eyebrow">{t('ALREADY TESTED')}</div>
-      <h2>{t('Contracts, tokens, intents, AI agents.')}</h2>
+    <section id="why" className="band">
+      <div className="eyebrow">{t('REAL INCIDENTS')}</div>
+      <h2>{t('Agents already lost money.')}</h2>
+      <p className="muted">
+        {t(
+          'Each break below cost more than a bounty. Here you pay only the reward you set, and only when someone proves a break.',
+        )}
+      </p>
+      <div className="showcase">
+        {incidents.map(([name, logo, when, loss, text, source, href]) => (
+          <a key={name} href={href} target="_blank" rel="noopener noreferrer">
+            <span className="logo">
+              {logo ? <img src={logo} alt="" /> : <Icon name="coins" size={28} />}
+            </span>
+            <span className="when">
+              {name} · {t(when)}
+            </span>
+            <b className="loss">{loss}</b>
+            <span>{t(text)}</span>
+            <span className="source">{source} ↗</span>
+          </a>
+        ))}
+      </div>
+      <p className="hint">
+        {t('Losses as reported at the time. Sources differ on exact amounts.')}
+      </p>
       <div className="tiles">
-        {targets.map(([kind, title, result]) => (
-          <div key={title} className="tile">
-            <span className="tag">{t(kind!)}</span>
-            <strong>{t(title!)}</strong>
-            <span className="muted">{t(result!)}</span>
+        {prices.map(([tag, title, text]) => (
+          <div key={tag} className="tile">
+            <span className="tag">{t(tag)}</span>
+            <strong>{t(title)}</strong>
+            <span className="muted">{t(text)}</span>
           </div>
         ))}
       </div>
-      <a href="#/docs/coverage">{t('All results →')}</a>
     </section>
   );
 }
@@ -385,7 +449,7 @@ export function Landing() {
         </p>
       )}
       <HowItWorks />
-      <Targets />
+      <Why />
     </div>
   );
 }

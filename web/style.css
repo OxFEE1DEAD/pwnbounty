@@ -44,6 +44,8 @@
   --fail: #FF7A6B;
   --fail-bg: #220E0B;
   --ok: #6FCF97;
+  --hack: #FF5FB5;
+  --hack-ink: #0A0A0A;
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
   --pixel: Silkscreen, var(--mono);
   font: 15px/1.6 var(--mono);
@@ -67,6 +69,8 @@
     --fail: #B3261E;
     --fail-bg: #FDECEA;
     --ok: #1E7B45;
+    --hack: #C2187A;
+    --hack-ink: #FFFFFF;
     color-scheme: light;
   }
 }
@@ -269,6 +273,14 @@ pre {
 }
 
 .door-button:hover { color: var(--inv-ink); opacity: .85; }
+.door-button:not(.secondary) { color: var(--hack-ink); background: var(--hack); border-color: var(--hack); }
+.door-button:not(.secondary):hover { color: var(--hack-ink); }
+main[data-side='bug'] .button:not(.secondary) { color: var(--hack-ink); background: var(--hack); border-color: var(--hack); }
+main[data-side='bug'] .button.secondary { border-color: var(--hack); }
+main[data-side='bug'] .chip.current { border-color: var(--hack); }
+main[data-side='bug'] .tag.open { color: var(--hack-ink); background: var(--hack); border-color: var(--hack); }
+.top nav a .icon:first-child { transition: color .15s ease; }
+.top nav a[href='#/programs'] .icon, .footer .hack { color: var(--hack); }
 .door-button.secondary { background: transparent; color: var(--ink); border-color: var(--ink); }
 .door-button.secondary:hover { color: var(--ink); background: var(--panel); opacity: 1; }
 .door-button b { display: block; font: 18px var(--pixel); letter-spacing: 1px; }

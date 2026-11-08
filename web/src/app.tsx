@@ -340,15 +340,14 @@ function Footer() {
       <a href={chain.accountUrl(meta.contract)} {...external}>
         {t('Inspect the contract ↗')}
       </a>
-      <span title={meta.signing_public_key}>
-        {t('Verifier key')} {meta.signing_public_key.slice(0, 8)}…
-      </span>
       <a href="#/docs">{t('Docs')}</a>
       <a href="#/docs/verify">{t('How to check a verdict')}</a>
       <a href={repository} {...external}>
         {t('Read the code ↗')}
       </a>
-      <a href="#/programs">{t('Start hunting →')}</a>
+      <a className="hack" href="#/programs">
+        {t('Start hunting →')}
+      </a>
       <a href="#/projects/new">{t('Launch a bounty →')}</a>
       <span className="pixel">PWNBOUNTY</span>
     </footer>
@@ -392,7 +391,7 @@ function Shell({ meta }: { meta: Meta }) {
   return (
     <EnvContext.Provider value={env}>
       <Header route={route} />
-      <main>
+      <main data-side={sideOf(route)?.icon}>
         {route === 'home' && <Landing />}
         <div hidden={!hunting}>
           <Hunt visible={hunting} program={route === 'program' ? id : undefined} />

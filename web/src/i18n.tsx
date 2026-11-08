@@ -578,8 +578,6 @@ const ru: Record<string, string> = {
   'paid to hackers': 'выплачено хакерам',
   'breaks proved': 'взломов доказано',
   'Live numbers': 'Живые цифры',
-  '{network} · read from {contract} at the last final block':
-    '{network} · прочитано из {contract} на последнем финальном блоке',
   'HOW IT WORKS': 'КАК ЭТО РАБОТАЕТ',
   'Four steps. One frozen rule.': 'Четыре шага. Одно зафиксированное правило.',
   'Choose your side': 'Выберите сторону',
@@ -588,7 +586,6 @@ const ru: Record<string, string> = {
   'Each of these already went through our judge on known attacks. Below is what it found.':
     'Каждый из них уже прошёл через нашего судью на известных атаках. Ниже то, что он нашёл.',
   'Full results, case by case →': 'Все результаты по кейсам →',
-  'Verifier key': 'Ключ верификатора',
   'Sealed. Save the file, then commit it on NEAR.':
     'Запечатано. Сохраните файл, затем запишите заявку в NEAR.',
   'Save sealed-report-{id}.json': 'Сохранить sealed-report-{id}.json',
@@ -737,8 +734,20 @@ const ru: Record<string, string> = {
   'Put your agent under a bounty.': 'Поставьте агента под баунти.',
   'REAL INCIDENTS': 'РЕАЛЬНЫЕ СЛУЧАИ',
   'Agents already lost money.': 'Агенты уже теряли деньги.',
-  'Each one moved funds after trusting text it should not have. A bounty finds that before an attacker does.':
-    'Каждый отправил деньги, поверив тексту, которому верить было нельзя. Баунти находит такое раньше атакующего.',
+  'Each break below cost more than a bounty. Here you pay only the reward you set, and only when someone proves a break.':
+    'Каждый такой взлом обошёлся дороже баунти. Здесь вы платите только назначенную награду и только за доказанный взлом.',
+  'YOU PAY': 'ВЫ ПЛАТИТЕ',
+  'Only for a proved break': 'Только за доказанный взлом',
+  'The reward waits in escrow. No break by the deadline, it comes back.':
+    'Награда ждёт в эскроу. Нет взлома к сроку - она возвращается.',
+  'YOU SKIP': 'ВЫ НЕ ДЕЛАЕТЕ',
+  'Triage of junk reports': 'Разбор мусорных отчётов',
+  'Every attack is replayed. A report that breaks nothing costs you nothing.':
+    'Каждая атака воспроизводится. Отчёт без взлома вам ничего не стоит.',
+  'YOU KEEP': 'ВЫ СОХРАНЯЕТЕ',
+  'The exploit private': 'Эксплойт в тайне',
+  'The report is encrypted to your team key. Only the verdict is public.':
+    'Отчёт зашифрован ключом команды. Публичен только вердикт.',
   'May 2026': 'май 2026',
   'Feb 2026': 'фев 2026',
   'Mar 2025': 'мар 2025',
@@ -902,15 +911,7 @@ const ru: Record<string, string> = {
   '↑ signed verdict': '↑ подписанный вердикт',
   VERIFIER: 'ВЕРИФИКАТОР',
   'replays the attack': 'воспроизводит атаку',
-  'ALREADY TESTED': 'УЖЕ ПРОВЕРЕНО',
-  'Contracts, tokens, intents, AI agents.': 'Контракты, токены, интенты, ИИ-агенты.',
   Vault: 'Хранилище',
-  'Invoice agent': 'Агент по счетам',
-  'bug caught, fix held': 'баг пойман, исправление выдержало',
-  '3 attacks held': 'выдержал 3 атаки',
-  'scoped key held': 'ограниченный ключ выдержал',
-  'guarded agent paid 0': 'защищённый агент заплатил 0',
-  'All results →': 'Все результаты →',
 };
 const prefixes = Object.keys(ru).filter((key) => /[ #]$/.test(key));
 const storageKey = 'sealed-bounty/lang/1';

@@ -5,7 +5,6 @@ import { context, errorText, useAsync, useEnv, type TeamDraft } from './env.js';
 import type { ChainReader, VerifierApi } from './ports.js';
 import { useT } from './i18n.js';
 import { CoverageTable } from './checks.js';
-import { Icon } from './icons.js';
 
 const lead =
   'Write down what a break of your contract or agent looks like. Hackers attack it, a verifier ' +
@@ -27,44 +26,6 @@ const steps: [string, string][] = [
     '04 READ REPORTS',
     'Decrypt the winning attack with your team key. Nobody broke it? Take the reward back ' +
       'after the deadline.',
-  ],
-];
-const incidents: [string, string, string, string, string, string, string][] = [
-  [
-    'Grok × Bankr',
-    new URL('./showcase/bankr.png', import.meta.url).href,
-    'May 2026',
-    '~$150-200k',
-    'An X post hid an order in Morse code. Grok decoded it and the wallet bot sent the tokens.',
-    'OECD.AI',
-    'https://oecd.ai/en/incidents/2026-05-04-4a73',
-  ],
-  [
-    'Lobstar Wilde',
-    '',
-    'Feb 2026',
-    '~$250k',
-    'Asked for a 4 SOL tip, the trading agent sent its whole token stash to a stranger.',
-    'Cointelegraph',
-    'https://cointelegraph.com/news/openai-employee-s-ai-agent-accidentally-sent-442k-to-beggar',
-  ],
-  [
-    'AIXBT',
-    new URL('./showcase/aixbt.svg', import.meta.url).href,
-    'Mar 2025',
-    '55.5 ETH ~$106k',
-    'An attacker got into the operator dashboard and queued two prompts. The agent paid out.',
-    'AI Incident Database',
-    'https://incidentdatabase.ai/cite/1003',
-  ],
-  [
-    'Freysa',
-    new URL('./showcase/freysa.png', import.meta.url).href,
-    'Nov 2024',
-    '~$47k',
-    'A game agent was told never to release its prize pool. A player argued it into the transfer.',
-    'OECD.AI',
-    'https://oecd.ai/en/incidents/2024-11-29-2e31',
   ],
 ];
 const labels: Record<string, string> = {
@@ -347,33 +308,6 @@ export function Projects() {
           </li>
         ))}
       </ol>
-      <section className="band">
-        <div className="eyebrow">{t('REAL INCIDENTS')}</div>
-        <h2>{t('Agents already lost money.')}</h2>
-        <p className="muted">
-          {t(
-            'Each one moved funds after trusting text it should not have. A bounty finds that before an attacker does.',
-          )}
-        </p>
-        <div className="showcase">
-          {incidents.map(([name, logo, when, loss, text, source, href]) => (
-            <a key={name} href={href} target="_blank" rel="noopener noreferrer">
-              <span className="logo">
-                {logo ? <img src={logo} alt="" /> : <Icon name="coins" size={28} />}
-              </span>
-              <span className="when">
-                {name} · {t(when)}
-              </span>
-              <b className="loss">{loss}</b>
-              <span>{t(text)}</span>
-              <span className="source">{source} ↗</span>
-            </a>
-          ))}
-        </div>
-        <p className="hint">
-          {t('Losses as reported at the time. Sources differ on exact amounts.')}
-        </p>
-      </section>
       <section className="band">
         <div className="section-head">
           <div>

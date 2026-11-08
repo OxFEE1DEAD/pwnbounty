@@ -453,7 +453,7 @@ function AgentLaunch() {
               <dd>{name.trim() || <NotSet />}</dd>
             </>
           )}
-          <dt>{t('pays only')}</dt>
+          <dt>{t('allowed recipients')}</dt>
           <dd>{allowed.length ? allowed.join(', ') : <NotSet />}</dd>
           <dt>{t('per payment')}</dt>
           <dd>{t('≤ {n} test NEAR', { n: max })}</dd>

@@ -548,7 +548,7 @@ function Details({ id, program }: { id: string; program: Program }) {
           <Holders spec={program.spec} />
         ) : (
           <dl className="kv">
-            <dt>{t('pays only')}</dt>
+            <dt>{t('allowed recipients')}</dt>
             <dd>{program.config.policy.allowedRecipients.join(', ')}</dd>
             <dt>{t('per payment')}</dt>
             <dd>{t('≤ {n} test NEAR', { n: program.config.policy.maxTransfer })}</dd>

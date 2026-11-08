@@ -826,7 +826,7 @@ const ru: Record<string, string> = {
   'test run, then the CLI': 'тестовый прогон и CLI',
   AGENT: 'АГЕНТ',
   name: 'название',
-  'pays only': 'платит только',
+  'allowed recipients': 'кому можно платить',
   'per payment': 'за платёж',
   'open for': 'открыта',
   '≤ {n} test NEAR': '≤ {n} тестовых NEAR',

@@ -88,7 +88,7 @@ const standard: Record<string, Param[]> = {
 };
 const ACCOUNT = /^[a-z0-9]+(?:[-_][a-z0-9]+)*\.test\.near$/;
 const FLOOR = '100000000000000000000000';
-const roles: Role[] = ['protected', 'neutral', 'attacker'];
+const roles: Role[] = ['protected', 'neutral'];
 const rpcs = { mainnet: 'https://free.rpc.fastnear.com', testnet: 'https://test.rpc.fastnear.com' };
 const sandbox =
   'https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore/Darwin-arm64/2.13.4/near-sandbox.tar.gz';
@@ -655,6 +655,27 @@ function StepCard({
 }) {
   const t = useT();
   const titles = { account: 'Account', deploy: 'Contract', call: 'Setup call', key: 'Key' };
+  if (step.op === 'account' && step.role === 'attacker')
+    return (
+      <div className="account-row">
+        <span className="kicker">{index + 1}</span>
+        <label className="field">
+          {t('Name')}
+          <input value={step.id} readOnly />
+        </label>
+        <label className="field">
+          {t('Role')}
+          <input value={t('attacker')} readOnly />
+        </label>
+        <Amount
+          label={t('Balance, NEAR')}
+          unit={NEAR}
+          value={step.near}
+          onChange={(near) => onChange({ ...step, near })}
+        />
+        <span />
+      </div>
+    );
   if (step.op === 'account')
     return (
       <div className="account-row">
@@ -1232,7 +1253,7 @@ export function WorldLaunch() {
         </div>
         <p className="hint">
           {t(
-            'Protected: its loss is a break. Attacker: the hunter acts as it. Neutral: just there.',
+            'Protected: its loss is a break. Neutral: just there. The attacker is a stand-in: any hunter plays it here, with its sub-accounts and keys. Only its starting balance matters; the reward goes to the wallet that sends the attack.',
           )}
         </p>
       </section>

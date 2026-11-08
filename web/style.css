@@ -480,6 +480,7 @@ input[aria-invalid='true'] { border-color: var(--fail); }
 .account-row label.field { margin: 0; font-size: 0; }
 .account-row label.field > * { margin-top: 0; font-size: 14px; }
 .account-row .chip { height: 46px; }
+.account-row input[readonly] { color: var(--muted); border-style: dashed; }
 .account-head { margin-top: 12px; color: var(--muted); font-size: 12px; }
 .step-list { display: grid; gap: 12px; }
 .step-list:empty { display: none; }

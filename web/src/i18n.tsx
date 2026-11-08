@@ -832,8 +832,8 @@ const ru: Record<string, string> = {
   account: 'аккаунт',
   role: 'роль',
   '+ Add account': '+ Добавить аккаунт',
-  'Protected: its loss is a break. Attacker: the hunter acts as it. Neutral: just there.':
-    'Защищённый: его потеря - взлом. Атакующий: от его имени действует хакер. Нейтральный: просто есть.',
+  'Protected: its loss is a break. Neutral: just there. The attacker is a stand-in: any hunter plays it here, with its sub-accounts and keys. Only its starting balance matters; the reward goes to the wallet that sends the attack.':
+    'Защищённый: его потеря - взлом. Нейтральный: просто есть. Атакующий - подставной аккаунт: его играет любой хакер вместе с его субаккаунтами и ключами. Важен только стартовый баланс, награда уходит на кошелёк, который прислал атаку.',
   'KEYS GIVEN TO THE ATTACKER': 'КЛЮЧИ АТАКУЮЩЕГО',
   '+ Give a key': '+ Выдать ключ',
   'The hunter signs the attack with these keys.': 'Этими ключами хакер подписывает атаку.',

@@ -329,12 +329,11 @@ main[data-side='tools'] .chip.current { border-color: var(--info); }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .stat { display: flex; flex-direction: column; gap: 4px; padding: 28px 24px 24px; min-width: 0; }
 .stat + .stat { border-left: 1px solid var(--line); }
-.stat strong { font: 400 44px/1 var(--pixel); overflow-wrap: anywhere; }
+.stat strong { font: 400 clamp(28px, 3.2vw, 44px)/1 var(--pixel); white-space: nowrap; overflow: hidden; }
 .stat > span { color: var(--muted); font-size: 13px; }
 .stat:nth-child(1) strong { color: var(--info); }
 .stat:nth-child(2) strong { color: var(--hack); }
 .stat:nth-child(3) strong { color: var(--ok); }
-.stat:nth-child(4) strong { color: var(--warn); }
 
 .payout-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
 .payout-head span { color: var(--muted); font-size: 13px; }
@@ -364,7 +363,7 @@ main[data-side='tools'] .chip.current { border-color: var(--info); }
 .showcase a:hover .logo { filter: none; opacity: 1; }
 .showcase a > span { color: var(--muted); }
 .showcase .when { color: var(--ink); font-weight: 600; }
-.showcase .loss { font: 22px var(--pixel); letter-spacing: 1px; color: var(--warn); white-space: nowrap; overflow: hidden; }
+.showcase .loss { font: 22px var(--pixel); letter-spacing: 1px; color: var(--hack); white-space: nowrap; overflow: hidden; }
 .showcase .source { align-self: end; font-size: 12px; text-decoration: underline; }
 .targets { display: grid; gap: 16px; padding-bottom: 48px; }
 .target h3 { margin: 4px 0; }

@@ -276,14 +276,19 @@ function AgentLaunch() {
       <Recipients list={allowed} onChange={setAllowed} />
       <div className="pair">
         <label className="field">
-          {t('Max per payment, test tokens')}
+          {t('Max per payment, test NEAR')}
           <input value={max} inputMode="numeric" onChange={(e) => setMax(e.target.value)} />
         </label>
         <label className="field">
-          {t('Agent wallet at the start, test tokens')}
+          {t('Agent wallet at the start, test NEAR')}
           <input value={balance} inputMode="numeric" onChange={(e) => setBalance(e.target.value)} />
         </label>
       </div>
+      <p className="hint">
+        {t(
+          'Test NEAR exist only on the ledger inside the replay, in whole numbers. No real NEAR moves.',
+        )}
+      </p>
       <label className="check">
         <input type="checkbox" checked={enforce} onChange={(e) => setEnforce(e.target.checked)} />
         {t('The wallet itself blocks payments outside these rules')}
@@ -413,7 +418,7 @@ function AgentLaunch() {
             <NotSet />
           )}
         </p>
-        <p>{t('at most {max} per payment, wallet {balance} test tokens', { max, balance })}</p>
+        <p>{t('at most {max} per payment, wallet {balance} test NEAR', { max, balance })}</p>
         <p className="hint">
           {meta.model} · {t(enforce ? 'wallet limit on' : 'wallet limit off')}
         </p>

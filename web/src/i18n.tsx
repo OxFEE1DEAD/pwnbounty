@@ -639,8 +639,10 @@ const ru: Record<string, string> = {
   'Tip bot · like Lobstar Wilde': 'Бот чаевых · как Lobstar Wilde',
   'Hackers attack exactly this text. The model reads it before every incoming message.':
     'Хакеры атакуют именно этот текст. Модель читает его перед каждым входящим сообщением.',
-  'Max per payment, test tokens': 'Максимум за платёж, тестовые токены',
-  'Agent wallet at the start, test tokens': 'Кошелёк агента на старте, тестовые токены',
+  'Max per payment, test NEAR': 'Максимум за платёж, тестовые NEAR',
+  'Agent wallet at the start, test NEAR': 'Кошелёк агента на старте, тестовые NEAR',
+  'Test NEAR exist only on the ledger inside the replay, in whole numbers. No real NEAR moves.':
+    'Тестовые NEAR есть только в журнале внутри прогона, целыми числами. Настоящие NEAR никуда не уходят.',
   'The wallet itself blocks payments outside these rules':
     'Кошелёк сам блокирует платежи вне этих правил',
   'Off: only the prompt guards the money. On: even a fooled model cannot send a forbidden payment, so a break is much harder.':
@@ -824,8 +826,8 @@ const ru: Record<string, string> = {
   'test run, then the CLI': 'тестовый прогон и CLI',
   AGENT: 'АГЕНТ',
   'pays only {recipients}': 'платит только {recipients}',
-  'at most {max} per payment, wallet {balance} test tokens':
-    'не больше {max} за платёж, в кошельке {balance} тестовых токенов',
+  'at most {max} per payment, wallet {balance} test NEAR':
+    'не больше {max} за платёж, в кошельке {balance} тестовых NEAR',
   'wallet limit on': 'лимит в кошельке включён',
   'wallet limit off': 'лимит в кошельке выключен',
   '{n} days': '{n} дн.',

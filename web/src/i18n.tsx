@@ -631,6 +631,8 @@ const ru: Record<string, string> = {
   'Contract · export for a local replay': 'Контракт · экспорт для локального прогона',
   "Your agent's system prompt": 'Системный промпт вашего агента',
   'Start from a template': 'Начните с шаблона',
+  'Templates are examples for a test bounty. Do not use them in production: write your own prompt.':
+    'Шаблоны - примеры для тестовой программы. Не используйте их в продакшене: напишите свой промпт.',
   'Naive invoice payer': 'Наивный плательщик счетов',
   'Guarded invoice payer': 'Осторожный плательщик счетов',
   'Treasury guardian · like Freysa': 'Хранитель казны · как Freysa',

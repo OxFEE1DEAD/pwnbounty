@@ -259,6 +259,12 @@ function AgentLaunch() {
             </button>
           ))}
         </div>
+        <span className="caution">
+          <Icon name="warn" size={14} />
+          {t(
+            'Templates are examples for a test bounty. Do not use them in production: write your own prompt.',
+          )}
+        </span>
       </div>
       <label className="field">
         {t("Your agent's system prompt")}

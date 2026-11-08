@@ -144,7 +144,7 @@ function NotSet() {
 function AgentLaunch() {
   const { meta, chain, wallet, account, connect, notify } = useEnv(),
     t = useT();
-  const [name, setName] = useState('');
+  const [name, setName] = useState<string>();
   const [link, setLink] = useState('');
   const [prompt, setPrompt] = useState(templates[0]![1]);
   const [allowed, setAllowed] = useState(templates[0]![2]);
@@ -172,8 +172,10 @@ function AgentLaunch() {
   const program = canonical(config);
   const amount = yocto(reward);
   const period = BigInt(days || 0);
-  const about =
-    name.trim() || link.trim() ? name.trim() + (link.trim() && '\n' + link.trim()) : undefined;
+  const fallback = account ? t("{owner}'s Bug Bounty", { owner: account }) : '';
+  const title = (name ?? fallback).trim();
+  const custom = title === fallback ? '' : title;
+  const about = custom || link.trim() ? custom + (link.trim() && '\n' + link.trim()) : undefined;
   const bytes = new TextEncoder().encode(program + (about ?? '')).length;
   const deposit =
     amount &&
@@ -193,9 +195,11 @@ function AgentLaunch() {
         ? 'Pick how long it is open'
         : !team || !kept
           ? 'Make the team key and save it'
-          : link.trim() && !/^https:\/\/\S{3,200}$/.test(link.trim())
-            ? 'The link must start with https://'
-            : undefined,
+          : account && !title
+            ? 'Name the program'
+            : link.trim() && !/^https:\/\/\S{3,200}$/.test(link.trim())
+              ? 'The link must start with https://'
+              : undefined,
   ];
   const problem = problems.find(Boolean);
 
@@ -363,11 +367,11 @@ function AgentLaunch() {
     <section className="card">
       <div className="pair">
         <label className="field">
-          {t('Program name, optional')}
+          {t('Program name')}
           <input
-            value={name}
+            value={name ?? fallback}
             maxLength={80}
-            placeholder="Acme payouts agent"
+            placeholder={t("{owner}'s Bug Bounty", { owner: 'alias.near' })}
             onChange={(e) => setName(e.target.value)}
           />
         </label>

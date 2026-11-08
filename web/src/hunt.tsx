@@ -713,7 +713,10 @@ function Catalog({ visible }: { visible: boolean }) {
                 </span>
                 <span className={'tag ' + current}>{t(standingLabels[current])}</span>
               </span>
-              <strong>{aboutOf(entry.bounty).name ?? t(info?.title ?? 'Program')}</strong>
+              <strong>
+                {aboutOf(entry.bounty).name ??
+                  t("{owner}'s Bug Bounty", { owner: entry.bounty.owner })}
+              </strong>
               <span className="reward">{near(entry.bounty.reward)}</span>
               <span>
                 {current === 'open'
@@ -960,12 +963,12 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
           {t(world ? 'PROGRAM #{id} · CONTRACT' : 'PROGRAM #{id} · AI PAYMENT AGENT', { id })}
         </div>
         <h1>
-          {(data && aboutOf(data.entry.bounty).name) ??
-            t(
-              data?.program?.kind === 'world'
-                ? data.program.spec.title
-                : kinds[world ? 'world' : 'agent'].title,
-            )}
+          {data?.program?.kind === 'world'
+            ? t(data.program.spec.title)
+            : data
+              ? (aboutOf(data.entry.bounty).name ??
+                t("{owner}'s Bug Bounty", { owner: data.entry.bounty.owner }))
+              : t(kinds[world ? 'world' : 'agent'].title)}
         </h1>
         {data && aboutOf(data.entry.bounty).link && (
           <a

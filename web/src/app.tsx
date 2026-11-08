@@ -21,9 +21,11 @@ import { Hunt } from './hunt.js';
 import { Launch } from './launch.js';
 import { MyProgramsPage, Projects } from './projects.js';
 import { Account, Docs, Landing, repository } from './landing.js';
+import { Incidents } from './incidents.js';
 import '../style.css';
 
-type Route = 'home' | 'programs' | 'program' | 'me' | 'projects' | 'mine' | 'launch' | 'docs';
+type Route =
+  'home' | 'programs' | 'program' | 'me' | 'projects' | 'mine' | 'launch' | 'docs' | 'incidents';
 interface Place {
   route: Route;
   id?: string;
@@ -81,6 +83,7 @@ function readHash(): Place {
         : { route: 'projects', anchor: sub };
   if (name === 'me') return { route: 'me' };
   if (name === 'docs') return { route: 'docs', anchor: sub };
+  if (name === 'incidents') return { route: 'incidents' };
   return { route: 'home', anchor: name || undefined };
 }
 
@@ -401,6 +404,7 @@ function Shell({ meta }: { meta: Meta }) {
         {route === 'mine' && <MyProgramsPage />}
         {route === 'launch' && <Launch />}
         {route === 'docs' && <Docs />}
+        {route === 'incidents' && <Incidents />}
       </main>
       <Footer />
       <Toast note={note} close={() => setNote(undefined)} />

@@ -1,0 +1,1923 @@
+[
+  {
+    "id": "near-intents-2026-09",
+    "name": "NEAR Intents",
+    "date": "2026-09",
+    "kind": "bridge",
+    "chain": "BNB Chain",
+    "vector": "logic bug",
+    "loss_usd": 3870000,
+    "loss_text": "$3.87M (returned)",
+    "summary": "A bug between the Omni withdrawal service and the intents contract let an attacker pull 3.87M USDT from a BNB Chain vault.",
+    "preventable": "partly",
+    "why": "The flaw sat between off-chain withdrawal signing and the contract; the full root cause is not public.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/near-intents-rekt"
+    }
+  },
+  {
+    "id": "liquid-network-2026-09",
+    "name": "Liquid Network",
+    "date": "2026-09",
+    "kind": "bridge",
+    "chain": "Liquid",
+    "vector": "signature verification",
+    "loss_usd": 320000000,
+    "loss_text": "$320M (3,400 BTC came back)",
+    "summary": "A caching flaw in range-proof checks let unbacked L-BTC pass as real, and about 4,000 BTC left through normal peg-outs.",
+    "preventable": "yes",
+    "why": "Feeding forged proofs to the validation code is a direct, replayable test of the peg.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/liquid-network-rekt"
+    }
+  },
+  {
+    "id": "tectonic-2026-08",
+    "name": "Tectonic",
+    "date": "2026-08",
+    "kind": "contract",
+    "chain": "Cronos",
+    "vector": "oracle manipulation",
+    "loss_usd": 120400000,
+    "loss_text": "$120.4M ($9.2M after rollback)",
+    "summary": "An attacker pumped Tectonic's own thin governance token about 300x, posted it as collateral and borrowed $120M.",
+    "preventable": "yes",
+    "why": "Pumping a thinly traded collateral price is a standard lending-market test case.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/tectonic-rekt"
+    }
+  },
+  {
+    "id": "nesa-2026-08",
+    "name": "Nesa",
+    "date": "2026-08",
+    "kind": "contract",
+    "chain": "Cosmos",
+    "vector": "logic bug",
+    "loss_usd": 50000000,
+    "loss_text": "~$50-53M",
+    "summary": "A bug chain in the shared Cosmos EVM module let an attacker bridge out about a quarter of the NES supply via Hyperlane.",
+    "preventable": "yes",
+    "why": "A code flaw in a shared chain module, also hit on MANTRA, TAC and KiiChain; testable before launch.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/nesa-rekt"
+    }
+  },
+  {
+    "id": "bonzo-finance-2026-07",
+    "name": "Bonzo Finance",
+    "date": "2026-07",
+    "kind": "contract",
+    "chain": "Hedera",
+    "vector": "signature verification",
+    "loss_usd": 9050000,
+    "loss_text": "$9.05M",
+    "summary": "The oracle verifier accepted a malformed price proof, so $3 of SAUCE was valued high enough to borrow about $9M.",
+    "preventable": "yes",
+    "why": "Submitting a malformed signed price is a direct, replayable test of the verifier.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/bonzo-finance-rekt"
+    }
+  },
+  {
+    "id": "zscaler-agent-payments-2026-07",
+    "name": "Agent payment traps (Zscaler)",
+    "date": "2026-07",
+    "kind": "research",
+    "chain": "Ethereum",
+    "vector": "prompt injection",
+    "loss_usd": 0,
+    "loss_text": "$0 (lab test)",
+    "summary": "Hidden text on live scam pages told browsing agents to pay a fake $3 fee in ETH; four tested models paid.",
+    "preventable": "yes",
+    "why": "A recipient allowlist tested with poisoned pages shows whether the agent pays unknown addresses.",
+    "source": {
+      "name": "InfoWorld",
+      "url": "https://www.infoworld.com/article/4193403/ai-agents-fall-for-indirect-prompt-injection-traps-2.html"
+    }
+  },
+  {
+    "id": "gravity-bridge-2026-05",
+    "name": "Gravity Bridge",
+    "date": "2026-05",
+    "kind": "bridge",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 5400000,
+    "loss_text": "$5.4M",
+    "summary": "A fake token name with real Ethereum addresses embedded in it fooled the bridge's token registry into releasing custody funds.",
+    "preventable": "yes",
+    "why": "Crafted denom strings are input-validation cases any bounty hunter would try.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/gravity-bridge-rekt"
+    }
+  },
+  {
+    "id": "bankr-wallets-2026-05",
+    "name": "Bankr",
+    "date": "2026-05",
+    "kind": "agent",
+    "chain": "Base",
+    "vector": "prompt injection",
+    "loss_usd": 440000,
+    "loss_text": "~$385-440k",
+    "summary": "An attacker abused the trust link between Grok and the Bankr bot to sign transfers from 14 user wallets; Bankr froze trading.",
+    "preventable": "partly",
+    "why": "Reported as agent-to-agent prompt abuse, but the root cause is unconfirmed and a key leak was not ruled out.",
+    "source": {
+      "name": "Cointelegraph",
+      "url": "https://cointelegraph.com/news/bankr-disables-transactions-after-14-wallets-hacked"
+    }
+  },
+  {
+    "id": "thorchain-2026-05",
+    "name": "THORChain",
+    "date": "2026-05",
+    "kind": "bridge",
+    "chain": "THORChain",
+    "vector": "key compromise",
+    "loss_usd": 10700000,
+    "loss_text": "$10.7M",
+    "summary": "A new node leaked key material from flawed GG20 threshold-signing rounds, rebuilt a vault key and swept the vault.",
+    "preventable": "partly",
+    "why": "The root cause was a known bug in signing code, but using it required a node in the active validator set.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/thorchain-rekt3"
+    }
+  },
+  {
+    "id": "grok-bankr-morse-2026-05",
+    "name": "Grok x Bankr",
+    "date": "2026-05",
+    "kind": "agent",
+    "chain": "Base",
+    "vector": "prompt injection",
+    "loss_usd": 175000,
+    "loss_text": "~$150-200k",
+    "summary": "A Morse-code post got Grok to relay a transfer order to Bankrbot, which sent 3 billion DRB tokens from Grok's wallet.",
+    "preventable": "yes",
+    "why": "A spending-rule test with encoded or relayed instructions shows the bot obeys text as commands.",
+    "source": {
+      "name": "OECD.AI",
+      "url": "https://oecd.ai/en/incidents/2026-05-04-4a73"
+    }
+  },
+  {
+    "id": "kelpdao-2026-04",
+    "name": "KelpDAO",
+    "date": "2026-04",
+    "kind": "bridge",
+    "chain": "Ethereum",
+    "vector": "signature verification",
+    "loss_usd": 290000000,
+    "loss_text": "~$290M",
+    "summary": "False data fed to the lone LayerZero verifier for rsETH released 116,500 rsETH, which was then used as Aave collateral.",
+    "preventable": "partly",
+    "why": "The 1-of-1 verifier setup was testable, but the attack ran through compromised off-chain RPC nodes.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/kelpdao-rekt"
+    }
+  },
+  {
+    "id": "rhea-finance-2026-04",
+    "name": "Rhea Finance",
+    "date": "2026-04",
+    "kind": "contract",
+    "chain": "NEAR",
+    "vector": "logic bug",
+    "loss_usd": 18400000,
+    "loss_text": "$7.6-18.4M",
+    "summary": "Rhea's margin engine accepted a fake swap route through attacker-made pools, so positions borrowed real assets against nothing.",
+    "preventable": "yes",
+    "why": "A rule that no account may gain what the pool loses is broken by one replayable fake-route trade.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/rhea-finance-rekt"
+    }
+  },
+  {
+    "id": "hyperbridge-2026-04",
+    "name": "Hyperbridge",
+    "date": "2026-04",
+    "kind": "bridge",
+    "chain": "Polkadot",
+    "vector": "signature verification",
+    "loss_usd": 2500000,
+    "loss_text": "$2.5M",
+    "summary": "A missing check in MMR proof verification let an attacker mint 1 billion bridged DOT and drain the pools.",
+    "preventable": "yes",
+    "why": "Forged proofs against the verifier are the core test case of any bridge bounty.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/hyperbridge-rekt"
+    }
+  },
+  {
+    "id": "model-router-study-2026-04",
+    "name": "Malicious model API routers",
+    "date": "2026-04",
+    "kind": "research",
+    "chain": "Ethereum",
+    "vector": "other",
+    "loss_usd": 0,
+    "loss_text": "$0 (test wallet)",
+    "summary": "A study of 428 paid and free model API routers found some injecting tool calls, and one drained ETH from a test key.",
+    "preventable": "partly",
+    "why": "A policy enforced outside the model blocks injected payments, but a router that steals the key bypasses it.",
+    "source": {
+      "name": "arXiv",
+      "url": "https://arxiv.org/abs/2604.08407"
+    }
+  },
+  {
+    "id": "drift-2026-04",
+    "name": "Drift Protocol",
+    "date": "2026-04",
+    "kind": "contract",
+    "chain": "Solana",
+    "vector": "key compromise",
+    "loss_usd": 285000000,
+    "loss_text": "$285M",
+    "summary": "Misled multisig signers pre-signed admin transactions that the attacker later used, with a wash-traded fake token, to drain Drift.",
+    "preventable": "no",
+    "why": "Signers were socially engineered; the contracts did what valid admin signatures told them.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/drift-protocol-rekt"
+    }
+  },
+  {
+    "id": "venus-2026-03",
+    "name": "Venus Protocol",
+    "date": "2026-03",
+    "kind": "contract",
+    "chain": "BNB Chain",
+    "vector": "oracle manipulation",
+    "loss_usd": 3700000,
+    "loss_text": "$3.7M",
+    "summary": "After months of buying THE, an attacker bypassed the supply cap with a donation and pumped the price to borrow $3.7M.",
+    "preventable": "yes",
+    "why": "Cap bypass by direct donation and thin-market pumps are standard lending test cases.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/venus-protocol-rekt4"
+    }
+  },
+  {
+    "id": "solv-2026-03",
+    "name": "Solv Protocol",
+    "date": "2026-03",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "reentrancy",
+    "loss_usd": 2730000,
+    "loss_text": "$2.73M",
+    "summary": "A callback in an unaudited ERC-3525 reserve contract fired before balances settled, turning 135 BRO into 567 million.",
+    "preventable": "yes",
+    "why": "Reentrant minting through token callbacks is a textbook finding.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/solv-rekt"
+    }
+  },
+  {
+    "id": "yieldblox-2026-02",
+    "name": "YieldBlox",
+    "date": "2026-02",
+    "kind": "contract",
+    "chain": "Stellar",
+    "vector": "oracle manipulation",
+    "loss_usd": 10970000,
+    "loss_text": "$10.97M",
+    "summary": "One trade pushed an illiquid collateral token's oracle price 100x, and the attacker borrowed $10.97M against it.",
+    "preventable": "yes",
+    "why": "Thin-market oracle pumps are a standard lending-market test case.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/yieldblox-rekt"
+    }
+  },
+  {
+    "id": "lobstar-wilde-2026-02",
+    "name": "Lobstar Wilde",
+    "date": "2026-02",
+    "kind": "agent",
+    "chain": "Solana",
+    "vector": "agent error",
+    "loss_usd": 250000,
+    "loss_text": "~$250k ($441k in some reports)",
+    "summary": "An autonomous trading agent misread a request for a small donation and sent its entire LOBSTAR holding to a stranger.",
+    "preventable": "yes",
+    "why": "A per-transfer cap enforced and tested before launch would have blocked a whole-balance send.",
+    "source": {
+      "name": "OECD.AI",
+      "url": "https://oecd.ai/en/incidents/2026-02-23-5c52"
+    }
+  },
+  {
+    "id": "moonwell-2026-02",
+    "name": "Moonwell",
+    "date": "2026-02",
+    "kind": "contract",
+    "chain": "Base",
+    "vector": "logic bug",
+    "loss_usd": 1780000,
+    "loss_text": "$1.78M",
+    "summary": "A new cbETH price feed skipped the ETH/USD step and priced it near $1, so bots liquidated borrowers and left bad debt.",
+    "preventable": "yes",
+    "why": "A replayed liquidation against the new feed would expose the mispricing before it went live.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/moonwell-rekt"
+    }
+  },
+  {
+    "id": "saga-2026-01",
+    "name": "SagaEVM",
+    "date": "2026-01",
+    "kind": "bridge",
+    "chain": "Saga",
+    "vector": "logic bug",
+    "loss_usd": 7000000,
+    "loss_text": "$7M",
+    "summary": "A helper contract fed forged IBC messages to SagaEVM's precompile, minting $7M of Saga Dollar with no collateral.",
+    "preventable": "yes",
+    "why": "Forged cross-chain messages are a direct, replayable bounty test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/saga-rekt"
+    }
+  },
+  {
+    "id": "makina-2026-01",
+    "name": "Makina",
+    "date": "2026-01",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "oracle manipulation",
+    "loss_usd": 4130000,
+    "loss_text": "$4.13M",
+    "summary": "A flash loan skewed Curve spot prices that Makina's share pricing trusted, locking in profit in one transaction.",
+    "preventable": "yes",
+    "why": "Its audit scope excluded exactly this oracle case; an open bounty with a value rule would not.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/makina-rekt"
+    }
+  },
+  {
+    "id": "truebit-2026-01",
+    "name": "Truebit",
+    "date": "2026-01",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "math overflow",
+    "loss_usd": 26200000,
+    "loss_text": "$26.2M",
+    "summary": "An unchecked overflow in a five-year-old bonding curve let an attacker mint TRU almost free and burn it for 8,535 ETH.",
+    "preventable": "yes",
+    "why": "Overflow in mint pricing falls to basic adversarial input testing.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/truebit-rekt"
+    }
+  },
+  {
+    "id": "yearn-yeth-2025-11",
+    "name": "Yearn yETH",
+    "date": "2025-11",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "math overflow",
+    "loss_usd": 9000000,
+    "loss_text": "~$9M",
+    "summary": "An unchecked underflow in a forgotten yETH stableswap let an attacker deposit dust and mint an absurd amount of yETH.",
+    "preventable": "yes",
+    "why": "Breaking a pool invariant with edge-case deposits is exactly what adversarial testing does.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/yearn-rekt3"
+    }
+  },
+  {
+    "id": "balancer-v2-2025-11",
+    "name": "Balancer V2",
+    "date": "2025-11",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 128000000,
+    "loss_text": "$128M",
+    "summary": "A rounding direction in stable-pool scaling let batched swaps skew pool prices and drain pools on several chains in an hour.",
+    "preventable": "yes",
+    "why": "Precision attacks via crafted batch swaps are replayable and break a simple value rule.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/balancer-rekt2"
+    }
+  },
+  {
+    "id": "bunni-2025-09",
+    "name": "Bunni",
+    "date": "2025-09",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 8400000,
+    "loss_text": "$8.4M",
+    "summary": "A rounding error in Bunni's withdrawal math let an attacker shrink pool balances and profit from two pools.",
+    "preventable": "yes",
+    "why": "Rounding abuse through repeated small withdrawals is a standard adversarial test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/bunni-rekt"
+    }
+  },
+  {
+    "id": "guardio-agent-shopping-2025-08",
+    "name": "AI browser agent (Guardio test)",
+    "date": "2025-08",
+    "kind": "research",
+    "chain": "off-chain",
+    "vector": "agent error",
+    "loss_usd": 0,
+    "loss_text": "$0 (lab test)",
+    "summary": "Told to buy a watch, an AI browser agent checked out on a fake shop and autofilled saved card details without asking.",
+    "preventable": "yes",
+    "why": "A merchant allowlist tested against fake shops would catch the agent paying unvetted sites.",
+    "source": {
+      "name": "Guardio Labs",
+      "url": "https://guard.io/labs/scamlexity-we-put-agentic-ai-browsers-to-the-test-they-clicked-they-paid-they-failed"
+    }
+  },
+  {
+    "id": "gmx-v1-2025-07",
+    "name": "GMX V1",
+    "date": "2025-07",
+    "kind": "contract",
+    "chain": "Arbitrum",
+    "vector": "reentrancy",
+    "loss_usd": 42000000,
+    "loss_text": "$42M",
+    "summary": "A cross-contract reentrancy let the attacker skew global short averages and redeem GLP at an inflated price.",
+    "preventable": "yes",
+    "why": "Cross-contract reentrancy against a value rule is replayable before launch.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/gmx-rekt"
+    }
+  },
+  {
+    "id": "resupply-2025-06",
+    "name": "Resupply",
+    "date": "2025-06",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "oracle manipulation",
+    "loss_usd": 9800000,
+    "loss_text": "$9.6-9.8M",
+    "summary": "A donation to a nearly empty vault blew up its share price, so a tiny deposit backed a $9.8M loan.",
+    "preventable": "yes",
+    "why": "Empty-vault donation attacks are a well-known, easily replayed test case.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/resupplyfi-rekt"
+    }
+  },
+  {
+    "id": "meta-pool-2025-06",
+    "name": "Meta Pool (mpETH)",
+    "date": "2025-06",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "access control",
+    "loss_usd": 132000,
+    "loss_text": "$132k ($27M minted)",
+    "summary": "An inherited ERC-4626 mint path let anyone mint mpETH for free; low liquidity capped the cash-out at about $132k.",
+    "preventable": "yes",
+    "why": "Calling every inherited public function is a basic adversarial check.",
+    "source": {
+      "name": "Cointelegraph",
+      "url": "https://cointelegraph.com/news/meta-pool-exploiter-flees-132k-in-27-million-hack"
+    }
+  },
+  {
+    "id": "cork-2025-05",
+    "name": "Cork Protocol",
+    "date": "2025-05",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "access control",
+    "loss_usd": 12000000,
+    "loss_text": "$12M",
+    "summary": "Cork's Uniswap v4 hook took calls and custom data from anyone, so a fake market drained $12M of wstETH.",
+    "preventable": "yes",
+    "why": "An unguarded hook entry point is found by calling it directly with crafted data.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/cork-protocol-rekt"
+    }
+  },
+  {
+    "id": "cetus-2025-05",
+    "name": "Cetus",
+    "date": "2025-05",
+    "kind": "contract",
+    "chain": "Sui",
+    "vector": "math overflow",
+    "loss_usd": 223000000,
+    "loss_text": "$223M ($162M frozen)",
+    "summary": "A faulty overflow check in a math library let an attacker add huge liquidity for a token deposit and drain pools.",
+    "preventable": "yes",
+    "why": "Boundary inputs to liquidity math are a direct, replayable test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/cetus-rekt"
+    }
+  },
+  {
+    "id": "loopscale-2025-04",
+    "name": "Loopscale",
+    "date": "2025-04",
+    "kind": "contract",
+    "chain": "Solana",
+    "vector": "oracle manipulation",
+    "loss_usd": 5800000,
+    "loss_text": "$5.8M",
+    "summary": "Sixteen days after launch, an attacker manipulated how Loopscale priced collateral and drained its USDC and SOL vaults.",
+    "preventable": "yes",
+    "why": "Collateral price manipulation is a standard pre-launch lending test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/loopscale-rekt"
+    }
+  },
+  {
+    "id": "kiloex-2025-04",
+    "name": "KiloEx",
+    "date": "2025-04",
+    "kind": "contract",
+    "chain": "BNB Chain",
+    "vector": "access control",
+    "loss_usd": 7500000,
+    "loss_text": "~$7.5M",
+    "summary": "Anyone could set KiloEx's price oracle, so the attacker opened and closed positions at fake prices on several chains.",
+    "preventable": "yes",
+    "why": "A missing permission on a price setter is found by simply calling it.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/kiloex-rekt"
+    }
+  },
+  {
+    "id": "abracadabra-2025-03",
+    "name": "Abracadabra",
+    "date": "2025-03",
+    "kind": "contract",
+    "chain": "Arbitrum",
+    "vector": "logic bug",
+    "loss_usd": 13000000,
+    "loss_text": "~$13M",
+    "summary": "A liquidation loophole in GMX-backed cauldrons let an attacker drain 6,260 ETH.",
+    "preventable": "yes",
+    "why": "State-accounting bugs around liquidation are replayable against a value rule.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/abracadabra-rekt2"
+    }
+  },
+  {
+    "id": "elizaos-memory-2025-03",
+    "name": "ElizaOS",
+    "date": "2025-03",
+    "kind": "research",
+    "chain": "Ethereum",
+    "vector": "memory injection",
+    "loss_usd": 0,
+    "loss_text": "$0 (testnet demo)",
+    "summary": "Researchers planted fake memories in ElizaOS agents so later prompts on another platform triggered unauthorized transfers.",
+    "preventable": "yes",
+    "why": "A frozen recipient rule tested with poisoned memory would flag transfers to unlisted addresses.",
+    "source": {
+      "name": "arXiv",
+      "url": "https://arxiv.org/abs/2503.16248"
+    }
+  },
+  {
+    "id": "aixbt-2025-03",
+    "name": "AIXBT",
+    "date": "2025-03",
+    "kind": "agent",
+    "chain": "Base",
+    "vector": "access control",
+    "loss_usd": 106200,
+    "loss_text": "55.5 ETH (~$106k)",
+    "summary": "An intruder in the AIXBT control dashboard queued two prompts that made the agent send 55.5 ETH from its wallet.",
+    "preventable": "partly",
+    "why": "The breach was outside the model, but the agent had no transfer limit that a pre-launch test would flag.",
+    "source": {
+      "name": "AI Incident Database",
+      "url": "https://incidentdatabase.ai/cite/1003"
+    }
+  },
+  {
+    "id": "1inch-fusion-2025-03",
+    "name": "1inch Fusion v1",
+    "date": "2025-03",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "math overflow",
+    "loss_usd": 5000000,
+    "loss_text": "~$5M",
+    "summary": "An integer overflow corrupted calldata in deprecated settlement code, letting an attacker drain resolver contracts.",
+    "preventable": "yes",
+    "why": "Malformed order data against settlement code is a replayable test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/1inch-rekt"
+    }
+  },
+  {
+    "id": "bybit-2025-02",
+    "name": "Bybit",
+    "date": "2025-02",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "other",
+    "loss_usd": 1430000000,
+    "loss_text": "~$1.43-1.5B",
+    "summary": "Tampered Safe wallet front-end code tricked Bybit signers into approving a contract swap that emptied an ETH cold wallet.",
+    "preventable": "no",
+    "why": "Signers were deceived by a hijacked interface; there was no contract bug to find.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/bybit-rekt"
+    }
+  },
+  {
+    "id": "zklend-2025-02",
+    "name": "zkLend",
+    "date": "2025-02",
+    "kind": "contract",
+    "chain": "Starknet",
+    "vector": "logic bug",
+    "loss_usd": 9570000,
+    "loss_text": "$9.57M",
+    "summary": "Rounding in zkLend's lending accumulator on a near-empty market let an attacker withdraw more than deposited.",
+    "preventable": "yes",
+    "why": "Precision abuse on empty markets is a known, replayable test case.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/zklend-rekt"
+    }
+  },
+  {
+    "id": "freysa-2024-11",
+    "name": "Freysa",
+    "date": "2024-11",
+    "kind": "agent",
+    "chain": "Base",
+    "vector": "prompt injection",
+    "loss_usd": 47000,
+    "loss_text": "~$47k (13.19 ETH)",
+    "summary": "After 481 failed tries, a player convinced the agent its payout function handled incoming deposits, releasing the prize pool.",
+    "preventable": "yes",
+    "why": "It was an open paid-attack game: adversarial prompts broke the never-pay rule, as a bounty would.",
+    "source": {
+      "name": "U.Today",
+      "url": "https://u.today/someone-just-tricked-ai-agent-into-sending-them-eth"
+    }
+  },
+  {
+    "id": "polter-2024-11",
+    "name": "Polter Finance",
+    "date": "2024-11",
+    "kind": "contract",
+    "chain": "Fantom",
+    "vector": "oracle manipulation",
+    "loss_usd": 8700000,
+    "loss_text": "$8.7M ($12M reported)",
+    "summary": "A newly listed BOO market priced collateral from a spot pool, so flash loans inflated it and the attacker borrowed everything.",
+    "preventable": "yes",
+    "why": "Spot-price collateral is the first thing an adversarial tester attacks.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/polter-finance-rekt"
+    }
+  },
+  {
+    "id": "radiant-2024-10",
+    "name": "Radiant Capital",
+    "date": "2024-10",
+    "kind": "contract",
+    "chain": "Arbitrum",
+    "vector": "key compromise",
+    "loss_usd": 53000000,
+    "loss_text": "$50-53M",
+    "summary": "Attackers holding compromised private keys took control of Radiant's contracts and drained over $53M from users.",
+    "preventable": "no",
+    "why": "Compromised signer devices, not a contract flaw.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/radiant-capital-rekt2"
+    }
+  },
+  {
+    "id": "penpie-2024-09",
+    "name": "Penpie",
+    "date": "2024-09",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "reentrancy",
+    "loss_usd": 27000000,
+    "loss_text": "$27M",
+    "summary": "An attacker registered a fake Pendle market and reentered reward harvesting to claim inflated rewards.",
+    "preventable": "yes",
+    "why": "Permissionless market registration plus reentrancy is replayable against a value rule.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/penpie-rekt"
+    }
+  },
+  {
+    "id": "lifi-2024-07",
+    "name": "LI.FI",
+    "date": "2024-07",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "access control",
+    "loss_usd": 9730000,
+    "loss_text": "$9.73M",
+    "summary": "A newly deployed facet passed unchecked calldata to external calls, letting the attacker spend users' token approvals.",
+    "preventable": "yes",
+    "why": "Arbitrary-call bugs fall to the first crafted transaction a tester sends.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/lifi-jumper-rekt"
+    }
+  },
+  {
+    "id": "uwu-lend-2024-06",
+    "name": "UwU Lend",
+    "date": "2024-06",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "oracle manipulation",
+    "loss_usd": 19400000,
+    "loss_text": "$19.4M",
+    "summary": "Flash loans skewed pools behind UwU Lend's sUSDe price feed, letting the attacker borrow and liquidate at fake prices.",
+    "preventable": "yes",
+    "why": "Oracle built on manipulable pools is a standard pre-launch test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/uwulend-rekt"
+    }
+  },
+  {
+    "id": "velocore-2024-06",
+    "name": "Velocore",
+    "date": "2024-06",
+    "kind": "contract",
+    "chain": "Linea",
+    "vector": "logic bug",
+    "loss_usd": 6800000,
+    "loss_text": "$6.8M",
+    "summary": "A flaw in the fee math of Velocore's Balancer-style pool let a flash-loan attacker drain liquidity on Linea and zkSync.",
+    "preventable": "yes",
+    "why": "Fee-calculation edge cases are replayable against a value rule.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/velocore-rekt"
+    }
+  },
+  {
+    "id": "sonne-2024-05",
+    "name": "Sonne Finance",
+    "date": "2024-05",
+    "kind": "contract",
+    "chain": "Optimism",
+    "vector": "logic bug",
+    "loss_usd": 20000000,
+    "loss_text": "$20M",
+    "summary": "A new empty market went live before its safeguards, and a donation attack inflated its exchange rate to drain funds.",
+    "preventable": "yes",
+    "why": "The empty-market donation attack on Compound forks was well known and replayable.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/sonne-finance-rekt"
+    }
+  },
+  {
+    "id": "hedgey-2024-04",
+    "name": "Hedgey Finance",
+    "date": "2024-04",
+    "kind": "contract",
+    "chain": "Arbitrum",
+    "vector": "access control",
+    "loss_usd": 44700000,
+    "loss_text": "$44.7M",
+    "summary": "Missing input checks in campaign creation let an attacker grant himself token approvals and drain the claim contract.",
+    "preventable": "yes",
+    "why": "Unvalidated parameters that grant approvals are found by direct adversarial calls.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/hedgey-finance-rekt"
+    }
+  },
+  {
+    "id": "prisma-2024-03",
+    "name": "Prisma Finance",
+    "date": "2024-03",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "access control",
+    "loss_usd": 11600000,
+    "loss_text": "$11.6M",
+    "summary": "A trove migration zap trusted flash-loan callback data, letting an attacker move others' positions and take collateral.",
+    "preventable": "yes",
+    "why": "Unvalidated callback input is a direct, replayable test case.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/prismafi-rekt"
+    }
+  },
+  {
+    "id": "curio-2024-03",
+    "name": "Curio",
+    "date": "2024-03",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "governance attack",
+    "loss_usd": 16000000,
+    "loss_text": "$16M",
+    "summary": "A voting-power flaw in Curio's MakerDAO-based contracts let an attacker push through actions and mint CGT tokens.",
+    "preventable": "yes",
+    "why": "Governance privilege checks can be attacked and replayed before launch.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/curio-rekt"
+    }
+  },
+  {
+    "id": "woofi-2024-03",
+    "name": "WOOFi",
+    "date": "2024-03",
+    "kind": "contract",
+    "chain": "Arbitrum",
+    "vector": "oracle manipulation",
+    "loss_usd": 8500000,
+    "loss_text": "$8.5-8.75M",
+    "summary": "Flash-loan swaps moved WOOFi's own price feed on thin WOO liquidity, letting the attacker trade at a skewed price.",
+    "preventable": "yes",
+    "why": "Price-feed manipulation in contract logic is a standard pre-launch test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/woo-rekt"
+    }
+  },
+  {
+    "id": "seneca-2024-02",
+    "name": "Seneca",
+    "date": "2024-02",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "access control",
+    "loss_usd": 6400000,
+    "loss_text": "$6.4M",
+    "summary": "A public function allowed arbitrary calls from the contract, so the attacker spent users' token approvals.",
+    "preventable": "yes",
+    "why": "Arbitrary-call bugs fall to the first crafted transaction a tester sends.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/seneca-protocol-rekt"
+    }
+  },
+  {
+    "id": "orbit-bridge-2023-12",
+    "name": "Orbit Bridge",
+    "date": "2023-12",
+    "kind": "bridge",
+    "chain": "Ethereum",
+    "vector": "key compromise",
+    "loss_usd": 81500000,
+    "loss_text": "$81.5M",
+    "summary": "On New Year's Eve, an apparently compromised multisig withdrew stablecoins, WBTC and ETH from Orbit's Ethereum vault.",
+    "preventable": "no",
+    "why": "Signer keys were compromised; no contract bug was involved.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/orbit-bridge-rekt"
+    }
+  },
+  {
+    "id": "kyberswap-2023-11",
+    "name": "KyberSwap Elastic",
+    "date": "2023-11",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 48000000,
+    "loss_text": "$48M",
+    "summary": "A precision bug at tick boundaries let the attacker double-count liquidity and drain pools on six chains.",
+    "preventable": "yes",
+    "why": "Boundary-tick swaps are replayable and break a simple value rule.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/kyberswap-rekt"
+    }
+  },
+  {
+    "id": "heco-bridge-2023-11",
+    "name": "HECO Bridge",
+    "date": "2023-11",
+    "kind": "bridge",
+    "chain": "Ethereum",
+    "vector": "key compromise",
+    "loss_usd": 86600000,
+    "loss_text": "$86.6M",
+    "summary": "Attackers drained the HECO chain's Ethereum bridge on the same day HTX's hot wallet was hit.",
+    "preventable": "no",
+    "why": "Operator keys were compromised; no contract bug was involved.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/heco-htx-rekt"
+    }
+  },
+  {
+    "id": "exactly-2023-08",
+    "name": "Exactly Protocol",
+    "date": "2023-08",
+    "kind": "contract",
+    "chain": "Optimism",
+    "vector": "access control",
+    "loss_usd": 7200000,
+    "loss_text": "$7.2M",
+    "summary": "A periphery contract accepted an unchecked market address, letting a fake market move users' deposits.",
+    "preventable": "yes",
+    "why": "Passing a fake market address is a basic input-validation test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/exactly-protocol-rekt"
+    }
+  },
+  {
+    "id": "curve-vyper-2023-07",
+    "name": "Curve (Vyper bug)",
+    "date": "2023-07",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "reentrancy",
+    "loss_usd": 69000000,
+    "loss_text": "~$69M",
+    "summary": "A Vyper compiler bug broke reentrancy locks in several Curve pools, and attackers drained them with reentrant calls.",
+    "preventable": "yes",
+    "why": "Reentrancy tests on the deployed bytecode catch a broken lock, whatever caused it.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/curve-vyper-rekt"
+    }
+  },
+  {
+    "id": "multichain-2023-07",
+    "name": "Multichain",
+    "date": "2023-07",
+    "kind": "bridge",
+    "chain": "Ethereum",
+    "vector": "key compromise",
+    "loss_usd": 126300000,
+    "loss_text": "$126M",
+    "summary": "Locked bridge assets abruptly left Multichain's MPC addresses for unknown wallets, and the team said it did not know why.",
+    "preventable": "no",
+    "why": "Control of custody keys was lost off-chain; no contract bug to find.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/multichain-rekt2"
+    }
+  },
+  {
+    "id": "jimbos-2023-05",
+    "name": "Jimbos Protocol",
+    "date": "2023-05",
+    "kind": "contract",
+    "chain": "Arbitrum",
+    "vector": "flash loan",
+    "loss_usd": 7500000,
+    "loss_text": "$7.5M",
+    "summary": "The shift function had no slippage control, so a flash-loan attacker pumped JIMBO and forced liquidity moves at bad prices.",
+    "preventable": "yes",
+    "why": "Calling a public rebalance after moving the price is a direct, replayable test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/jimbo-rekt"
+    }
+  },
+  {
+    "id": "hundred-2023-04",
+    "name": "Hundred Finance",
+    "date": "2023-04",
+    "kind": "contract",
+    "chain": "Optimism",
+    "vector": "logic bug",
+    "loss_usd": 7400000,
+    "loss_text": "$7.4M",
+    "summary": "A donation to an empty market plus exchange-rate rounding let the attacker redeem more than he deposited.",
+    "preventable": "yes",
+    "why": "Empty-market donation attacks on Compound forks are replayable before launch.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/hundred-rekt2"
+    }
+  },
+  {
+    "id": "yearn-yusdt-2023-04",
+    "name": "Yearn yUSDT",
+    "date": "2023-04",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 11400000,
+    "loss_text": "$11.4M",
+    "summary": "A misconfigured legacy yUSDT vault let an attacker mint huge amounts of yUSDT and swap them for $11.4M of stablecoins.",
+    "preventable": "yes",
+    "why": "A misconfigured vault breaks a simple value rule on the first deposit-withdraw cycle.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/yearn2-rekt"
+    }
+  },
+  {
+    "id": "euler-2023-03",
+    "name": "Euler Finance",
+    "date": "2023-03",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 197000000,
+    "loss_text": "$197M",
+    "summary": "The donateToReserves function skipped a health check, so a flash-loaned position could self-liquidate at a profit.",
+    "preventable": "yes",
+    "why": "A rule that no account profits from bad debt is broken by one replayable transaction.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/euler-rekt"
+    }
+  },
+  {
+    "id": "platypus-2023-02",
+    "name": "Platypus Finance",
+    "date": "2023-02",
+    "kind": "contract",
+    "chain": "Avalanche",
+    "vector": "logic bug",
+    "loss_usd": 8500000,
+    "loss_text": "$8.5M",
+    "summary": "A flawed solvency check in emergency withdraw let a flash-loan attacker borrow USP and still pull his collateral out.",
+    "preventable": "yes",
+    "why": "Borrow-then-emergency-withdraw is a direct, replayable test sequence.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/platypus-finance-rekt"
+    }
+  },
+  {
+    "id": "bonqdao-2023-02",
+    "name": "BonqDAO",
+    "date": "2023-02",
+    "kind": "contract",
+    "chain": "Polygon",
+    "vector": "oracle manipulation",
+    "loss_usd": 120000000,
+    "loss_text": "$120M nominal (<$2M cashed out)",
+    "summary": "The attacker posted a fake price to the Tellor oracle for a small stake, then minted stablecoins and liquidated others.",
+    "preventable": "yes",
+    "why": "Reporting a false price through a cheap oracle path is a direct, replayable test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/bonq-rekt"
+    }
+  },
+  {
+    "id": "skyward-2022-11",
+    "name": "Skyward Finance",
+    "date": "2022-11",
+    "kind": "contract",
+    "chain": "NEAR",
+    "vector": "logic bug",
+    "loss_usd": 3200000,
+    "loss_text": "$3-3.2M (1.1M NEAR)",
+    "summary": "The redeem function did not validate its token list, so the attacker repeated wNEAR in it and drained the treasury.",
+    "preventable": "yes",
+    "why": "Duplicate-input tests on a redeem function would find this at once.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/skyward-rekt"
+    }
+  },
+  {
+    "id": "team-finance-2022-10",
+    "name": "Team Finance",
+    "date": "2022-10",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 15800000,
+    "loss_text": "$15.8M",
+    "summary": "A liquidity migration function accepted fake tokens, letting the attacker migrate locked positions and keep the difference.",
+    "preventable": "yes",
+    "why": "Fake-token inputs to a migration function are a basic adversarial test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/teamfinance-rekt"
+    }
+  },
+  {
+    "id": "mango-markets-2022-10",
+    "name": "Mango Markets",
+    "date": "2022-10",
+    "kind": "contract",
+    "chain": "Solana",
+    "vector": "oracle manipulation",
+    "loss_usd": 115000000,
+    "loss_text": "~$115M",
+    "summary": "A trader pumped the thin MNGO market to inflate his collateral, then borrowed the lending pools dry.",
+    "preventable": "yes",
+    "why": "Collateral valued from a thin market is a standard manipulation test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/mango-markets-rekt"
+    }
+  },
+  {
+    "id": "bnb-bridge-2022-10",
+    "name": "BNB Bridge",
+    "date": "2022-10",
+    "kind": "bridge",
+    "chain": "BNB Chain",
+    "vector": "signature verification",
+    "loss_usd": 586000000,
+    "loss_text": "$586M minted",
+    "summary": "A flaw in IAVL proof verification let the attacker forge proofs and mint 2 million BNB to himself.",
+    "preventable": "yes",
+    "why": "Forged proofs against a bridge verifier are the core bounty test case.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/bnb-bridge-rekt"
+    }
+  },
+  {
+    "id": "transit-swap-2022-10",
+    "name": "Transit Swap",
+    "date": "2022-10",
+    "kind": "contract",
+    "chain": "BNB Chain",
+    "vector": "access control",
+    "loss_usd": 21000000,
+    "loss_text": "$21M",
+    "summary": "The swap contract passed unchecked user input into token transfers, letting the attacker pull funds from users' approvals.",
+    "preventable": "yes",
+    "why": "Unchecked call data that spends approvals falls to the first crafted transaction.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/transit-swap-rekt"
+    }
+  },
+  {
+    "id": "wintermute-2022-09",
+    "name": "Wintermute",
+    "date": "2022-09",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "key compromise",
+    "loss_usd": 160000000,
+    "loss_text": "~$160M",
+    "summary": "Wintermute's DeFi hot wallet used a vanity address from the weak Profanity tool, so an attacker recovered its key.",
+    "preventable": "no",
+    "why": "Weak key generation in an off-chain tool, not a contract flaw.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/wintermute-rekt-2"
+    }
+  },
+  {
+    "id": "rainbow-bridge-2022-08",
+    "name": "Rainbow Bridge",
+    "date": "2022-08",
+    "kind": "bridge",
+    "chain": "NEAR",
+    "vector": "signature verification",
+    "loss_usd": 0,
+    "loss_text": "$0 (attacker lost 5 ETH)",
+    "summary": "An attacker posted a fake NEAR block to the bridge; watchdogs challenged it within 31 seconds and took his 5 ETH bond.",
+    "preventable": "yes",
+    "why": "Fake-block submissions are directly testable; here the challenge design held.",
+    "source": {
+      "name": "CryptoPotato",
+      "url": "https://cryptopotato.com/how-a-hacker-lost-his-eth-while-attacking-rainbow-bridge/"
+    }
+  },
+  {
+    "id": "nomad-2022-08",
+    "name": "Nomad Bridge",
+    "date": "2022-08",
+    "kind": "bridge",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 190000000,
+    "loss_text": "$190M",
+    "summary": "An upgrade marked a zero root as trusted, so any message passed as proven and crowds copied the first exploit transaction.",
+    "preventable": "yes",
+    "why": "Replaying an unproven message after upgrade is a basic bridge test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/nomad-rekt"
+    }
+  },
+  {
+    "id": "audius-2022-07",
+    "name": "Audius",
+    "date": "2022-07",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "governance attack",
+    "loss_usd": 6000000,
+    "loss_text": "$6M",
+    "summary": "The attacker re-initialized governance contracts, delegated himself votes and passed a proposal moving treasury AUDIO.",
+    "preventable": "yes",
+    "why": "Re-running initializers on deployed proxies is a standard adversarial check.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/audius-rekt"
+    }
+  },
+  {
+    "id": "harmony-bridge-2022-06",
+    "name": "Harmony Horizon Bridge",
+    "date": "2022-06",
+    "kind": "bridge",
+    "chain": "Ethereum",
+    "vector": "key compromise",
+    "loss_usd": 100000000,
+    "loss_text": "$100M",
+    "summary": "Attackers obtained enough multisig keys guarding Harmony's bridge to approve withdrawals of its Ethereum assets.",
+    "preventable": "no",
+    "why": "Stolen signer keys; the contracts worked as designed.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/harmony-rekt"
+    }
+  },
+  {
+    "id": "rainbow-bridge-2022-05",
+    "name": "Rainbow Bridge",
+    "date": "2022-05",
+    "kind": "bridge",
+    "chain": "NEAR",
+    "vector": "signature verification",
+    "loss_usd": 0,
+    "loss_text": "$0 (attacker lost 2.5 ETH)",
+    "summary": "A fabricated NEAR block was submitted to the bridge, but a watchdog challenged it and the attacker lost his 2.5 ETH bond.",
+    "preventable": "yes",
+    "why": "Fake-block submissions are directly testable; here the challenge design held.",
+    "source": {
+      "name": "CryptoPotato",
+      "url": "https://cryptopotato.com/how-a-hacker-lost-his-eth-while-attacking-rainbow-bridge/"
+    }
+  },
+  {
+    "id": "fei-rari-2022-04",
+    "name": "Fei Rari (Fuse)",
+    "date": "2022-04",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "reentrancy",
+    "loss_usd": 80000000,
+    "loss_text": "~$80M",
+    "summary": "A Compound-fork borrow sent ETH before updating state, letting the attacker reenter and pull collateral in seven pools.",
+    "preventable": "yes",
+    "why": "Reentrancy on borrow is a textbook, replayable test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/fei-rari-rekt"
+    }
+  },
+  {
+    "id": "beanstalk-2022-04",
+    "name": "Beanstalk",
+    "date": "2022-04",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "governance attack",
+    "loss_usd": 181000000,
+    "loss_text": "$181M ($76M kept)",
+    "summary": "A flash loan bought enough votes to pass a malicious proposal instantly, sending protocol funds to the attacker.",
+    "preventable": "yes",
+    "why": "Flash-loan voting against an instant-execute path is a direct, replayable test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/beanstalk-rekt"
+    }
+  },
+  {
+    "id": "inverse-2022-04",
+    "name": "Inverse Finance",
+    "date": "2022-04",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "oracle manipulation",
+    "loss_usd": 15600000,
+    "loss_text": "$15.6M",
+    "summary": "The attacker pushed the INV price on a thin pool feeding the oracle, then borrowed against inflated INV.",
+    "preventable": "yes",
+    "why": "Thin-pool oracle manipulation is a standard lending test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/inverse-finance-rekt"
+    }
+  },
+  {
+    "id": "ronin-2022-03",
+    "name": "Ronin Bridge",
+    "date": "2022-03",
+    "kind": "bridge",
+    "chain": "Ethereum",
+    "vector": "key compromise",
+    "loss_usd": 624000000,
+    "loss_text": "~$624M",
+    "summary": "Attackers gained five of nine validator keys and signed fake withdrawals that emptied the Ronin bridge.",
+    "preventable": "no",
+    "why": "Stolen validator keys; the contracts accepted valid signatures as designed.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/ronin-rekt"
+    }
+  },
+  {
+    "id": "cashio-2022-03",
+    "name": "Cashio",
+    "date": "2022-03",
+    "kind": "contract",
+    "chain": "Solana",
+    "vector": "logic bug",
+    "loss_usd": 48000000,
+    "loss_text": "~$48M",
+    "summary": "Missing validation of collateral accounts let the attacker deposit worthless fake tokens and mint unlimited CASH.",
+    "preventable": "yes",
+    "why": "Passing fake accounts is the first test on any Solana program.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/cashio-rekt"
+    }
+  },
+  {
+    "id": "wormhole-2022-02",
+    "name": "Wormhole",
+    "date": "2022-02",
+    "kind": "bridge",
+    "chain": "Solana",
+    "vector": "signature verification",
+    "loss_usd": 326000000,
+    "loss_text": "$326M",
+    "summary": "Using a forged signature set, the attacker skipped Wormhole's guardian checks and minted unbacked wrapped ETH on Solana.",
+    "preventable": "yes",
+    "why": "Bypassing signature checks is the core bridge bounty test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/wormhole-rekt"
+    }
+  },
+  {
+    "id": "qubit-2022-01",
+    "name": "Qubit Finance",
+    "date": "2022-01",
+    "kind": "bridge",
+    "chain": "BNB Chain",
+    "vector": "logic bug",
+    "loss_usd": 80000000,
+    "loss_text": "$80M",
+    "summary": "The bridge deposit path accepted calls that moved no tokens, crediting the attacker with xETH collateral for free.",
+    "preventable": "yes",
+    "why": "Deposits that move nothing break a basic value rule on the first try.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/qubit-rekt"
+    }
+  },
+  {
+    "id": "grim-2021-12",
+    "name": "Grim Finance",
+    "date": "2021-12",
+    "kind": "contract",
+    "chain": "Fantom",
+    "vector": "reentrancy",
+    "loss_usd": 30000000,
+    "loss_text": "$30M",
+    "summary": "A vault deposit accepted any token address, so a fake token reentered the deposit and minted extra shares.",
+    "preventable": "yes",
+    "why": "Fake-token reentrancy is a textbook, replayable test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/grim-finance-rekt"
+    }
+  },
+  {
+    "id": "badger-2021-12",
+    "name": "BadgerDAO",
+    "date": "2021-12",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "other",
+    "loss_usd": 120000000,
+    "loss_text": "$120M",
+    "summary": "Code injected into the site asked users for unlimited token approvals, which the attacker later used to drain wallets.",
+    "preventable": "no",
+    "why": "Front-end injection outside the contracts; a contract bounty would not see it.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/badger-rekt"
+    }
+  },
+  {
+    "id": "monox-2021-11",
+    "name": "MonoX",
+    "date": "2021-11",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 31400000,
+    "loss_text": "$31.4M",
+    "summary": "The attacker manipulated the price of MonoX's own MONO token through its pool logic and drained pools on two chains.",
+    "preventable": "yes",
+    "why": "Same-token swaps are a basic edge-case test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/monox-rekt"
+    }
+  },
+  {
+    "id": "cream-2021-10",
+    "name": "Cream Finance",
+    "date": "2021-10",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "oracle manipulation",
+    "loss_usd": 130000000,
+    "loss_text": "~$130M",
+    "summary": "Flash loans and a donation inflated the price of yUSD vault shares used as collateral, draining Cream's lending pools.",
+    "preventable": "yes",
+    "why": "Donation-based share price inflation is a replayable oracle test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/cream-rekt-2"
+    }
+  },
+  {
+    "id": "mirror-2021-10",
+    "name": "Mirror Protocol",
+    "date": "2021-10",
+    "kind": "contract",
+    "chain": "Terra",
+    "vector": "logic bug",
+    "loss_usd": 90000000,
+    "loss_text": "~$90M",
+    "summary": "The lock contract had no duplicate check, so one attacker unlocked others' collateral again and again, unnoticed for months.",
+    "preventable": "yes",
+    "why": "Passing duplicate position IDs is a basic input test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/mirror-rekt"
+    }
+  },
+  {
+    "id": "compound-2021-09",
+    "name": "Compound",
+    "date": "2021-09",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 80000000,
+    "loss_text": "~$80M ($147M at risk)",
+    "summary": "A bug in an upgrade to COMP reward distribution let users claim far more COMP than they had earned.",
+    "preventable": "yes",
+    "why": "Claiming rewards after the upgrade breaks a simple accrual rule.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/compound-rekt"
+    }
+  },
+  {
+    "id": "cream-2021-08",
+    "name": "Cream Finance",
+    "date": "2021-08",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "reentrancy",
+    "loss_usd": 18800000,
+    "loss_text": "$18.8M",
+    "summary": "The AMP token's transfer hook let an attacker reenter Cream's borrow and take more than his collateral allowed.",
+    "preventable": "yes",
+    "why": "Hook-based reentrancy on borrow is a textbook test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/cream-rekt"
+    }
+  },
+  {
+    "id": "poly-network-2021-08",
+    "name": "Poly Network",
+    "date": "2021-08",
+    "kind": "bridge",
+    "chain": "Ethereum",
+    "vector": "access control",
+    "loss_usd": 611000000,
+    "loss_text": "$611M",
+    "summary": "A crafted cross-chain message made the privileged cross-chain manager run an attacker call, unlocking assets on three chains.",
+    "preventable": "yes",
+    "why": "Reaching a privileged function through a message path is a direct access test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/polynetwork-rekt"
+    }
+  },
+  {
+    "id": "pancakebunny-2021-05",
+    "name": "PancakeBunny",
+    "date": "2021-05",
+    "kind": "contract",
+    "chain": "BNB Chain",
+    "vector": "flash loan",
+    "loss_usd": 45000000,
+    "loss_text": "$45M",
+    "summary": "Flash loans skewed the pool price used to mint BUNNY rewards, minting millions of tokens that crashed from $146 to $6.",
+    "preventable": "yes",
+    "why": "Spot-price reward minting is a standard flash-loan test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/pancakebunny-rekt"
+    }
+  },
+  {
+    "id": "spartan-2021-05",
+    "name": "Spartan Protocol",
+    "date": "2021-05",
+    "kind": "contract",
+    "chain": "BNB Chain",
+    "vector": "logic bug",
+    "loss_usd": 30500000,
+    "loss_text": "$30.5M",
+    "summary": "Liquidity share math used live pool balances, so a flash loan inflated the pool before LP burns paid out far too much.",
+    "preventable": "yes",
+    "why": "Donate-then-withdraw breaks a simple value rule.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/spartan-rekt"
+    }
+  },
+  {
+    "id": "uranium-2021-04",
+    "name": "Uranium Finance",
+    "date": "2021-04",
+    "kind": "contract",
+    "chain": "BNB Chain",
+    "vector": "logic bug",
+    "loss_usd": 57200000,
+    "loss_text": "$57.2M",
+    "summary": "A broken balance check in a Uniswap-fork pair let tiny swaps take 98% of a pool's output token.",
+    "preventable": "yes",
+    "why": "One swap with tiny input breaks the pool invariant check.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/uranium-rekt"
+    }
+  },
+  {
+    "id": "alpha-homora-2021-02",
+    "name": "Alpha Homora",
+    "date": "2021-02",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 37500000,
+    "loss_text": "~$37.5M",
+    "summary": "An unannounced, empty sUSD pool let the attacker abuse debt-share math and borrow far beyond limits via Iron Bank.",
+    "preventable": "yes",
+    "why": "Edge cases on empty pools are replayable before a pool goes live.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/alpha-finance-rekt"
+    }
+  },
+  {
+    "id": "cover-2020-12",
+    "name": "Cover Protocol",
+    "date": "2020-12",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 9400000,
+    "loss_text": "$9.4M ($3.2M recovered)",
+    "summary": "A bug in the Blacksmith staking contract let an attacker mint near-infinite COVER right after a new pool was added.",
+    "preventable": "yes",
+    "why": "Reward-accounting bugs break a simple supply rule on replay.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/cover-rekt"
+    }
+  },
+  {
+    "id": "warp-2020-12",
+    "name": "Warp Finance",
+    "date": "2020-12",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "oracle manipulation",
+    "loss_usd": 7800000,
+    "loss_text": "$7.8M",
+    "summary": "Flash loans inflated LP tokens that Warp priced from pool reserves, so the attacker borrowed stablecoins against them.",
+    "preventable": "yes",
+    "why": "Reserve-based LP pricing is a standard flash-loan test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/warp-finance-rekt"
+    }
+  },
+  {
+    "id": "pickle-2020-11",
+    "name": "Pickle Finance",
+    "date": "2020-11",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 19700000,
+    "loss_text": "$19.7M",
+    "summary": "A jar-swap function accepted fake jars supplied by the attacker, letting him pull 19.7M DAI from the cDAI jar.",
+    "preventable": "yes",
+    "why": "Fake contract inputs are a basic adversarial test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/pickle-finance-rekt"
+    }
+  },
+  {
+    "id": "origin-ousd-2020-11",
+    "name": "Origin Dollar (OUSD)",
+    "date": "2020-11",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "reentrancy",
+    "loss_usd": 8000000,
+    "loss_text": "$8M",
+    "summary": "A flash loan and a fake token let the attacker reenter OUSD minting and create unbacked OUSD.",
+    "preventable": "yes",
+    "why": "Fake-token reentrancy into mint is a textbook test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/hack-epidemic"
+    }
+  },
+  {
+    "id": "value-defi-2020-11",
+    "name": "Value DeFi",
+    "date": "2020-11",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "flash loan",
+    "loss_usd": 7000000,
+    "loss_text": "$7M",
+    "summary": "Flash loans moved a Curve pool the vault used to price its holdings, so the attacker deposited cheap and withdrew dear.",
+    "preventable": "yes",
+    "why": "Spot-price vault accounting is a standard flash-loan test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/value-defi-rekt"
+    }
+  },
+  {
+    "id": "akropolis-2020-11",
+    "name": "Akropolis",
+    "date": "2020-11",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "reentrancy",
+    "loss_usd": 2000000,
+    "loss_text": "$2M",
+    "summary": "A deposit function took any token, and a fake token reentered it to mint pool shares twice for one DAI deposit.",
+    "preventable": "yes",
+    "why": "Fake-token reentrancy is a textbook, replayable test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/akropolis-rekt"
+    }
+  },
+  {
+    "id": "harvest-2020-10",
+    "name": "Harvest Finance",
+    "date": "2020-10",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "oracle manipulation",
+    "loss_usd": 24000000,
+    "loss_text": "$24M ($33.8M by some counts)",
+    "summary": "Flash loans moved the Curve pool Harvest used to value vault shares, so the attacker cycled deposits for profit.",
+    "preventable": "yes",
+    "why": "Spot-price vault share pricing is a standard flash-loan test.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/harvest-finance-rekt"
+    }
+  },
+  {
+    "id": "eminence-2020-09",
+    "name": "Eminence",
+    "date": "2020-09",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "flash loan",
+    "loss_usd": 15000000,
+    "loss_text": "$15M",
+    "summary": "Users piled $15M into an unreleased, untested token contract, and a flash loan exploited its bonding curve within hours.",
+    "preventable": "yes",
+    "why": "The contract was never tested; a flash-loan pass would have broken it.",
+    "source": {
+      "name": "rekt.news",
+      "url": "https://rekt.news/eminence-rekt-in-prod"
+    }
+  },
+  {
+    "id": "balancer-2020-06",
+    "name": "Balancer",
+    "date": "2020-06",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "logic bug",
+    "loss_usd": 500000,
+    "loss_text": "$450-500k",
+    "summary": "Pools did not account for a fee-on-transfer token, so repeated swaps drained the pools' other assets.",
+    "preventable": "yes",
+    "why": "Fee-on-transfer tokens are a known edge case that a swap-loop test catches.",
+    "source": {
+      "name": "Decrypt",
+      "url": "https://decrypt.co/33937/hacker-steals-500k-crypto-balancer-pool"
+    }
+  },
+  {
+    "id": "lendfme-2020-04",
+    "name": "Lendf.Me (dForce)",
+    "date": "2020-04",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "reentrancy",
+    "loss_usd": 25000000,
+    "loss_text": "$25M (returned)",
+    "summary": "The imBTC token's ERC-777 hook let an attacker reenter supply and withdraw, inflating his balance to drain the pool.",
+    "preventable": "yes",
+    "why": "Hook-based reentrancy was a known risk and is a replayable test.",
+    "source": {
+      "name": "Cointelegraph",
+      "url": "https://cointelegraph.com/news/dforce-hacker-returns-stolen-money-as-criticism-of-the-project-continues"
+    }
+  },
+  {
+    "id": "bzx-2020-02-second",
+    "name": "bZx (second attack)",
+    "date": "2020-02",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "oracle manipulation",
+    "loss_usd": 645000,
+    "loss_text": "~$630-645k",
+    "summary": "Days after the first attack, a flash loan pumped the sUSD price bZx read, letting the attacker borrow ETH against it.",
+    "preventable": "yes",
+    "why": "A single manipulable price source is a standard flash-loan test.",
+    "source": {
+      "name": "Finance Magnates",
+      "url": "https://www.financemagnates.com/cryptocurrency/news/bzx-suffers-second-attack-645000-worth-eth-in-jeopardy/"
+    }
+  },
+  {
+    "id": "bzx-2020-02-first",
+    "name": "bZx",
+    "date": "2020-02",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "flash loan",
+    "loss_usd": 350000,
+    "loss_text": "~$350k",
+    "summary": "A flash loan funded a leveraged trade that moved a DEX price bZx relied on, an early landmark flash-loan exploit.",
+    "preventable": "yes",
+    "why": "Flash-loan price moves against the protocol are replayable before launch.",
+    "source": {
+      "name": "Finance Magnates",
+      "url": "https://www.financemagnates.com/cryptocurrency/news/bzx-to-integrate-chainlink-followng-350k-defi-lending-exploitation/amp/"
+    }
+  },
+  {
+    "id": "spankchain-2018-10",
+    "name": "SpankChain",
+    "date": "2018-10",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "reentrancy",
+    "loss_usd": 38000,
+    "loss_text": "~$38k (165 ETH)",
+    "summary": "A fake token's transfer function reentered the unaudited payment-channel contract and drained 165 ETH.",
+    "preventable": "yes",
+    "why": "Reentrancy via a malicious token is a textbook test.",
+    "source": {
+      "name": "BleepingComputer",
+      "url": "https://www.bleepingcomputer.com/news/security/naughty-hacker-steals-38k-from-spankchain-cryptocurrency"
+    }
+  },
+  {
+    "id": "eosbet-2018-09",
+    "name": "EOSBet",
+    "date": "2018-09",
+    "kind": "contract",
+    "chain": "EOS",
+    "vector": "logic bug",
+    "loss_usd": 200000,
+    "loss_text": "~$200k (40,000 EOS)",
+    "summary": "Bugs in the betting contract let an attacker pull about 40,000 EOS from the dice game's bankroll.",
+    "preventable": "yes",
+    "why": "Contract-level payout bugs are found by adversarial calls before launch.",
+    "source": {
+      "name": "The Next Web",
+      "url": "https://thenextweb.com/news/eos-gambling-app-hacked"
+    }
+  },
+  {
+    "id": "bancor-2018-07",
+    "name": "Bancor",
+    "date": "2018-07",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "key compromise",
+    "loss_usd": 23500000,
+    "loss_text": "$23.5M ($13.5M after freeze)",
+    "summary": "A compromised wallet with contract upgrade rights withdrew ETH, BNT and NPXS; Bancor then froze the stolen BNT.",
+    "preventable": "no",
+    "why": "A privileged wallet was compromised; no contract bug to find.",
+    "source": {
+      "name": "CSO Online",
+      "url": "https://www.csoonline.com/article/3289384/hackers-steal-235m-in-cryptocurrency-from-decentralized-crypto-exchange-bancor.html"
+    }
+  },
+  {
+    "id": "parity-freeze-2017-11",
+    "name": "Parity multisig library",
+    "date": "2017-11",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "access control",
+    "loss_usd": 150000000,
+    "loss_text": "~$150M frozen ($280M in early reports)",
+    "summary": "A user took ownership of the uninitialized shared wallet library and destroyed it, freezing funds in Parity multisigs.",
+    "preventable": "yes",
+    "why": "Calling the init function on the library contract itself is a basic access test.",
+    "source": {
+      "name": "TechCrunch",
+      "url": "https://techcrunch.com/2017/11/07/a-major-vulnerability-has-frozen-hundreds-of-millions-of-dollars-of-ethereum"
+    }
+  },
+  {
+    "id": "parity-multisig-2017-07",
+    "name": "Parity multisig",
+    "date": "2017-07",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "access control",
+    "loss_usd": 30000000,
+    "loss_text": "~$30-32M (153,037 ETH)",
+    "summary": "The wallet init function was callable by anyone, so an attacker made himself owner of three multisigs and took their ETH.",
+    "preventable": "yes",
+    "why": "An unprotected init function falls to the first adversarial call.",
+    "source": {
+      "name": "OpenZeppelin",
+      "url": "https://www.openzeppelin.com/news/on-the-parity-wallet-multisig-hack-405a8c12e8f7"
+    }
+  },
+  {
+    "id": "the-dao-2016-06",
+    "name": "The DAO",
+    "date": "2016-06",
+    "kind": "contract",
+    "chain": "Ethereum",
+    "vector": "reentrancy",
+    "loss_usd": 60000000,
+    "loss_text": "~$60M (3.6M ETH)",
+    "summary": "A recursive call let an attacker withdraw ETH again and again before balances updated; Ethereum later hard-forked.",
+    "preventable": "yes",
+    "why": "Reentrancy is the canonical adversarial test case.",
+    "source": {
+      "name": "Gemini Cryptopedia",
+      "url": "https://www.gemini.com/cryptopedia/the-dao-hack-makerdao"
+    }
+  }
+]

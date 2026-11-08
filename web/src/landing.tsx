@@ -4,6 +4,7 @@ import { Coverage } from './checks.js';
 import { useAsync, useEnv, type Meta } from './env.js';
 import { useT } from './i18n.js';
 import { Icon, type IconName } from './icons.js';
+import { incidents as all } from './incidents.js';
 
 export const repository = 'https://github.com/OxFEE1DEAD/sealed-bounty';
 
@@ -452,6 +453,9 @@ function Why() {
       <p className="hint">
         {t('Losses as reported at the time. Sources differ on exact amounts.')}
       </p>
+      <a className="more" href="#/incidents">
+        {t('All {n} incidents since 2016 →', { n: String(all.length) })}
+      </a>
       <div className="tiles">
         {prices.map(([tag, title, text]) => (
           <div key={tag} className="tile">

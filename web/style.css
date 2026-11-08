@@ -75,6 +75,7 @@
     --info: #0B6FA4;
     color-scheme: light;
   }
+  .loss-chart { --chart-a: #C2187A; --chart-b: #8A8A8A; }
 }
 
 * { box-sizing: border-box; }
@@ -365,6 +366,33 @@ main[data-side='tools'] .chip.current { border-color: var(--info); }
 .showcase .when { color: var(--ink); font-weight: 600; }
 .showcase .loss { font: 22px var(--pixel); letter-spacing: 1px; color: var(--hack); white-space: nowrap; overflow: hidden; }
 .showcase .source { align-self: end; font-size: 12px; text-decoration: underline; }
+.more { display: inline-block; margin-top: 16px; color: var(--hack); }
+.filters { margin: 8px 0 24px; }
+.loss-chart { margin: 0 0 40px; --chart-a: #E8479E; --chart-b: #5E5E5E; }
+.loss-chart .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: 0; }
+.swatch.caught { background: var(--chart-a); }
+.swatch.other { background: var(--chart-b); }
+.loss-chart .plot { position: relative; }
+.loss-chart svg { display: block; overflow: visible; }
+.loss-chart text { fill: var(--muted); font: 11px var(--mono); }
+.loss-chart text.value { fill: var(--ink); }
+.loss-chart text.on { fill: var(--ink); }
+.loss-chart .grid { stroke: var(--line); stroke-width: 1; }
+.loss-chart .hit { fill: transparent; }
+.loss-chart path.caught { fill: var(--chart-a); }
+.loss-chart path.other { fill: var(--chart-b); }
+.loss-chart .tip { position: absolute; top: 0; transform: translateX(-50%); display: grid; gap: 2px; padding: 8px 10px; font-size: 12px; white-space: nowrap; pointer-events: none; color: var(--ink); background: var(--panel); border: 1px solid var(--line); }
+.incident-year h3 { display: flex; justify-content: space-between; gap: 16px; margin: 32px 0 0; padding-bottom: 8px; font: 20px var(--pixel); border-bottom: 1px solid var(--ink); }
+.incident-year h3 span { font: 13px var(--mono); color: var(--muted); }
+.incident-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) 150px 170px; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.incident-row p { margin: 6px 0; color: var(--muted); }
+.incident-row a { font-size: 12px; color: var(--muted); }
+.incident-row .loss { display: grid; align-content: start; gap: 4px; text-align: right; }
+.incident-row .loss b { font: 16px var(--pixel); color: var(--hack); }
+.incident-row .loss small { font-size: 12px; color: var(--muted); }
+.incident-row .odds { color: var(--muted); }
+.incident-row .odds.yes { color: var(--ok); }
 .targets { display: grid; gap: 16px; padding-bottom: 48px; }
 .target h3 { margin: 4px 0; }
 .target.next { border-style: dashed; }
@@ -656,6 +684,8 @@ summary { cursor: pointer; font-weight: 600; }
   .program-actions { margin-left: 0; }
   .table-row, .mine-table .table-row, .claims-table .table-row, .docs-table .table-row { grid-template-columns: 1fr; gap: 6px; }
   .table-row.head { display: none; }
+  .incident-row { grid-template-columns: 1fr; gap: 6px; }
+  .incident-row .loss { text-align: left; }
   .wizard-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 

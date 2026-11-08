@@ -630,8 +630,13 @@ const ru: Record<string, string> = {
   'AI payment agent · checked in the TEE': 'AI-агент оплаты · проверка в TEE',
   'Contract · export for a local replay': 'Контракт · экспорт для локального прогона',
   "Your agent's system prompt": 'Системный промпт вашего агента',
-  'Hackers attack exactly this text. The model reads it before every invoice.':
-    'Хакеры атакуют именно этот текст. Модель читает его перед каждым счётом.',
+  'Start from a template': 'Начните с шаблона',
+  'Naive invoice payer': 'Наивный плательщик счетов',
+  'Guarded invoice payer': 'Осторожный плательщик счетов',
+  'Treasury guardian · like Freysa': 'Хранитель казны · как Freysa',
+  'Tip bot · like Lobstar Wilde': 'Бот чаевых · как Lobstar Wilde',
+  'Hackers attack exactly this text. The model reads it before every incoming message.':
+    'Хакеры атакуют именно этот текст. Модель читает его перед каждым входящим сообщением.',
   'Max per payment, test tokens': 'Максимум за платёж, тестовые токены',
   'Agent wallet at the start, test tokens': 'Кошелёк агента на старте, тестовые токены',
   'The wallet itself blocks payments outside these rules':

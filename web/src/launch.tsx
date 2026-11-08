@@ -383,21 +383,24 @@ function AgentLaunch() {
           { project: meta.runner.project, version: meta.runner.version.slice(0, 8) },
         )}
       </p>
-      <div className="row">
-        <button
-          type="button"
-          className="button"
-          disabled={busy || !!problem}
-          onClick={() => void publish()}
-        >
-          {account
-            ? t('Publish with wallet · {amount}', { amount: deposit ? near(deposit) : '…' })
-            : t('Connect wallet')}
-        </button>
-      </div>
-      {problem && <p className="hint">{t(problem)}</p>}
-      {created !== undefined && (
-        <p className="notice">
+      {created === undefined ? (
+        <>
+          <div className="row">
+            <button
+              type="button"
+              className="button"
+              disabled={busy || !!problem}
+              onClick={() => void publish()}
+            >
+              {account
+                ? t('Publish with wallet · {amount}', { amount: deposit ? near(deposit) : '…' })
+                : t('Connect wallet')}
+            </button>
+          </div>
+          {problem && <p className="hint">{t(problem)}</p>}
+        </>
+      ) : (
+        <p className="notice done">
           {created ? (
             <a href={'#/programs/' + created}>{t('Program #{id} is open →', { id: created })}</a>
           ) : (

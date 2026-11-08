@@ -754,8 +754,8 @@ const ru: Record<string, string> = {
   contract: 'контракт',
   bridge: 'мост',
   research: 'исследование',
-  'Summaries are in English. Losses are as reported at the time; sources differ on exact amounts.':
-    'Описания на английском. Потери - как сообщали на момент событий, источники расходятся в точных суммах.',
+  'Summaries are in English. A loss counts what actually left, not what was minted, frozen or rolled back on the spot. Sources differ on exact amounts.':
+    'Описания на английском. В потери входит то, что реально ушло, без заминченного, замороженного или откатанного на месте. Источники расходятся в точных суммах.',
   'Agents already lost money.': 'Агенты уже теряли деньги.',
   'Each break below cost more than a bounty. Here you pay only the reward you set, and only when someone proves a break.':
     'Каждый такой взлом обошёлся дороже баунти. Здесь вы платите только назначенную награду и только за доказанный взлом.',

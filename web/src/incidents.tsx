@@ -236,7 +236,7 @@ export function Incidents() {
       })}
       <p className="hint">
         {t(
-          'Summaries are in English. Losses are as reported at the time; sources differ on exact amounts.',
+          'Summaries are in English. A loss counts what actually left, not what was minted, frozen or rolled back on the spot. Sources differ on exact amounts.',
         )}
       </p>
     </div>

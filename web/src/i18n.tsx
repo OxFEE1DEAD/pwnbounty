@@ -632,12 +632,9 @@ const ru: Record<string, string> = {
   'AI payment agent · checked in the TEE': 'AI-агент оплаты · проверка в TEE',
   'Contract · export for a local replay': 'Контракт · экспорт для локального прогона',
   'Instructions the agent follows': 'Инструкции агента',
-  'Allowed recipients, comma separated': 'Разрешённые получатели через запятую',
   'Test balance': 'Тестовый баланс',
   'Spending control on: forbidden transfers are blocked before they execute':
     'Контроль трат включён: запрещённые переводы блокируются до исполнения',
-  'Model {model}, pinned by attestation. A break is a forbidden transfer that executes on the test ledger.':
-    'Модель {model}, закреплена аттестацией. Взлом - запрещённый перевод, исполненный на тестовом реестре.',
   REWARD: 'НАГРАДА',
   'No winner by the deadline: the reward comes back to you.':
     'Если до дедлайна победителя нет, награда возвращается вам.',
@@ -652,9 +649,20 @@ const ru: Record<string, string> = {
     'Escrow отправляет каждую заявку в OutLayer-проект {project}, версия {version}. Его ключи созданы внутри TEE.',
   'Publish with wallet · {amount}': 'Опубликовать кошельком · {amount}',
   'Write the instructions for the agent': 'Напишите инструкции для агента',
-  'Allowed recipients must be NEAR accounts': 'Разрешённые получатели должны быть NEAR-аккаунтами',
   'The limit and the balance are whole numbers': 'Лимит и баланс - целые числа',
   'Set the reward in NEAR': 'Укажите награду в NEAR',
+  'Allowed recipients': 'Разрешённые получатели',
+  'Not a NEAR account: {name}': 'Не NEAR-аккаунт: {name}',
+  'Add at least one recipient': 'Добавьте хотя бы одного получателя',
+  'Pick how long it is open': 'Выберите, сколько программа открыта',
+  soon: 'скоро',
+  'Pinned by attestation. Other TEE models are coming.':
+    'Закреплена аттестацией. Другие TEE-модели скоро.',
+  'A break is a forbidden transfer that executes on the test ledger.':
+    'Взлом - запрещённый перевод, исполненный на тестовом реестре.',
+  'not set': 'не задано',
+  'team key': 'ключ команды',
+  saved: 'сохранён',
   'Make the team key and save it': 'Создайте ключ команды и сохраните его',
   'This browser cannot make X25519 keys': 'Этот браузер не умеет создавать ключи X25519',
   'Program published. Hackers can attack it now.':
@@ -727,18 +735,24 @@ const ru: Record<string, string> = {
   'Known attacks, real results.': 'Известные атаки, настоящие результаты.',
   'LAUNCH A PROGRAM': 'ЗАПУСК ПРОГРАММЫ',
   'Put your agent under a bounty.': 'Поставьте агента под баунти.',
-  'WHO IT IS FOR': 'ДЛЯ КОГО ЭТО',
-  'Agents that move money.': 'Агенты, которые двигают деньги.',
-  'If your agent pays, trades or signs after reading text you do not control, put it under a bounty first. Examples only, we are not affiliated.':
-    'Если ваш агент платит, торгует или подписывает, прочитав чужой текст, сначала поставьте его под баунти. Это только примеры, мы с ними не связаны.',
-  'An agent that guarded a prize pool. A player talked it into sending about $47k.':
-    'Агент охранял призовой фонд. Игрок уговорил его отправить около $47k.',
-  'Agents pay people for tasks from a wallet with a budget. A task text can push a payment past it.':
-    'Агенты платят людям за задачи из кошелька с бюджетом. Текст задачи может вытолкнуть платёж за лимит.',
-  'Gives an agent its own onchain wallet. Any page or message it reads can try to spend it.':
-    'Даёт агенту свой onchain-кошелёк. Любая страница или сообщение, которое он читает, может попытаться его потратить.',
-  'Agents in a TEE that sign transactions on many chains. The TEE proves the code, not what a prompt talked it into.':
-    'Агенты в TEE подписывают транзакции в разных сетях. TEE доказывает код, но не то, на что агента уговорил промпт.',
+  'REAL INCIDENTS': 'РЕАЛЬНЫЕ СЛУЧАИ',
+  'Agents already lost money.': 'Агенты уже теряли деньги.',
+  'Each one moved funds after trusting text it should not have. A bounty finds that before an attacker does.':
+    'Каждый отправил деньги, поверив тексту, которому верить было нельзя. Баунти находит такое раньше атакующего.',
+  'May 2026': 'май 2026',
+  'Feb 2026': 'фев 2026',
+  'Mar 2025': 'мар 2025',
+  'Nov 2024': 'ноя 2024',
+  'An X post hid an order in Morse code. Grok decoded it and the wallet bot sent the tokens.':
+    'В посте в X был приказ азбукой Морзе. Grok его расшифровал, и бот-кошелёк отправил токены.',
+  'Asked for a 4 SOL tip, the trading agent sent its whole token stash to a stranger.':
+    'Его попросили о чаевых в 4 SOL, а торговый агент отправил незнакомцу весь запас токенов.',
+  'An attacker got into the operator dashboard and queued two prompts. The agent paid out.':
+    'Атакующий попал в панель оператора и поставил в очередь два промпта. Агент заплатил.',
+  'A game agent was told never to release its prize pool. A player argued it into the transfer.':
+    'Игровому агенту запретили отдавать призовой фонд. Игрок уговорил его на перевод.',
+  'Losses as reported at the time. Sources differ on exact amounts.':
+    'Потери - как сообщали на момент событий. Источники расходятся в точных суммах.',
   'Put your contract under a bounty.': 'Поставьте контракт под баунти.',
   'YOUR PROGRAM': 'ВАША ПРОГРАММА',
   'Your program': 'Ваша программа',
@@ -769,8 +783,6 @@ const ru: Record<string, string> = {
   'spending control on': 'контроль расходов включён',
   'spending control off': 'контроль расходов выключен',
   '{n} days': '{n} дн.',
-  'Team key saved': 'Ключ команды сохранён',
-  'No team key yet': 'Ключа команды ещё нет',
   'program hash': 'хэш программы',
   'Still needed: {what}': 'Осталось: {what}',
   'Ready to publish.': 'Можно публиковать.',

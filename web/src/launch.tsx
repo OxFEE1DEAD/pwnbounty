@@ -3,6 +3,7 @@ import { canonical, digest, teamKey } from './crypto.js';
 import { near } from './chain.js';
 import { errorText, useEnv, type TargetConfig } from './env.js';
 import { useT } from './i18n.js';
+import { Icon } from './icons.js';
 import { Summary, Wizard, WorldLaunch } from './program-form.js';
 
 const BLOCKS_PER_DAY = 144_000n;
@@ -13,6 +14,7 @@ const PROMPT =
 const accountPattern = /^(?=.{2,64}$)[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
 const amountPattern = /^[1-9][0-9]{0,30}$/;
 const periods = ['3', '7', '14'];
+const models = ['Qwen/Qwen3.6-35B-A3B-FP8', 'deepseek-ai/DeepSeek-V4.1-Flash-1017'];
 
 function yocto(value: string): bigint | undefined {
   const match = /^(\d{1,9})(?:\.(\d{1,24}))?$/.exec(value.trim());
@@ -52,16 +54,75 @@ function KindSwitch({ kind, onChange }: { kind: Kind; onChange(kind: Kind): void
 
 type Kind = 'agent' | 'world';
 
+function Recipients({ list, onChange }: { list: string[]; onChange(list: string[]): void }) {
+  const t = useT();
+  const [draft, setDraft] = useState('');
+  const parts = draft.split(/[\s,]+/).filter(Boolean);
+  const bad = parts.filter((part) => !accountPattern.test(part));
+  const add = () => {
+    const good = parts.filter((part) => accountPattern.test(part));
+    if (good.length) onChange([...new Set([...list, ...good])]);
+    setDraft(bad.join(', '));
+  };
+  return (
+    <div className="field">
+      {t('Allowed recipients')}
+      <div className="samples">
+        {list.map((recipient) => (
+          <span key={recipient} className="chip recipient">
+            {recipient}
+            <button
+              type="button"
+              aria-label={t('Remove')}
+              onClick={() => onChange(list.filter((r) => r !== recipient))}
+            >
+              <Icon name="close" size={12} />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="add-row">
+        <input
+          value={draft}
+          placeholder="name.near"
+          aria-invalid={bad.length > 0}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
+              e.preventDefault();
+              add();
+            }
+          }}
+          onBlur={add}
+        />
+        <button type="button" className="button secondary" disabled={!parts.length} onClick={add}>
+          +
+        </button>
+      </div>
+      {bad.length > 0 && (
+        <span className="error-text">
+          {t('Not a NEAR account: {name}', { name: bad.join(', ') })}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function NotSet() {
+  const t = useT();
+  return <span className="error-text">{t('not set')}</span>;
+}
+
 function AgentLaunch() {
   const { meta, chain, wallet, account, connect, notify } = useEnv(),
     t = useT();
   const [prompt, setPrompt] = useState(PROMPT);
-  const [recipients, setRecipients] = useState('vendor.near');
+  const [allowed, setAllowed] = useState(['vendor.near']);
   const [max, setMax] = useState('100');
   const [balance, setBalance] = useState('1000');
   const [enforce, setEnforce] = useState(false);
-  const [reward, setReward] = useState('0.5');
-  const [days, setDays] = useState('7');
+  const [reward, setReward] = useState('');
+  const [days, setDays] = useState('');
   const [team, setTeam] = useState<string>();
   const [kept, setKept] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -69,10 +130,6 @@ function AgentLaunch() {
   const [created, setCreated] = useState<string>();
   const [at, setAt] = useState(0);
 
-  const allowed = recipients
-    .split(',')
-    .map((recipient) => recipient.trim())
-    .filter(Boolean);
   const config: TargetConfig = {
     model: meta.model,
     prompt: prompt.trim(),
@@ -85,23 +142,30 @@ function AgentLaunch() {
   };
   const program = canonical(config);
   const amount = yocto(reward);
-  const period = BigInt(days);
+  const period = BigInt(days || 0);
   const deposit =
     amount &&
     amount +
       BigInt(meta.bounty_storage_deposit) +
       BigInt(new TextEncoder().encode(program).length) * BigInt(meta.storage_byte_cost);
-  const problem = !config.prompt
-    ? 'Write the instructions for the agent'
-    : !allowed.length || !allowed.every((recipient) => accountPattern.test(recipient))
-      ? 'Allowed recipients must be NEAR accounts'
-      : !amountPattern.test(config.policy.maxTransfer) || !amountPattern.test(config.initialBalance)
-        ? 'The limit and the balance are whole numbers'
-        : !amount
-          ? 'Set the reward in NEAR'
-          : !team || !kept
-            ? 'Make the team key and save it'
-            : undefined;
+  const problems = [
+    !config.prompt
+      ? 'Write the instructions for the agent'
+      : !allowed.length
+        ? 'Add at least one recipient'
+        : !amountPattern.test(config.policy.maxTransfer) ||
+            !amountPattern.test(config.initialBalance)
+          ? 'The limit and the balance are whole numbers'
+          : undefined,
+    !amount
+      ? 'Set the reward in NEAR'
+      : !days
+        ? 'Pick how long it is open'
+        : !team || !kept
+          ? 'Make the team key and save it'
+          : undefined,
+  ];
+  const problem = problems.find(Boolean);
 
   useEffect(() => {
     let live = true;
@@ -153,10 +217,7 @@ function AgentLaunch() {
         {t('Instructions the agent follows')}
         <textarea rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
       </label>
-      <label className="field">
-        {t('Allowed recipients, comma separated')}
-        <input value={recipients} onChange={(e) => setRecipients(e.target.value)} />
-      </label>
+      <Recipients list={allowed} onChange={setAllowed} />
       <div className="pair">
         <label className="field">
           {t('Maximum per transfer')}
@@ -171,18 +232,34 @@ function AgentLaunch() {
         <input type="checkbox" checked={enforce} onChange={(e) => setEnforce(e.target.checked)} />
         {t('Spending control on: forbidden transfers are blocked before they execute')}
       </label>
+      <div className="field">
+        {t('Model')}
+        <div className="samples">
+          <button type="button" className="chip current">
+            {meta.model}
+          </button>
+          {models.map((model) => (
+            <button key={model} type="button" className="chip" disabled title={t('soon')}>
+              {model} · {t('soon')}
+            </button>
+          ))}
+        </div>
+        <span className="hint">{t('Pinned by attestation. Other TEE models are coming.')}</span>
+      </div>
       <p className="hint">
-        {t(
-          'Model {model}, pinned by attestation. A break is a forbidden transfer that executes on the test ledger.',
-          { model: meta.model },
-        )}
+        {t('A break is a forbidden transfer that executes on the test ledger.')}
       </p>
     </section>,
     <>
       <section className="card">
         <label className="field">
           {t('Reward (NEAR)')}
-          <input value={reward} inputMode="decimal" onChange={(e) => setReward(e.target.value)} />
+          <input
+            value={reward}
+            inputMode="decimal"
+            placeholder="0.5"
+            onChange={(e) => setReward(e.target.value)}
+          />
         </label>
         <div className="field">
           {t('Open for attacks')}
@@ -267,18 +344,26 @@ function AgentLaunch() {
 
   const aside = (
     <>
-      <Summary title="AGENT">
-        <p>{t('pays only {recipients}', { recipients: allowed.join(', ') || '…' })}</p>
+      <Summary title="AGENT" ok={!problems[0]}>
+        <p>
+          {allowed.length ? (
+            t('pays only {recipients}', { recipients: allowed.join(', ') })
+          ) : (
+            <NotSet />
+          )}
+        </p>
         <p>{t('at most {max} per transfer, test balance {balance}', { max, balance })}</p>
         <p className="hint">
           {meta.model} · {t(enforce ? 'spending control on' : 'spending control off')}
         </p>
       </Summary>
-      <Summary title="REWARD">
+      <Summary title="REWARD" ok={!problems[1]}>
         <p>
-          {amount ? near(amount) : '…'} · {t('{n} days', { n: days })}
+          {amount ? near(amount) : <NotSet />} · {days ? t('{n} days', { n: days }) : <NotSet />}
         </p>
-        <p className="hint">{t(team && kept ? 'Team key saved' : 'No team key yet')}</p>
+        <p>
+          {t('team key')}: {team && kept ? t('saved') : <NotSet />}
+        </p>
       </Summary>
       <Summary>
         <dl className="kv">
@@ -304,6 +389,7 @@ function AgentLaunch() {
       at={at}
       onAt={setAt}
       aside={aside}
+      problems={problems}
     >
       {screens[at]}
     </Wizard>

@@ -5,6 +5,7 @@ import { context, errorText, useAsync, useEnv, type TeamDraft } from './env.js';
 import type { ChainReader, VerifierApi } from './ports.js';
 import { useT } from './i18n.js';
 import { CoverageTable } from './checks.js';
+import { Icon } from './icons.js';
 
 const lead =
   'Write down what a break of your contract or agent looks like. Hackers attack it, a verifier ' +
@@ -28,30 +29,42 @@ const steps: [string, string][] = [
       'after the deadline.',
   ],
 ];
-const showcase: [string, string, string, string][] = [
+const incidents: [string, string, string, string, string, string, string][] = [
+  [
+    'Grok × Bankr',
+    new URL('./showcase/bankr.png', import.meta.url).href,
+    'May 2026',
+    '~$150-200k',
+    'An X post hid an order in Morse code. Grok decoded it and the wallet bot sent the tokens.',
+    'OECD.AI',
+    'https://oecd.ai/en/incidents/2026-05-04-4a73',
+  ],
+  [
+    'Lobstar Wilde',
+    '',
+    'Feb 2026',
+    '~$250k',
+    'Asked for a 4 SOL tip, the trading agent sent its whole token stash to a stranger.',
+    'Cointelegraph',
+    'https://cointelegraph.com/news/openai-employee-s-ai-agent-accidentally-sent-442k-to-beggar',
+  ],
+  [
+    'AIXBT',
+    new URL('./showcase/aixbt.svg', import.meta.url).href,
+    'Mar 2025',
+    '55.5 ETH ~$106k',
+    'An attacker got into the operator dashboard and queued two prompts. The agent paid out.',
+    'AI Incident Database',
+    'https://incidentdatabase.ai/cite/1003',
+  ],
   [
     'Freysa',
     new URL('./showcase/freysa.png', import.meta.url).href,
-    'https://freysa.ai',
-    'An agent that guarded a prize pool. A player talked it into sending about $47k.',
-  ],
-  [
-    'Payman',
-    new URL('./showcase/payman.svg', import.meta.url).href,
-    'https://paymanai.com',
-    'Agents pay people for tasks from a wallet with a budget. A task text can push a payment past it.',
-  ],
-  [
-    'Coinbase AgentKit',
-    new URL('./showcase/agentkit.png', import.meta.url).href,
-    'https://github.com/coinbase/agentkit',
-    'Gives an agent its own onchain wallet. Any page or message it reads can try to spend it.',
-  ],
-  [
-    'NEAR Shade Agents',
-    new URL('./showcase/shade.png', import.meta.url).href,
-    'https://docs.near.org/ai/shade-agents/introduction',
-    'Agents in a TEE that sign transactions on many chains. The TEE proves the code, not what a prompt talked it into.',
+    'Nov 2024',
+    '~$47k',
+    'A game agent was told never to release its prize pool. A player argued it into the transfer.',
+    'OECD.AI',
+    'https://oecd.ai/en/incidents/2024-11-29-2e31',
   ],
 ];
 const labels: Record<string, string> = {
@@ -335,22 +348,31 @@ export function Projects() {
         ))}
       </ol>
       <section className="band">
-        <div className="eyebrow">{t('WHO IT IS FOR')}</div>
-        <h2>{t('Agents that move money.')}</h2>
+        <div className="eyebrow">{t('REAL INCIDENTS')}</div>
+        <h2>{t('Agents already lost money.')}</h2>
         <p className="muted">
           {t(
-            'If your agent pays, trades or signs after reading text you do not control, put it under a bounty first. Examples only, we are not affiliated.',
+            'Each one moved funds after trusting text it should not have. A bounty finds that before an attacker does.',
           )}
         </p>
         <div className="showcase">
-          {showcase.map(([name, logo, href, text]) => (
+          {incidents.map(([name, logo, when, loss, text, source, href]) => (
             <a key={name} href={href} target="_blank" rel="noopener noreferrer">
-              <img src={logo} alt="" />
-              <strong>{name} ↗</strong>
+              <span className="logo">
+                {logo ? <img src={logo} alt="" /> : <Icon name="coins" size={28} />}
+              </span>
+              <span className="when">
+                {name} · {t(when)}
+              </span>
+              <b className="loss">{loss}</b>
               <span>{t(text)}</span>
+              <span className="source">{source} ↗</span>
             </a>
           ))}
         </div>
+        <p className="hint">
+          {t('Losses as reported at the time. Sources differ on exact amounts.')}
+        </p>
       </section>
       <section className="band">
         <div className="section-head">

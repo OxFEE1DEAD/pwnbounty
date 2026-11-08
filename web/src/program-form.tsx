@@ -1,8 +1,9 @@
-import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { readLimited } from './chain.js';
 import { digest } from './crypto.js';
 import { errorText, useEnv } from './env.js';
 import { useT } from './i18n.js';
+import { Icon } from './icons.js';
 import { repository } from './landing.js';
 import { readAbi, wasmMethods, type Methods, type Param } from './abi.js';
 import { download, programDigest, targets, type Spec } from './checks.js';
@@ -817,33 +818,55 @@ export function Wizard({
   at,
   onAt,
   aside,
+  problems,
   children,
 }: {
   steps: [string, string][];
   at: number;
   onAt(at: number): void;
   aside: ReactNode;
+  problems?: (string | undefined)[];
   children: ReactNode;
 }) {
   const t = useT();
+  const top = useRef<HTMLOListElement>(null);
+  const [stuck, setStuck] = useState(false);
   const go = (next: number) => {
+    setStuck(false);
     onAt(next);
-    window.scrollTo({ top: 0 });
+    if (top.current && top.current.getBoundingClientRect().top < 0)
+      top.current.scrollIntoView({ block: 'start' });
   };
+  const blocked = stuck ? problems?.[at] : undefined;
+  const mark = (i: number) =>
+    i >= at || !problems ? (
+      i < at ? (
+        '✓'
+      ) : (
+        i + 1
+      )
+    ) : problems[i] ? (
+      <Icon name="close" size={14} />
+    ) : (
+      <Icon name="check" size={14} />
+    );
   const previous = steps[at - 1];
   const next = steps[at + 1];
   return (
     <>
-      <ol className="wizard-steps" style={{ '--n': steps.length } as CSSProperties}>
+      <ol ref={top} className="wizard-steps" style={{ '--n': steps.length } as CSSProperties}>
         {steps.map(([title, hint], i) => (
           <li key={title}>
             <button
               type="button"
-              className={i < at ? 'done' : i === at ? 'now' : ''}
+              className={
+                (i < at ? 'done' : i === at ? 'now' : '') +
+                (i < at && problems ? (problems[i] ? ' bad' : ' good') : '')
+              }
               onClick={() => go(i)}
             >
               <b>
-                {i < at ? '✓' : i + 1} {t(title)}
+                {mark(i)} {t(title)}
               </b>
               <span>{t(hint)}</span>
             </button>
@@ -862,11 +885,16 @@ export function Wizard({
               <span />
             )}
             {next && (
-              <button type="button" className="button" onClick={() => go(at + 1)}>
+              <button
+                type="button"
+                className="button"
+                onClick={() => (problems?.[at] ? setStuck(true) : go(at + 1))}
+              >
                 {t('Next')}: {t(next[0]).toLowerCase()} →
               </button>
             )}
           </div>
+          {blocked && <p className="error-text">{t(blocked)}</p>}
         </div>
         <aside className="summary" aria-label={t('Your program')}>
           <div className="summary-head">
@@ -882,11 +910,23 @@ export function Wizard({
   );
 }
 
-export function Summary({ title, children }: { title?: string; children: ReactNode }) {
+export function Summary({
+  title,
+  ok,
+  children,
+}: {
+  title?: string;
+  ok?: boolean;
+  children: ReactNode;
+}) {
   const t = useT();
   return (
     <div className="summary-block">
-      {title && <div className="kicker">{t(title)}</div>}
+      {title && (
+        <div className={'kicker' + (ok === undefined ? '' : ok ? ' good' : ' bad')}>
+          {ok !== undefined && <Icon name={ok ? 'check' : 'close'} size={14} />} {t(title)}
+        </div>
+      )}
       {children}
     </div>
   );

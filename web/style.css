@@ -498,6 +498,7 @@ select { font: inherit; color: inherit; }
 .step-head .row { margin-top: 0; gap: 6px; }
 .step label.field, .args label.field, .pair label.field { margin: 14px 0 4px; }
 .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.pair + .kv { margin-top: 20px; }
 .args { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--line); }
 .problems { margin: 0; padding-left: 20px; color: var(--warn); }
 .wizard .samples + .samples, .field .samples { margin-top: 10px; }
@@ -544,7 +545,7 @@ select { font: inherit; color: inherit; }
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 20px; }
 .filters .gap { width: 16px; }
 .programs { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
-.program { display: grid; gap: 8px; align-content: start; text-decoration: none; font-size: 14px; }
+.program { display: grid; gap: 8px; align-content: start; text-decoration: none; font-size: 14px; overflow-wrap: anywhere; }
 .program:hover { color: var(--ink); border-color: var(--ink); }
 .program:not(.open) { opacity: .7; }
 .program .reward { margin: 4px 0; }

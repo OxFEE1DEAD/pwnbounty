@@ -172,35 +172,32 @@ function AgentLaunch() {
   const program = canonical(config);
   const amount = yocto(reward);
   const period = BigInt(days || 0);
-  const about = !meta.about
-    ? undefined
-    : JSON.stringify(
-        link.trim() ? { name: name.trim(), link: link.trim() } : { name: name.trim() },
-      );
+  const about =
+    meta.about && (name.trim() || link.trim())
+      ? name.trim() + (link.trim() && '\n' + link.trim())
+      : undefined;
   const bytes = new TextEncoder().encode(program + (about ?? '')).length;
   const deposit =
     amount &&
     amount + BigInt(meta.bounty_storage_deposit) + BigInt(bytes) * BigInt(meta.storage_byte_cost);
   const problems = [
-    meta.about && !name.trim()
-      ? 'Name the program'
-      : meta.about && link.trim() && !/^https:\/\/\S{3,200}$/.test(link.trim())
-        ? 'The link must start with https://'
-        : !config.prompt
-          ? 'Write the instructions for the agent'
-          : !allowed.length
-            ? 'Add at least one recipient'
-            : !amountPattern.test(config.policy.maxTransfer) ||
-                !amountPattern.test(config.initialBalance)
-              ? 'The limit and the balance are whole numbers'
-              : undefined,
+    !config.prompt
+      ? 'Write the instructions for the agent'
+      : !allowed.length
+        ? 'Add at least one recipient'
+        : !amountPattern.test(config.policy.maxTransfer) ||
+            !amountPattern.test(config.initialBalance)
+          ? 'The limit and the balance are whole numbers'
+          : undefined,
     !amount
       ? 'Set the reward in NEAR'
       : !days
         ? 'Pick how long it is open'
         : !team || !kept
           ? 'Make the team key and save it'
-          : undefined,
+          : link.trim() && !/^https:\/\/\S{3,200}$/.test(link.trim())
+            ? 'The link must start with https://'
+            : undefined,
   ];
   const problem = problems.find(Boolean);
 
@@ -251,27 +248,6 @@ function AgentLaunch() {
 
   const screens = [
     <section className="card">
-      {meta.about && (
-        <div className="pair">
-          <label className="field">
-            {t('Program name')}
-            <input
-              value={name}
-              maxLength={80}
-              placeholder="Acme payouts agent"
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <label className="field">
-            {t('Project site or GitHub, optional')}
-            <input
-              value={link}
-              placeholder="https://github.com/acme/agent"
-              onChange={(e) => setLink(e.target.value)}
-            />
-          </label>
-        </div>
-      )}
       <div className="field">
         {t('Start from a template')}
         <div className="samples">
@@ -387,13 +363,35 @@ function AgentLaunch() {
       </section>
     </>,
     <section className="card">
+      {meta.about && (
+        <div className="pair">
+          <label className="field">
+            {t('Program name, optional')}
+            <input
+              value={name}
+              maxLength={80}
+              placeholder="Acme payouts agent"
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+          <label className="field">
+            {t('Project site or GitHub, optional')}
+            <input
+              value={link}
+              maxLength={200}
+              placeholder="https://github.com/acme/agent"
+              onChange={(e) => setLink(e.target.value)}
+            />
+          </label>
+        </div>
+      )}
       <dl className="kv">
         <dt>{t('reward, held in escrow')}</dt>
         <dd>{amount ? near(amount) : '…'}</dd>
         <dt>{t('program storage, not refundable')}</dt>
         <dd>{amount && deposit ? near(deposit - amount) : '…'}</dd>
         <dt>{t('open for attacks')}</dt>
-        <dd>{t('{n} days', { n: days })}</dd>
+        <dd>{days ? t('{n} days', { n: days }) : '…'}</dd>
         <dt>{t('you send')}</dt>
         <dd>
           <strong>{deposit ? near(deposit) : '…'}</strong>
@@ -437,12 +435,6 @@ function AgentLaunch() {
     <>
       <Summary title="AGENT" ok={!problems[0]}>
         <dl className="kv">
-          {meta.about && (
-            <>
-              <dt>{t('name')}</dt>
-              <dd>{name.trim() || <NotSet />}</dd>
-            </>
-          )}
           <dt>{t('allowed recipients')}</dt>
           <dd>{allowed.length ? allowed.join(', ') : <NotSet />}</dd>
           <dt>{t('per payment')}</dt>

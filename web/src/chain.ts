@@ -19,18 +19,11 @@ export interface Bounty {
   about?: string | null;
 }
 export function aboutOf(bounty: Bounty): { name?: string; link?: string } {
-  try {
-    const value = JSON.parse(bounty.about ?? '') as { name?: unknown; link?: unknown };
-    return {
-      name: typeof value.name === 'string' ? value.name.slice(0, 80) : undefined,
-      link:
-        typeof value.link === 'string' && /^https:\/\/\S+$/.test(value.link)
-          ? value.link
-          : undefined,
-    };
-  } catch {
-    return {};
-  }
+  const [name, link] = (bounty.about ?? '').split('\n');
+  return {
+    name: name?.slice(0, 80) || undefined,
+    link: link && /^https:\/\/\S+$/.test(link) ? link : undefined,
+  };
 }
 export interface Entry {
   id: string;

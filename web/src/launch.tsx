@@ -173,9 +173,7 @@ function AgentLaunch() {
   const amount = yocto(reward);
   const period = BigInt(days || 0);
   const about =
-    meta.about && (name.trim() || link.trim())
-      ? name.trim() + (link.trim() && '\n' + link.trim())
-      : undefined;
+    name.trim() || link.trim() ? name.trim() + (link.trim() && '\n' + link.trim()) : undefined;
   const bytes = new TextEncoder().encode(program + (about ?? '')).length;
   const deposit =
     amount &&
@@ -363,28 +361,26 @@ function AgentLaunch() {
       </section>
     </>,
     <section className="card">
-      {meta.about && (
-        <div className="pair">
-          <label className="field">
-            {t('Program name, optional')}
-            <input
-              value={name}
-              maxLength={80}
-              placeholder="Acme payouts agent"
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <label className="field">
-            {t('Project site or GitHub, optional')}
-            <input
-              value={link}
-              maxLength={200}
-              placeholder="https://github.com/acme/agent"
-              onChange={(e) => setLink(e.target.value)}
-            />
-          </label>
-        </div>
-      )}
+      <div className="pair">
+        <label className="field">
+          {t('Program name, optional')}
+          <input
+            value={name}
+            maxLength={80}
+            placeholder="Acme payouts agent"
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          {t('Project site or GitHub, optional')}
+          <input
+            value={link}
+            maxLength={200}
+            placeholder="https://github.com/acme/agent"
+            onChange={(e) => setLink(e.target.value)}
+          />
+        </label>
+      </div>
       <dl className="kv">
         <dt>{t('reward, held in escrow')}</dt>
         <dd>{amount ? near(amount) : '…'}</dd>

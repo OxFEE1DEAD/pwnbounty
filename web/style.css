@@ -761,11 +761,12 @@ summary { cursor: pointer; font-weight: 600; }
   display: grid;
   grid-template-columns: 11ch minmax(0, 1fr);
   gap: 8px 12px;
-  align-items: center;
+  align-items: start;
   margin-top: 12px;
   color: var(--muted);
   font-size: 12px;
 }
+.rule-blocks > span { padding-top: 7px; line-height: 1.5; }
 .chip.logic { min-width: 48px; color: var(--hack); border-color: var(--hack); font-weight: 700; }
 .rule-help { margin-top: 10px; }
 .rule-help summary { color: var(--muted); font-size: 12px; cursor: pointer; }

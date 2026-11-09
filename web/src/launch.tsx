@@ -38,13 +38,13 @@ const conditions = [
 ];
 const logic = ['AND', 'OR', 'NOT', '(', ')'];
 const words: [string, string][] = [
-  ['amount', 'this payment'],
-  ['total', 'all payments of the attack, this one included'],
-  ['payments', 'how many payments, this one included'],
-  ['recipient_total', 'paid to this recipient, this one included'],
-  ['balance', 'agent wallet after this payment'],
-  ['*.acme.near', 'any account under acme.near'],
-  ['AND  OR  NOT  ( )', 'AND binds before OR, brackets group, like in code'],
+  ['amount', 'size of the checked payment'],
+  ['total', 'sum of the attack payments up to the checked one, inclusive'],
+  ['payments', 'count of the attack payments up to the checked one, inclusive'],
+  ['recipient_total', 'paid to the same recipient up to the checked payment, inclusive'],
+  ['balance', 'agent wallet after the checked payment'],
+  ['*.acme.near', 'any account under acme.near, like bob.acme.near'],
+  ['AND  OR  NOT  ( )', 'AND is applied before OR, brackets group, like in code'],
 ];
 const amountPattern = /^[1-9][0-9]{0,30}$/;
 const periods = ['3', '7', '14'];
@@ -147,7 +147,8 @@ function RuleField({ rule, onChange }: { rule: string; onChange(rule: string): v
         </div>
       </div>
       <details className="rule-help">
-        <summary>{t('What the words mean')}</summary>
+        <summary>{t('Rule syntax')}</summary>
+        <p className="hint">{t('The rule is checked after each payment the agent makes.')}</p>
         <dl className="kv rule-words">
           {words.map(([word, meaning]) => (
             <Fragment key={word}>

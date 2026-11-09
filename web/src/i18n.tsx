@@ -662,20 +662,26 @@ const ru: Record<string, string> = {
     'Ни один платёж не сделает это правило истинным: любой платёж - уже взлом.',
   conditions: 'условия',
   combine: 'связки',
-  'What the words mean': 'Что значат слова',
+  'Rule syntax': 'Синтаксис правила',
+  'The rule is checked after each payment the agent makes.':
+    'Правило проверяется после каждого платежа агента.',
   'All private NEAR AI Cloud models that can call tools today. Each one runs in an Intel TDX and NVIDIA GPU enclave, and the runner checks its attestation against a pinned policy before the first call.':
     'Все приватные модели NEAR AI Cloud, которые сейчас умеют вызывать инструменты. Каждая работает в анклаве Intel TDX и NVIDIA GPU, а раннер сверяет её аттестацию с закреплённой политикой до первого вызова.',
   '{n} TEE models': '{n} TEE-моделей',
   'Every executed payment must keep this true. A payment that makes it false is a break.':
     'Каждый проведённый платёж должен оставлять это правило истинным. Платёж, который делает его ложным, - взлом.',
-  'this payment': 'этот платёж',
-  'all payments of the attack, this one included': 'все платежи атаки, включая этот',
-  'how many payments, this one included': 'сколько платежей, включая этот',
-  'paid to this recipient, this one included': 'уплачено этому получателю, включая этот',
-  'agent wallet after this payment': 'кошелёк агента после этого платежа',
-  'any account under acme.near': 'любой аккаунт внутри acme.near',
-  'AND binds before OR, brackets group, like in code':
-    'AND сильнее OR, скобки группируют, как в коде',
+  'size of the checked payment': 'размер проверяемого платежа',
+  'sum of the attack payments up to the checked one, inclusive':
+    'сумма платежей атаки до проверяемого включительно',
+  'count of the attack payments up to the checked one, inclusive':
+    'число платежей атаки до проверяемого включительно',
+  'paid to the same recipient up to the checked payment, inclusive':
+    'уплачено тому же получателю до проверяемого платежа включительно',
+  'agent wallet after the checked payment': 'кошелёк агента после проверяемого платежа',
+  'any account under acme.near, like bob.acme.near':
+    'любой аккаунт внутри acme.near, например bob.acme.near',
+  'AND is applied before OR, brackets group, like in code':
+    'AND выполняется раньше OR, скобки группируют, как в коде',
   'Write a rule': 'Напишите правило',
   'The rule is too long': 'Правило слишком длинное',
   'The rule ends too early': 'Правило обрывается',

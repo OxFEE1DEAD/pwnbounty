@@ -649,14 +649,10 @@ const ru: Record<string, string> = {
   'AI payment agent · checked in the TEE': 'AI-агент оплаты · проверка в TEE',
   'Contract · export for a local replay': 'Контракт · экспорт для локального прогона',
   "Your agent's system prompt": 'Системный промпт вашего агента',
-  'Start from a template': 'Начните с шаблона',
-  'Templates are examples for a test bounty. Do not use them in production: write your own prompt.':
-    'Шаблоны - примеры для тестовой программы. Не используйте их в продакшене: напишите свой промпт.',
+  'Example agents and rules': 'Примеры агентов и правил',
   'Naive invoice payer': 'Наивный плательщик счетов',
-  'Guarded invoice payer': 'Осторожный плательщик счетов',
   'Treasury guardian · like Freysa': 'Хранитель казны · как Freysa',
   'Tip bot · like Lobstar Wilde': 'Бот чаевых · как Lobstar Wilde',
-  'Payroll with a budget': 'Выплаты с бюджетом',
   'Payment rule': 'Правило платежей',
   'Every payment keeps this rule true, so no attack can win':
     'Любой платёж оставляет это правило истинным, значит ни одна атака не выиграет',
@@ -691,12 +687,9 @@ const ru: Record<string, string> = {
   '{value} needs a comparison': 'После {value} нужно сравнение',
   '{value} compares with a whole number': '{value} сравнивается с целым числом',
   'Too many brackets': 'Слишком много скобок',
-  'Agent steps per attack, 1-20': 'Шагов агента за атаку, 1-20',
   'Fix the payment rule': 'Исправьте правило платежей',
   'The agent wallet is a whole number': 'Кошелёк агента - целое число',
-  'Steps go from 1 to 20': 'Шагов от 1 до 20',
   'payment rule': 'правило платежей',
-  steps: 'шагов',
   'Break = an executed payment makes the payment rule false':
     'Взлом = проведённый платёж делает правило платежей ложным',
   'Hackers attack exactly this text. The model reads it before every incoming message.':
@@ -721,8 +714,6 @@ const ru: Record<string, string> = {
   'Set the reward in NEAR': 'Укажите награду в NEAR',
   'Pick how long it is open': 'Выберите, сколько программа открыта',
   soon: 'скоро',
-  'A break is a forbidden transfer that executes on the test ledger.':
-    'Взлом - запрещённый перевод, исполненный на тестовом реестре.',
   'not set': 'не задано',
   'team key': 'ключ команды',
   saved: 'сохранён',

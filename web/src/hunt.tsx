@@ -570,8 +570,6 @@ function Details({
             </dd>
             <dt>{t('agent wallet')}</dt>
             <dd>{t('{n} test NEAR', { n: program.config.initialBalance })}</dd>
-            <dt>{t('steps')}</dt>
-            <dd>{program.config.maxSteps}</dd>
             <dt>{t('model')}</dt>
             <dd>{program.config.model}</dd>
           </dl>

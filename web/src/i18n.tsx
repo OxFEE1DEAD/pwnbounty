@@ -263,11 +263,8 @@ const ru: Record<string, string> = {
   'Checker plea · earns zero': 'Просьба проверке · ноль',
   'Invoice text': 'Текст инвойса',
   'Your text is untrusted input to the agent.': 'Ваш текст - недоверенный вход для агента.',
-  'Saved encrypted invoice for program #{id}.':
-    'Сохранён зашифрованный инвойс для программы #{id}.',
   'Encrypt and submit →': 'Зашифровать и отправить →',
   'Continue submission →': 'Продолжить отправку →',
-  'Discard saved invoice': 'Удалить сохранённый инвойс',
   'Download JSON for CLI commit': 'Скачать JSON для commit через CLI',
   'The route to a verdict': 'Путь к вердикту',
   'Submission progress': 'Ход отправки',
@@ -588,7 +585,6 @@ const ru: Record<string, string> = {
   'Full results, case by case →': 'Все результаты по кейсам →',
   'Sealed. Save the file, then commit it on NEAR.':
     'Запечатано. Сохраните файл, затем запишите заявку в NEAR.',
-  'Save sealed-report-{id}.json': 'Сохранить sealed-report-{id}.json',
   'I saved sealed-report-{id}.json. It cannot be recreated after the deadline.':
     'Я сохранил sealed-report-{id}.json. После срока его не восстановить.',
   'Commit on NEAR · {deposit}': 'Записать в NEAR · {deposit}',
@@ -596,9 +592,31 @@ const ru: Record<string, string> = {
     'Подтвердите в кошельке: сначала коммит, затем зашифрованный инвойс. Проверка в TEE идёт сразу после, до 2 минут.',
   'The TEE check returned no verdict. Your commitment stays open: run the check again without a new commitment.':
     'Проверка в TEE не вернула вердикт. Коммит остаётся открытым: запустите проверку ещё раз, новый коммит не нужен.',
-  'Transactions on this escrow': 'Транзакции на этом escrow',
-  gas: 'газ',
-  deposit: 'депозит',
+  'Your attempts on this program': 'Ваши попытки в этой программе',
+  'Transactions: {n} · hunters: {k}.': 'Транзакций: {n} · хантеров: {k}.',
+  'All escrow transactions ↗': 'Все транзакции эскроу ↗',
+  you: 'вы',
+  committed: 'коммит',
+  rejected: 'отклонено',
+  'break, paid': 'взлом, выплачено',
+  'no break': 'без взлома',
+  'no verdict': 'нет вердикта',
+  checking: 'проверка',
+  'verdict ↗': 'вердикт ↗',
+  'tx ↗': 'транзакция ↗',
+  'TEE attestation ↗': 'аттестация TEE ↗',
+  'This program is closed: it has a winner or its time ran out.':
+    'Программа закрыта: у неё уже есть победитель или вышло время.',
+  'Examples:': 'Примеры:',
+  'The reward goes to the wallet that signs.': 'Награда уйдёт кошельку, который подпишет.',
+  'You have a sealed invoice for program #{id}.':
+    'У вас есть запечатанный инвойс для программы #{id}.',
+  'Your sealed invoice is kept in this browser.': 'Запечатанный инвойс сохранён в этом браузере.',
+  'save a copy': 'сохранить копию',
+  discard: 'удалить',
+  '{deposit} storage, not refunded, plus up to 0.03 NEAR for the TEE run.':
+    '{deposit} за хранение, не возвращается, плюс до 0.03 NEAR за запуск в TEE.',
+  'Closed: {account} won it.': 'Закрыта: победил {account}.',
   'The explorer index lags a few seconds behind the chain.':
     'Индекс эксплорера отстаёт от сети на несколько секунд.',
   'Commitment confirmed in finalized NEAR. Press the button to run the check.':
@@ -608,12 +626,9 @@ const ru: Record<string, string> = {
   'No verdict yet: {detail}': 'Вердикта пока нет: {detail}',
   'the TEE run did not finish. The claim is still open: run the check again.':
     'прогон в TEE не завершился. Заявка открыта: запустите проверку ещё раз.',
-  'View the claim transaction ↗': 'Транзакция заявки ↗',
   'Run the check again': 'Проверить ещё раз',
   'Run the check in the TEE →': 'Запустить проверку в TEE →',
   'Encrypt, commit and check · {deposit}': 'Зашифровать, записать и проверить · {deposit}',
-  'One wallet confirmation, two transactions: {deposit} claim storage (not refundable) and about 0.03 NEAR for the TEE run, unused part comes back. The invoice is encrypted here; only the TEE can open it.':
-    'Одно подтверждение в кошельке, две транзакции: {deposit} за хранение заявки (не возвращается) и около 0.03 NEAR за прогон в TEE, неиспользованное вернётся. Инвойс шифруется здесь, открыть его может только TEE.',
   'Claim on NEAR': 'Заявка в NEAR',
   'The commitment on NEAR differs from this submission':
     'Коммит в NEAR не совпадает с этой заявкой',
@@ -918,7 +933,6 @@ const ru: Record<string, string> = {
   'Submit an attack': 'Подать атаку',
   Seal: 'Шифр',
   Verdict: 'Вердикт',
-  'The reward goes to the wallet that commits.': 'Награда уходит кошельку, который сделал коммит.',
   escrow: 'эскроу',
   owner: 'владелец',
   'Every attack, case by case →': 'Каждая атака по отдельности →',

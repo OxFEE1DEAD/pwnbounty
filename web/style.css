@@ -775,7 +775,8 @@ summary { cursor: pointer; font-weight: 600; }
   font-size: 12px;
   margin-top: 4px;
 }
-.txs ul { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
-.txs li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 12px; }
-.txs li a { margin-left: auto; }
+.attempts { display: grid; gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 12px; }
+.attempts li > div { display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; }
+.attempts .win { color: var(--hack); font-weight: 700; }
+.samples { align-items: baseline; }
 .ok-text { color: var(--ok); }

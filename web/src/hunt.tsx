@@ -432,6 +432,8 @@ function useSubmission(env: Env) {
       const existing = await found(pending, 1);
       const tracked = remember(pending);
       if (!existing?.settled) {
+        if ((await chain.bounty(pending.bounty)).state !== 'Available')
+          throw new Error('This program is closed: it has a winner or its time ran out.');
         const fee = await worker.fee(pending);
         mark('wallet', 'active', status.wallet);
         setTx(
@@ -520,8 +522,16 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function Details({ id, program }: { id: string; program: Program }) {
-  const { chain } = useEnv(),
+function Details({
+  id,
+  program,
+  attempts,
+}: {
+  id: string;
+  program: Program;
+  attempts?: Attempt[];
+}) {
+  const { chain, meta } = useEnv(),
     t = useT();
   const { bounty } = program;
   const world = program.kind === 'world';
@@ -603,6 +613,20 @@ function Details({ id, program }: { id: string; program: Program }) {
         <a className="hint" href="#/docs/verify">
           {t('How to check a verdict →')}
         </a>
+      </Row>
+      <Row label="ATTEMPTS">
+        <p className="muted">
+          {attempts
+            ? t('Transactions: {n} · hunters: {k}.', {
+                n: String(attempts.length),
+                k: String(new Set(attempts.map((row) => row.hunter)).size),
+              })
+            : t('Loading chain data…')}{' '}
+          <a href={chain.accountUrl(meta.contract)} target="_blank" rel="noopener noreferrer">
+            {t('All escrow transactions ↗')}
+          </a>
+        </p>
+        {attempts && attempts.length > 0 && <Attempts rows={attempts} />}
       </Row>
     </div>
   );
@@ -789,11 +813,12 @@ function InvoiceComposer({ value, busy, world, hash, onChange }: ComposerProps) 
   return (
     <>
       <div className="samples">
+        <span className="muted">{t('Examples:')}</span>
         {(world ? attackSamples(hash) : samples).map((sample) => (
           <button
             key={sample.label}
             type="button"
-            className="chip"
+            className="link"
             disabled={busy}
             onClick={() => onChange(sample.text)}
           >
@@ -872,71 +897,183 @@ interface VerdictProps {
   onAgain(): void;
 }
 
-interface ExplorerTx {
-  transaction_hash: string;
-  receiver_account_id: string;
-  actions: { method?: string | null }[];
-  actions_agg: { deposit: string };
-  outcomes: { status: boolean };
-  outcomes_agg: { transaction_fee: string };
+interface TxOutcome {
+  block_timestamp: string;
+  outcome: {
+    logs: string[];
+    tokens_burnt: string;
+    status: {
+      Failure?: { ActionError?: { kind?: { FunctionCallError?: { ExecutionError?: string } } } };
+    };
+  };
 }
 
-function HunterTxs({ hunter, refresh }: { hunter: string; refresh: unknown }) {
-  const { meta, chain } = useEnv(),
+interface FullTx {
+  transaction: {
+    hash: string;
+    signer_id: string;
+    receiver_id: string;
+    actions: { FunctionCall?: { method_name: string; args: string; deposit: string } }[];
+  };
+  execution_outcome: TxOutcome;
+  receipts: { execution_outcome: TxOutcome }[];
+}
+
+interface EventData {
+  verdict?: { valid: boolean };
+  error_message?: string | null;
+  payment_charged?: string;
+}
+
+interface Attempt {
+  hash: string;
+  hunter: string;
+  method: string;
+  time: number;
+  cost: bigint;
+  result: string;
+  tone: string;
+  detail?: string;
+  tee: boolean;
+}
+
+async function attemptsOf(network: string, contract: string, bounty: string): Promise<Attempt[]> {
+  const post = async <T,>(path: string, body: unknown) => {
+    const response = await fetch(
+      `https://tx.${network === 'mainnet' ? 'main' : 'test'}.fastnear.com/v0/${path}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    );
+    if (!response.ok) throw new Error('Attempts could not be loaded');
+    return (await response.json()) as T;
+  };
+  const { account_txs } = await post<{
+    account_txs: { transaction_hash: string; is_function_call: boolean }[];
+  }>('account', { account_id: contract });
+  const hashes = account_txs.filter((tx) => tx.is_function_call).map((tx) => tx.transaction_hash);
+  const pages = await Promise.all(
+    [0, 20, 40].map((from) =>
+      hashes.length > from
+        ? post<{ transactions: FullTx[] }>('transactions', {
+            tx_hashes: hashes.slice(from, from + 20),
+          })
+        : { transactions: [] },
+    ),
+  );
+  return pages
+    .flatMap((page) => page.transactions)
+    .map((tx) => attemptOf(tx, contract, bounty))
+    .filter((row): row is Attempt => !!row)
+    .sort((a, b) => b.time - a.time);
+}
+
+function attemptOf(tx: FullTx, contract: string, bounty: string): Attempt | undefined {
+  const call = tx.transaction.actions[0]?.FunctionCall;
+  if (
+    tx.transaction.receiver_id !== contract ||
+    !call ||
+    !['commit', 'claim'].includes(call.method_name)
+  )
+    return;
+  if ((JSON.parse(atob(call.args)) as { bounty?: string }).bounty !== bounty) return;
+  const outcomes = [
+    tx.execution_outcome,
+    ...tx.receipts.map((receipt) => receipt.execution_outcome),
+  ];
+  const events = outcomes
+    .flatMap((o) => o.outcome.logs)
+    .filter((log) => log.startsWith('EVENT_JSON:'))
+    .map((log) => JSON.parse(log.slice(11)) as { event: string; data: EventData[] });
+  const find = (name: string) => events.find((e) => e.event === name)?.data[0];
+  const panic = outcomes
+    .map((o) => o.outcome.status.Failure?.ActionError?.kind?.FunctionCallError?.ExecutionError)
+    .find(Boolean);
+  const run = find('execution_completed');
+  const verdict = find('verdict')?.verdict;
+  const [result, tone] = panic
+    ? ['rejected', '']
+    : call.method_name === 'commit'
+      ? ['committed', 'muted']
+      : verdict
+        ? verdict.valid
+          ? ['break, paid', 'win']
+          : ['no break', '']
+        : find('claim_failed')
+          ? ['no verdict', '']
+          : ['checking', 'muted'];
+  const burnt = outcomes.reduce((sum, o) => sum + BigInt(o.outcome.tokens_burnt), 0n);
+  const stake = call.method_name === 'commit' && !panic ? BigInt(call.deposit) : 0n;
+  return {
+    hash: tx.transaction.hash,
+    hunter: tx.transaction.signer_id,
+    method: call.method_name,
+    time: Number(BigInt(tx.execution_outcome.block_timestamp) / 1_000_000n),
+    cost: burnt + BigInt(run?.payment_charged ?? 0) + stake,
+    result: result!,
+    tone: tone!,
+    detail:
+      panic?.replace(/^Smart contract panicked: /, '') ??
+      run?.error_message?.match(/Runner execution failed: ([^\n]{1,200})/)?.[1],
+    tee: !!run,
+  };
+}
+
+const attestation = (network: string, tx: string) =>
+  `https://${network === 'testnet' ? 'testnet-' : ''}api.outlayer.ai/attestations/by-tx/${tx}`;
+
+function Attempts({ rows, mine }: { rows: Attempt[]; mine?: string }) {
+  const { meta, chain, account } = useEnv(),
     t = useT();
-  const [txs, setTxs] = useState<ExplorerTx[]>([]);
-  useEffect(() => {
-    let live = true;
-    const host = meta.network === 'mainnet' ? 'api.nearblocks.io' : 'api-testnet.nearblocks.io';
-    const load = () =>
-      fetch(`https://${host}/v3/accounts/${encodeURIComponent(hunter)}/txns?per_page=25`)
-        .then((response) => response.json() as Promise<{ data?: ExplorerTx[] }>)
-        .then((body) => {
-          if (live)
-            setTxs((body.data ?? []).filter((tx) => tx.receiver_account_id === meta.contract));
-        })
-        .catch(() => undefined);
-    void load();
-    const timer = window.setTimeout(load, 8000);
-    return () => {
-      live = false;
-      window.clearTimeout(timer);
-    };
-  }, [hunter, meta.contract, refresh]);
-  if (!txs.length) return null;
+  const shown = mine ? rows.filter((row) => row.hunter === mine) : rows;
+  if (!shown.length) return <p className="muted">{t('No attempts yet.')}</p>;
   return (
-    <details className="summary-block txs" open>
-      <summary>
-        {t('Transactions on this escrow')} · {txs.length}
-      </summary>
-      <ul>
-        {txs.map((tx) => (
-          <li key={tx.transaction_hash}>
-            <span className={tx.outcomes.status ? 'ok-text' : 'error-text'}>
-              {tx.outcomes.status ? '✓' : '✗'}
+    <ul className="attempts">
+      {shown.map((row) => (
+        <li key={row.hash}>
+          <div>
+            <span className="muted">
+              {new Date(row.time).toLocaleString([], {
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
             </span>
-            <code>{tx.actions[0]?.method ?? 'transfer'}</code>
-            <span>
-              {t('gas')} {near(tx.outcomes_agg.transaction_fee)}
-            </span>
-            {tx.actions_agg.deposit !== '0' && (
-              <span>
-                {t('deposit')} {near(tx.actions_agg.deposit)}
-              </span>
+            {!mine && (
+              <a href={chain.accountUrl(row.hunter)} target="_blank" rel="noopener noreferrer">
+                {row.hunter === account ? t('you') : row.hunter}
+              </a>
             )}
-            <a href={chain.txUrl(tx.transaction_hash)} target="_blank" rel="noopener noreferrer">
-              {tx.transaction_hash.slice(0, 8)}… ↗
+            <code>{row.method}</code>
+            <span className={row.tone}>{t(row.result)}</span>
+            <span className="muted">{near(row.cost)}</span>
+          </div>
+          <div className="muted">
+            <a href={chain.txUrl(row.hash)} target="_blank" rel="noopener noreferrer">
+              {t(row.method === 'claim' && !row.detail ? 'verdict ↗' : 'tx ↗')}
             </a>
-          </li>
-        ))}
-      </ul>
-      <p className="hint">{t('The explorer index lags a few seconds behind the chain.')}</p>
-    </details>
+            {row.tee && (
+              <a
+                href={attestation(meta.network, row.hash)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('TEE attestation ↗')}
+              </a>
+            )}
+            {row.detail && <span>{row.detail}</span>}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 function VerdictCard({ outcome, tx, rule, busy, onRetry, onRerun, onAgain }: VerdictProps) {
-  const { chain } = useEnv(),
+  const { chain, meta } = useEnv(),
     t = useT(),
     link = receipt(chain, tx);
   const vars = {
@@ -952,7 +1089,12 @@ function VerdictCard({ outcome, tx, rule, busy, onRetry, onRerun, onAgain }: Ver
       <div className="row">
         {link && (
           <a href={link} target="_blank" rel="noopener noreferrer">
-            {t('View the claim transaction ↗')}
+            {t('verdict ↗')}
+          </a>
+        )}
+        {link && (
+          <a href={attestation(meta.network, tx!)} target="_blank" rel="noopener noreferrer">
+            {t('TEE attestation ↗')}
           </a>
         )}
         {outcome.kind === 'failed' && onRerun && (
@@ -966,7 +1108,7 @@ function VerdictCard({ outcome, tx, rule, busy, onRetry, onRerun, onAgain }: Ver
           </button>
         )}
         {(outcome.kind === 'no-reward' || outcome.kind === 'failed') && (
-          <button type="button" className="chip" onClick={onAgain}>
+          <button type="button" className="link" onClick={onAgain}>
             {t('Try another invoice')}
           </button>
         )}
@@ -980,11 +1122,18 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
     t = useT();
   const flow = useSubmission(env);
   const [invoice, setInvoice] = useState('');
+  const { report, busy, outcome, tx, record } = flow;
   const view = useAsync(
     () => (visible && id ? loadProgram(env, id) : Promise.resolve(undefined)),
-    [visible, id],
+    [visible, id, outcome?.kind],
   );
-  const { report, busy, outcome, tx, record } = flow;
+  const attempts = useAsync(
+    () =>
+      visible && id
+        ? attemptsOf(env.meta.network, env.meta.contract, id)
+        : Promise.resolve(undefined),
+    [visible, id, tx, outcome?.kind],
+  );
   const data = view.value?.entry.id === id ? view.value : undefined;
   const selected = data?.standing === 'open' ? data.program : undefined;
   const elsewhere = report && report.bounty !== id ? report.bounty : undefined;
@@ -1022,7 +1171,9 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
         : env.account
           ? 1
           : 0;
-  const attackable = data?.standing === 'open' || report?.bounty === id;
+  const attackable =
+    data?.standing === 'open' ||
+    (report?.bounty === id && data?.entry.bounty.state === 'Available');
   return (
     <div className="wrap">
       <a className="back program-back" href="#/programs">
@@ -1102,7 +1253,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
         <div className="program-grid">
           <div>
             {data.program ? (
-              <Details id={id} program={data.program} />
+              <Details id={id} program={data.program} attempts={attempts.value} />
             ) : (
               <p className="muted">
                 {t('Rules could not be loaded: {problem}', { problem: t(data.problem ?? '') })}
@@ -1127,30 +1278,32 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                   </ol>
                 </div>
                 <div className="summary-block">
-                  {env.account ? (
-                    <p className="muted">{t('Claiming as {account}.', { account: env.account })}</p>
-                  ) : (
-                    <>
-                      <p>{t('The reward goes to the wallet that commits.')}</p>
-                      <button
-                        type="button"
-                        className="button secondary"
-                        onClick={() => env.connect().catch((e) => env.notify(errorText(e), true))}
-                      >
-                        {t('Connect wallet')}
-                      </button>
-                    </>
-                  )}
+                  <p className="muted">
+                    {env.account
+                      ? t('Claiming as {account}.', { account: env.account })
+                      : t('The reward goes to the wallet that signs.')}
+                  </p>
                 </div>
                 <div className="summary-block">
                   {elsewhere ? (
-                    <p className="notice">
-                      {t('Saved encrypted invoice for program #{id}.', { id: elsewhere })}{' '}
+                    <p className="muted">
+                      {t('You have a sealed invoice for program #{id}.', { id: elsewhere })}{' '}
                       <a href={'#/programs/' + elsewhere}>{t('Open it →')}</a>
                     </p>
                   ) : report ? (
-                    <p className="notice">
-                      {t('Saved encrypted invoice for program #{id}.', { id: report.bounty })}
+                    <p className="muted">
+                      {t('Your sealed invoice is kept in this browser.')}{' '}
+                      <button type="button" className="link" onClick={() => download(report)}>
+                        {t('save a copy')}
+                      </button>
+                      {!busy && (
+                        <>
+                          {' · '}
+                          <button type="button" className="link" onClick={flow.forget}>
+                            {t('discard')}
+                          </button>
+                        </>
+                      )}
                     </p>
                   ) : (
                     <InvoiceComposer
@@ -1162,28 +1315,14 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                     />
                   )}
                   {report ? (
-                    <>
-                      <button
-                        type="button"
-                        className="button secondary"
-                        onClick={() => download(report)}
-                      >
-                        {t('Save sealed-report-{id}.json', { id: report.bounty })}
-                      </button>
-                      <button
-                        type="button"
-                        className="button"
-                        disabled={!ready}
-                        onClick={() => void flow.start(undefined, '')}
-                      >
-                        {t('Run the check in the TEE →') + first}
-                      </button>
-                      {!busy && (
-                        <button type="button" className="chip" onClick={flow.forget}>
-                          {t('Discard saved invoice')}
-                        </button>
-                      )}
-                    </>
+                    <button
+                      type="button"
+                      className="button"
+                      disabled={!ready}
+                      onClick={() => void flow.start(undefined, '')}
+                    >
+                      {t('Run the check in the TEE →') + first}
+                    </button>
                   ) : (
                     <>
                       <button
@@ -1198,16 +1337,19 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                     </>
                   )}
                   <p className="hint">
-                    {t(
-                      'One wallet confirmation, two transactions: {deposit} claim storage (not refundable) and about 0.03 NEAR for the TEE run, unused part comes back. The invoice is encrypted here; only the TEE can open it.',
-                      { deposit },
-                    )}
+                    {t('{deposit} storage, not refunded, plus up to 0.03 NEAR for the TEE run.', {
+                      deposit,
+                    })}
                   </p>
                 </div>
               </>
             ) : (
               <div className="summary-block">
-                <p>{t('This program is closed for new attacks.')}</p>
+                <p>
+                  {data.entry.bounty.winner
+                    ? t('Closed: {account} won it.', { account: data.entry.bounty.winner })
+                    : t('This program is closed for new attacks.')}
+                </p>
                 {!report && <LoadReport busy={busy} load={flow.load} />}
               </div>
             )}
@@ -1233,8 +1375,11 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                 )}
               </div>
             )}
-            {env.account && (
-              <HunterTxs hunter={env.account} refresh={[tx, outcome?.kind, busy].join()} />
+            {env.account && attempts.value && (
+              <details className="summary-block txs" open>
+                <summary>{t('Your attempts on this program')}</summary>
+                <Attempts rows={attempts.value} mine={env.account} />
+              </details>
             )}
           </aside>
         </div>

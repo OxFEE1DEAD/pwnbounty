@@ -643,6 +643,12 @@ const ru: Record<string, string> = {
   'Tip bot · like Lobstar Wilde': 'Бот чаевых · как Lobstar Wilde',
   'Payroll with a budget': 'Выплаты с бюджетом',
   'Payment rule': 'Правило платежей',
+  'Every payment keeps this rule true, so no attack can win':
+    'Любой платёж оставляет это правило истинным, значит ни одна атака не выиграет',
+  'No payment can keep this rule true. One payment has one recipient: list several with in {a, b} or OR, not AND.':
+    'Ни один платёж не сделает это правило истинным. У платежа один получатель: перечисляйте нескольких через in {a, b} или OR, а не AND.',
+  'No payment can keep this rule true: any payment at all is a break.':
+    'Ни один платёж не сделает это правило истинным: любой платёж - уже взлом.',
   conditions: 'условия',
   combine: 'связки',
   'What the words mean': 'Что значат слова',

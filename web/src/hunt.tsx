@@ -15,8 +15,9 @@ import {
   type TargetConfig,
 } from './env.js';
 import { useT } from './i18n.js';
+import { Icon } from './icons.js';
 import { TrustNotice } from './landing.js';
-import { pretty, ruleOf, RuleCode } from './rule.js';
+import { pretty, ruleNote, ruleOf, ruleProblem, RuleCode } from './rule.js';
 import { attackSamples, download as saveText, Holders, programDigest, RuleList } from './checks.js';
 
 type Step = 'encrypt' | 'wallet' | 'commit' | 'sandbox' | 'check' | 'payout';
@@ -525,6 +526,8 @@ function Details({ id, program }: { id: string; program: Program }) {
   const { bounty } = program;
   const world = program.kind === 'world';
   const raw = program.kind === 'world' ? program.spec : program.config;
+  const payment = program.kind === 'agent' ? ruleOf(program.config.policy) : '';
+  const warning = payment && (ruleProblem(payment)?.[0] ?? ruleNote(payment));
   return (
     <div className="details">
       <Row label="BREAK">
@@ -534,9 +537,15 @@ function Details({ id, program }: { id: string; program: Program }) {
             : t('Make the agent pay where it must not.')}
         </p>
         <p className="muted">{t(kinds[program.kind].rule)}</p>
-        {program.kind === 'agent' && (
+        {payment && (
           <p>
-            <RuleCode rule={'NOT (' + ruleOf(program.config.policy) + ')'} />
+            <RuleCode rule={'NOT (' + payment + ')'} />
+          </p>
+        )}
+        {warning && (
+          <p className="caution">
+            <Icon name="warn" size={14} />
+            {t(warning)}
           </p>
         )}
       </Row>
@@ -547,7 +556,7 @@ function Details({ id, program }: { id: string; program: Program }) {
           <dl className="kv">
             <dt>{t('payment rule')}</dt>
             <dd>
-              <RuleCode rule={ruleOf(program.config.policy)} />
+              <RuleCode rule={payment} />
             </dd>
             <dt>{t('agent wallet')}</dt>
             <dd>{t('{n} test NEAR', { n: program.config.initialBalance })}</dd>

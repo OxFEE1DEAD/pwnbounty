@@ -755,7 +755,7 @@ summary { cursor: pointer; font-weight: 600; }
 .rule-editor textarea[aria-invalid='true'] { border-color: var(--fail); }
 .t-logic { color: var(--hack); font-weight: 700; }
 .t-op { color: var(--info); }
-.t-var { color: var(--ok); }
+.t-var { color: var(--muted); }
 .rule-code { overflow-wrap: anywhere; }
 .rule-blocks {
   display: grid;

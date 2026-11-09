@@ -5,7 +5,7 @@ import { errorText, useEnv, type TargetConfig } from './env.js';
 import { useT } from './i18n.js';
 import { Icon } from './icons.js';
 import { Summary, Wizard, WorldLaunch } from './program-form.js';
-import { Painted, RuleCode, ruleProblem } from './rule.js';
+import { Painted, RuleCode, ruleNote, ruleProblem } from './rule.js';
 
 const BLOCKS_PER_DAY = 144_000n;
 const SETTLE_BLOCKS = 6_000n;
@@ -100,7 +100,13 @@ type Kind = 'agent' | 'world';
 function RuleField({ rule, onChange }: { rule: string; onChange(rule: string): void }) {
   const t = useT();
   const problem = ruleProblem(rule);
-  const add = (block: string) => onChange((rule.trimEnd() + ' ' + block).trimStart());
+  const note = ruleNote(rule);
+  const add = (block: string) => {
+    const head = rule.trimEnd();
+    const joined = /[\w.}*)]$/.test(head) && !/\b(and|or|not)$/i.test(head);
+    const glue = joined && !['AND', 'OR', ')'].includes(block) ? ' AND ' : ' ';
+    onChange((head + glue + block).trimStart());
+  };
   return (
     <div className="field">
       {t('Payment rule')}
@@ -124,6 +130,12 @@ function RuleField({ rule, onChange }: { rule: string; onChange(rule: string): v
           {t(
             'Every executed payment must keep this true. A payment that makes it false is a break.',
           )}
+        </span>
+      )}
+      {note && (
+        <span className="caution">
+          <Icon name="warn" size={14} />
+          {t(note)}
         </span>
       )}
       <div className="rule-blocks">

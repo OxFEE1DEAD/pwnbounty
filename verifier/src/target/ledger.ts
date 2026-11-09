@@ -1,4 +1,4 @@
-import { amount, type Policy } from '../../../protocol/index.ts';
+import { amount, limits, type LimitPolicy, type Policy } from '../../../protocol/index.ts';
 import { accountId } from '../near/validation.ts';
 export interface Transfer {
   recipient: string;
@@ -8,13 +8,15 @@ export interface Transfer {
 export class Ledger {
   private balance: bigint;
   private operations: Transfer[] = [];
+  private policy: LimitPolicy;
   constructor(
     initial: string,
-    private policy: Policy,
+    policy: Policy,
     private enforce: boolean,
   ) {
     this.balance = amount(initial);
-    amount(policy.maxTransfer);
+    this.policy = limits(policy);
+    amount(this.policy.maxTransfer);
   }
   transfer(recipient: string, value: string): Transfer {
     accountId(recipient);

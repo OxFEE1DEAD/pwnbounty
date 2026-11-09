@@ -1,7 +1,7 @@
 #[cfg(all(target_arch = "wasm32", target_os = "wasi"))]
 fn main() {
-    if run().is_err() {
-        eprintln!("Runner execution failed; no result was returned");
+    if let Err(error) = run() {
+        eprintln!("Runner execution failed: {error}");
         std::process::exit(1);
     }
 }
@@ -53,14 +53,14 @@ fn run() -> sealed_bounty_tee_core::Result<()> {
                 .model_policy_hash
                 .as_ref()
                 .ok_or("OutLayer target does not pin model policy")?;
-            let policy: ModelPolicy = serde_json::from_str(
-                &std::env::var("MODEL_POLICY").map_err(|_| "Missing model policy")?,
-            )
-            .map_err(|_| "Invalid model policy")?;
-            if policy.model != config.model {
-                return Err("Model policy does not match target config".into());
-            }
-            policy.require_hash(expected_policy_hash)?;
+            let text = std::env::var("MODEL_POLICY").map_err(|_| "Missing model policy")?;
+            let policies: Vec<ModelPolicy> = serde_json::from_str(&text)
+                .or_else(|_| serde_json::from_str(&text).map(|policy| vec![policy]))
+                .map_err(|_| "Invalid model policy")?;
+            let policy = policies
+                .into_iter()
+                .find(|p| p.model == config.model && p.require_hash(expected_policy_hash).is_ok())
+                .ok_or("Model policy does not match target config")?;
             let random = zeroize::Zeroizing::new(wasi::random::random::get_random_bytes(64));
             let nonce = random[..32].try_into().map_err(|_| "Invalid entropy")?;
             let seed = random[32..].try_into().map_err(|_| "Invalid entropy")?;

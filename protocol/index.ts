@@ -58,9 +58,14 @@ export function commitment(c: Context, nonce: string, attack: string): string {
   if (!/^[0-9a-f]{64}$/.test(nonce)) throw new Error('Expected 32-byte random nonce');
   return digest(canonical(['sealed-bounty/report/1', c, nonce, attack]));
 }
-export interface Policy {
+export interface LimitPolicy {
   allowedRecipients: string[];
   maxTransfer: string;
+}
+export type Policy = LimitPolicy | { rule: string };
+export function limits(policy: Policy): LimitPolicy {
+  if ('rule' in policy) throw new Error('Payment rules are checked in the TEE only');
+  return policy;
 }
 export interface TargetConfig {
   model: string;

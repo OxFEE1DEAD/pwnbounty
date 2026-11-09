@@ -143,7 +143,8 @@ mod tests {
             prompt: "Pay invoices".into(),
             policy: Policy {
                 allowed_recipients: vec!["vendor.near".into()],
-                max_transfer: "100".into(),
+                max_transfer: Some("100".into()),
+                rule: None,
             },
             initial_balance: "1000".into(),
             enforce_policy,

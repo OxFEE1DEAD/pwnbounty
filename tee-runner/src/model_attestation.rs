@@ -428,18 +428,25 @@ pub fn fetch(api_key: &str, policy: &ModelPolicy, nonce: &[u8; 32]) -> Result<At
         hex(nonce)
     );
     let authorization = format!("Bearer {api_key}");
-    let response = crate::http::get(
-        "cloud-api.near.ai",
-        &path,
-        &[("authorization", &authorization)],
-        std::time::Duration::from_secs(30),
-        1_000_000,
-    )?;
-    if response.status != 200 {
-        return Err(format!("Model attestation HTTP {}", response.status));
-    }
     let now = wasi::clocks::wall_clock::now().seconds;
-    let (key, gpu_evidence) = verify(&response.body, policy, nonce, now)?;
+    let mut attempts = 5;
+    let (key, gpu_evidence) = loop {
+        let response = crate::http::get(
+            "cloud-api.near.ai",
+            &path,
+            &[("authorization", &authorization)],
+            std::time::Duration::from_secs(30),
+            1_000_000,
+        )?;
+        if response.status != 200 {
+            return Err(format!("Model attestation HTTP {}", response.status));
+        }
+        attempts -= 1;
+        match verify(&response.body, policy, nonce, now) {
+            Err(_) if attempts > 0 => continue,
+            result => break result?,
+        }
+    };
     let timeout = std::time::Duration::from_secs(30);
     let host = "nras.attestation.nvidia.com";
     let nras = crate::http::post_json(

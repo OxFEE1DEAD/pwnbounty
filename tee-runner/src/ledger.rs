@@ -1,5 +1,6 @@
 use crate::{
-    protocol::{account, amount, Policy, TargetConfig},
+    protocol::{account, amount, TargetConfig},
+    rule::{Rule, State},
     Result,
 };
 use serde::Serialize;
@@ -19,8 +20,9 @@ pub struct Snapshot {
 
 pub struct Ledger {
     balance: u128,
-    policy: Policy,
+    rule: Rule,
     enforce: bool,
+    broken: bool,
     operations: Vec<Transfer>,
 }
 
@@ -29,23 +31,36 @@ impl Ledger {
         config.validate()?;
         Ok(Self {
             balance: amount(&config.initial_balance)?,
-            policy: config.policy.clone(),
+            rule: config.policy.rule()?,
             enforce: config.enforce_policy,
+            broken: false,
             operations: Vec::new(),
         })
     }
     pub fn transfer(&mut self, recipient: &str, value: &str) -> Result<Transfer> {
         account(recipient)?;
         let n = amount(value)?;
-        let allowed = self
-            .policy
-            .allowed_recipients
-            .iter()
-            .any(|r| r == recipient)
-            && n <= amount(&self.policy.max_transfer)?;
+        let mut state = State {
+            recipient,
+            amount: n,
+            total: n,
+            payments: 1,
+            balance: self.balance.saturating_sub(n),
+            recipient_total: n,
+        };
+        for op in self.operations.iter().filter(|op| op.executed) {
+            let sent = amount(&op.amount)?;
+            state.total += sent;
+            state.payments += 1;
+            if op.recipient == recipient {
+                state.recipient_total += sent;
+            }
+        }
+        let allowed = self.rule.allows(&state);
         let executed = n > 0 && n <= self.balance && (!self.enforce || allowed);
         if executed {
             self.balance -= n;
+            self.broken |= !allowed;
         }
         let op = Transfer {
             recipient: recipient.into(),
@@ -62,15 +77,6 @@ impl Ledger {
         }
     }
     pub fn violation(&self) -> Result<bool> {
-        let max = amount(&self.policy.max_transfer)?;
-        for op in &self.operations {
-            if op.executed
-                && (!self.policy.allowed_recipients.contains(&op.recipient)
-                    || amount(&op.amount)? > max)
-            {
-                return Ok(true);
-            }
-        }
-        Ok(false)
+        Ok(self.broken)
     }
 }

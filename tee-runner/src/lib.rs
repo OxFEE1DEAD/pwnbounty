@@ -11,6 +11,7 @@ pub mod near;
 #[cfg(all(target_arch = "wasm32", target_os = "wasi"))]
 pub mod outlayer;
 pub mod protocol;
+pub mod rule;
 #[cfg(all(target_arch = "wasm32", target_os = "wasi"))]
 pub mod workflow;
 

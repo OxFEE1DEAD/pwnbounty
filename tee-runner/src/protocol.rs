@@ -1,4 +1,7 @@
-use crate::Result;
+use crate::{
+    rule::{Op, Rule, Var},
+    Result,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -7,8 +10,37 @@ use std::collections::HashSet;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Policy {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub allowed_recipients: Vec<String>,
-    pub max_transfer: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_transfer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rule: Option<String>,
+}
+
+impl Policy {
+    pub fn rule(&self) -> Result<Rule> {
+        match (&self.rule, &self.max_transfer) {
+            (Some(text), None) if self.allowed_recipients.is_empty() => Rule::parse(text),
+            (None, Some(max)) => {
+                if !(1..=256).contains(&self.allowed_recipients.len()) {
+                    return Err("Invalid recipients".into());
+                }
+                let mut unique = HashSet::new();
+                for recipient in &self.allowed_recipients {
+                    account(recipient)?;
+                    if !unique.insert(recipient) {
+                        return Err("Duplicate recipient".into());
+                    }
+                }
+                Ok(Rule::And(
+                    Box::new(Rule::In(self.allowed_recipients.clone())),
+                    Box::new(Rule::Cmp(Var::Amount, Op::Le, amount(max)?)),
+                ))
+            }
+            _ => Err("Invalid policy".into()),
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -148,18 +180,8 @@ impl TargetConfig {
         {
             return Err("Invalid target limits".into());
         }
-        if !(1..=256).contains(&self.policy.allowed_recipients.len()) {
-            return Err("Invalid recipients".into());
-        }
-        let mut unique = HashSet::new();
-        for recipient in &self.policy.allowed_recipients {
-            account(recipient)?;
-            if !unique.insert(recipient) {
-                return Err("Duplicate recipient".into());
-            }
-        }
+        self.policy.rule()?;
         amount(&self.initial_balance)?;
-        amount(&self.policy.max_transfer)?;
         Ok(())
     }
     pub fn rules_hash(&self) -> Result<String> {

@@ -1,4 +1,10 @@
-import { amount, rulesHash, type TargetConfig, type Verdict } from '../../../protocol/index.ts';
+import {
+  amount,
+  rulesHash,
+  type Policy,
+  type TargetConfig,
+  type Verdict,
+} from '../../../protocol/index.ts';
 import { programHash, type ProgramSpec } from '../../../protocol/program.ts';
 import type { Rules } from '../interfaces.ts';
 
@@ -42,19 +48,29 @@ export function targetConfig(value: unknown): TargetConfig {
     prompt = text(c.prompt, 'prompt');
   if (!model || model.length > 256 || Buffer.byteLength(prompt) > 65536)
     throw new Error('Invalid model or prompt');
-  if (
-    !Array.isArray(p.allowedRecipients) ||
-    p.allowedRecipients.length < 1 ||
-    p.allowedRecipients.length > 256
-  )
-    throw new Error('Invalid recipients');
-  const allowedRecipients = p.allowedRecipients.map(accountId);
-  if (new Set(allowedRecipients).size !== allowedRecipients.length)
-    throw new Error('Duplicate recipients');
-  const maxTransfer = text(p.maxTransfer, 'max transfer'),
-    initialBalance = text(c.initialBalance, 'balance');
-  amount(maxTransfer);
+  const initialBalance = text(c.initialBalance, 'balance');
   amount(initialBalance);
+  let policy: Policy;
+  if (Object.keys(p).join() === 'rule') {
+    const rule = text(p.rule, 'rule');
+    if (!rule.trim() || rule.length > 4096) throw new Error('Invalid rule');
+    policy = { rule };
+  } else {
+    if (
+      !Array.isArray(p.allowedRecipients) ||
+      p.allowedRecipients.length < 1 ||
+      p.allowedRecipients.length > 256
+    )
+      throw new Error('Invalid recipients');
+    const allowedRecipients = p.allowedRecipients.map(accountId);
+    if (new Set(allowedRecipients).size !== allowedRecipients.length)
+      throw new Error('Duplicate recipients');
+    const maxTransfer = text(p.maxTransfer, 'max transfer');
+    amount(maxTransfer);
+    if (Object.keys(p).sort().join(',') !== 'allowedRecipients,maxTransfer')
+      throw new Error('Unknown config fields');
+    policy = { allowedRecipients, maxTransfer };
+  }
   if (typeof c.enforcePolicy !== 'boolean') throw new Error('Invalid enforcement flag');
   if (
     typeof c.maxSteps !== 'number' ||
@@ -75,17 +91,14 @@ export function targetConfig(value: unknown): TargetConfig {
   const result: TargetConfig = {
     model,
     prompt,
-    policy: { allowedRecipients, maxTransfer },
+    policy,
     initialBalance,
     enforcePolicy: c.enforcePolicy,
     maxSteps: c.maxSteps,
     timeoutMs: c.timeoutMs,
     ...(modelPolicyHash ? { modelPolicyHash } : {}),
   };
-  if (
-    Object.keys(c).sort().join(',') !== Object.keys(result).sort().join(',') ||
-    Object.keys(p).sort().join(',') !== 'allowedRecipients,maxTransfer'
-  )
+  if (Object.keys(c).sort().join(',') !== Object.keys(result).sort().join(','))
     throw new Error('Unknown config fields');
   return result;
 }

@@ -730,3 +730,52 @@ summary { cursor: pointer; font-weight: 600; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+.rule-editor { position: relative; margin-top: 8px; }
+.rule-editor pre, .rule-editor textarea {
+  margin: 0;
+  padding: 12px 14px;
+  font: 14px/1.6 var(--mono);
+  letter-spacing: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+}
+.rule-editor pre { min-height: calc(3.2em + 26px); background: var(--bg); }
+.rule-editor textarea {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  min-height: 0;
+  resize: none;
+  overflow: hidden;
+  color: transparent;
+  caret-color: var(--ink);
+  background: transparent;
+}
+.rule-editor textarea[aria-invalid='true'] { border-color: var(--fail); }
+.t-logic { color: var(--hack); font-weight: 700; }
+.t-op { color: var(--info); }
+.t-var { color: var(--ok); }
+.rule-code { overflow-wrap: anywhere; }
+.rule-blocks {
+  display: grid;
+  grid-template-columns: 11ch minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: center;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.chip.logic { min-width: 48px; color: var(--hack); border-color: var(--hack); font-weight: 700; }
+.rule-help { margin-top: 10px; }
+.rule-help summary { color: var(--muted); font-size: 12px; cursor: pointer; }
+@media (max-width: 640px) { .rule-blocks { grid-template-columns: 1fr; } }
+.rule-words {
+  grid-template-columns: 18ch minmax(0, 1fr);
+  font-size: 12px;
+  margin-top: 4px;
+}
+.txs ul { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+.txs li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 12px; }
+.txs li a { margin-left: auto; }
+.ok-text { color: var(--ok); }

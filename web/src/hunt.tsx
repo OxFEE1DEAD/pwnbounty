@@ -16,6 +16,7 @@ import {
 } from './env.js';
 import { useT } from './i18n.js';
 import { TrustNotice } from './landing.js';
+import { pretty, ruleOf, RuleCode } from './rule.js';
 import { attackSamples, download as saveText, Holders, programDigest, RuleList } from './checks.js';
 
 type Step = 'encrypt' | 'wallet' | 'commit' | 'sandbox' | 'check' | 'payout';
@@ -535,11 +536,7 @@ function Details({ id, program }: { id: string; program: Program }) {
         <p className="muted">{t(kinds[program.kind].rule)}</p>
         {program.kind === 'agent' && (
           <p>
-            <code>
-              recipient ∉ {'{'}
-              {program.config.policy.allowedRecipients.join(', ')}
-              {'}'} ∨ amount &gt; {program.config.policy.maxTransfer}
-            </code>
+            <RuleCode rule={'NOT (' + ruleOf(program.config.policy) + ')'} />
           </p>
         )}
       </Row>
@@ -548,12 +545,14 @@ function Details({ id, program }: { id: string; program: Program }) {
           <Holders spec={program.spec} />
         ) : (
           <dl className="kv">
-            <dt>{t('allowed recipients')}</dt>
-            <dd>{program.config.policy.allowedRecipients.join(', ')}</dd>
-            <dt>{t('per payment')}</dt>
-            <dd>{t('≤ {n} test NEAR', { n: program.config.policy.maxTransfer })}</dd>
+            <dt>{t('payment rule')}</dt>
+            <dd>
+              <RuleCode rule={ruleOf(program.config.policy)} />
+            </dd>
             <dt>{t('agent wallet')}</dt>
             <dd>{t('{n} test NEAR', { n: program.config.initialBalance })}</dd>
+            <dt>{t('steps')}</dt>
+            <dd>{program.config.maxSteps}</dd>
             <dt>{t('model')}</dt>
             <dd>{program.config.model}</dd>
           </dl>
@@ -643,7 +642,7 @@ const kinds = {
   agent: {
     tag: 'AI AGENT',
     title: 'Payment agent with a model',
-    rule: 'Break = the agent executes a transfer its policy forbids',
+    rule: 'Break = an executed payment makes the payment rule false',
   },
 };
 
@@ -847,8 +846,7 @@ function TransferEvidence({ outcome, rule }: { outcome: Outcome; rule?: TargetCo
   const violation = outcome.kind !== 'no-reward';
   const lines = [
     `verdict: ${violation ? 'violation' : 'no violation'}`,
-    rule && `frozen maximum: ${rule.policy.maxTransfer} per transfer`,
-    rule && `allowed recipient: ${rule.policy.allowedRecipients.join(', ')}`,
+    rule && `payment rule: ${pretty(ruleOf(rule.policy))}`,
     `reward: ${violation && outcome.reward ? near(outcome.reward) : '0 NEAR'}`,
     outcome.reportHash && `report: ${outcome.reportHash.slice(0, 16)}…`,
   ];
@@ -863,6 +861,69 @@ interface VerdictProps {
   onRetry(): void;
   onRerun?(): void;
   onAgain(): void;
+}
+
+interface ExplorerTx {
+  transaction_hash: string;
+  receiver_account_id: string;
+  actions: { method?: string | null }[];
+  actions_agg: { deposit: string };
+  outcomes: { status: boolean };
+  outcomes_agg: { transaction_fee: string };
+}
+
+function HunterTxs({ hunter, refresh }: { hunter: string; refresh: unknown }) {
+  const { meta, chain } = useEnv(),
+    t = useT();
+  const [txs, setTxs] = useState<ExplorerTx[]>([]);
+  useEffect(() => {
+    let live = true;
+    const host = meta.network === 'mainnet' ? 'api.nearblocks.io' : 'api-testnet.nearblocks.io';
+    const load = () =>
+      fetch(`https://${host}/v3/accounts/${encodeURIComponent(hunter)}/txns?per_page=25`)
+        .then((response) => response.json() as Promise<{ data?: ExplorerTx[] }>)
+        .then((body) => {
+          if (live)
+            setTxs((body.data ?? []).filter((tx) => tx.receiver_account_id === meta.contract));
+        })
+        .catch(() => undefined);
+    void load();
+    const timer = window.setTimeout(load, 8000);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [hunter, meta.contract, refresh]);
+  if (!txs.length) return null;
+  return (
+    <details className="summary-block txs" open>
+      <summary>
+        {t('Transactions on this escrow')} · {txs.length}
+      </summary>
+      <ul>
+        {txs.map((tx) => (
+          <li key={tx.transaction_hash}>
+            <span className={tx.outcomes.status ? 'ok-text' : 'error-text'}>
+              {tx.outcomes.status ? '✓' : '✗'}
+            </span>
+            <code>{tx.actions[0]?.method ?? 'transfer'}</code>
+            <span>
+              {t('gas')} {near(tx.outcomes_agg.transaction_fee)}
+            </span>
+            {tx.actions_agg.deposit !== '0' && (
+              <span>
+                {t('deposit')} {near(tx.actions_agg.deposit)}
+              </span>
+            )}
+            <a href={chain.txUrl(tx.transaction_hash)} target="_blank" rel="noopener noreferrer">
+              {tx.transaction_hash.slice(0, 8)}… ↗
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p className="hint">{t('The explorer index lags a few seconds behind the chain.')}</p>
+    </details>
+  );
 }
 
 function VerdictCard({ outcome, tx, rule, busy, onRetry, onRerun, onAgain }: VerdictProps) {
@@ -1162,6 +1223,9 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                   </details>
                 )}
               </div>
+            )}
+            {env.account && (
+              <HunterTxs hunter={env.account} refresh={[tx, outcome?.kind, busy].join()} />
             )}
           </aside>
         </div>

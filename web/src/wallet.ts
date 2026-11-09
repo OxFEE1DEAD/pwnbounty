@@ -158,7 +158,9 @@ function failed(outcome: Outcome | undefined): boolean {
   );
 }
 
-function events(outcome: Outcome | undefined): { event?: string; data?: { bounty?: string }[] }[] {
+function events(
+  outcome: Outcome | undefined,
+): { event?: string; data?: { bounty?: string; success?: boolean; error_message?: string }[] }[] {
   const receipts = (outcome?.receipts_outcome ?? []) as { outcome: { logs: string[] } }[];
   return receipts
     .flatMap((receipt) => receipt.outcome.logs)
@@ -168,7 +170,14 @@ function events(outcome: Outcome | undefined): { event?: string; data?: { bounty
 
 function claimed(outcome: Outcome | undefined): string | undefined {
   if (failed(outcome)) throw new Error('The transaction failed on NEAR');
-  if (events(outcome).some((event) => event.event === 'claim_failed'))
-    throw new Error('The TEE check returned no verdict. The claim is still open: run it again.');
+  if (events(outcome).some((event) => event.event === 'claim_failed')) {
+    const run = events(outcome).find((event) => event.event === 'execution_completed')?.data?.[0];
+    const reason = /Runner execution failed: ([^\n]{1,200})/.exec(run?.error_message ?? '')?.[1];
+    throw new Error(
+      reason
+        ? `The TEE check stopped: ${reason}. Your commitment stays open: run the check again without a new commitment.`
+        : 'The TEE check returned no verdict. Your commitment stays open: run the check again without a new commitment.',
+    );
+  }
   return outcome?.transaction?.hash;
 }

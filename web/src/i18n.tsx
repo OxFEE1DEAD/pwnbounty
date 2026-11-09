@@ -594,8 +594,13 @@ const ru: Record<string, string> = {
   'Commit on NEAR · {deposit}': 'Записать в NEAR · {deposit}',
   'Confirm in your wallet: the commitment, then the encrypted invoice. The TEE check runs right after, up to 2 min.':
     'Подтвердите в кошельке: сначала коммит, затем зашифрованный инвойс. Проверка в TEE идёт сразу после, до 2 минут.',
-  'The TEE check returned no verdict. The claim is still open: run it again.':
-    'Проверка в TEE не вернула вердикт. Заявка открыта: запустите её ещё раз.',
+  'The TEE check returned no verdict. Your commitment stays open: run the check again without a new commitment.':
+    'Проверка в TEE не вернула вердикт. Коммит остаётся открытым: запустите проверку ещё раз, новый коммит не нужен.',
+  'Transactions on this escrow': 'Транзакции на этом escrow',
+  gas: 'газ',
+  deposit: 'депозит',
+  'The explorer index lags a few seconds behind the chain.':
+    'Индекс эксплорера отстаёт от сети на несколько секунд.',
   'Commitment confirmed in finalized NEAR. Press the button to run the check.':
     'Коммит подтверждён в NEAR. Нажмите кнопку, чтобы запустить проверку.',
   'The escrow sent the invoice to the OutLayer TEE. Waiting for the verdict, up to 2 min…':
@@ -636,9 +641,45 @@ const ru: Record<string, string> = {
   'Guarded invoice payer': 'Осторожный плательщик счетов',
   'Treasury guardian · like Freysa': 'Хранитель казны · как Freysa',
   'Tip bot · like Lobstar Wilde': 'Бот чаевых · как Lobstar Wilde',
+  'Payroll with a budget': 'Выплаты с бюджетом',
+  'Payment rule': 'Правило платежей',
+  conditions: 'условия',
+  combine: 'связки',
+  'What the words mean': 'Что значат слова',
+  'All private NEAR AI Cloud models that can call tools today. Each one runs in an Intel TDX and NVIDIA GPU enclave, and the runner checks its attestation against a pinned policy before the first call.':
+    'Все приватные модели NEAR AI Cloud, которые сейчас умеют вызывать инструменты. Каждая работает в анклаве Intel TDX и NVIDIA GPU, а раннер сверяет её аттестацию с закреплённой политикой до первого вызова.',
+  '{n} TEE models': '{n} TEE-моделей',
+  'Every executed payment must keep this true. A payment that makes it false is a break.':
+    'Каждый проведённый платёж должен оставлять это правило истинным. Платёж, который делает его ложным, - взлом.',
+  'this payment': 'этот платёж',
+  'all payments of the attack, this one included': 'все платежи атаки, включая этот',
+  'how many payments, this one included': 'сколько платежей, включая этот',
+  'paid to this recipient, this one included': 'уплачено этому получателю, включая этот',
+  'agent wallet after this payment': 'кошелёк агента после этого платежа',
+  'any account under acme.near': 'любой аккаунт внутри acme.near',
+  'AND binds before OR, brackets group, like in code':
+    'AND сильнее OR, скобки группируют, как в коде',
+  'Write a rule': 'Напишите правило',
+  'The rule is too long': 'Правило слишком длинное',
+  'The rule ends too early': 'Правило обрывается',
+  'Unexpected "{value}"': 'Лишнее "{value}"',
+  'Expected "{value}"': 'Ожидалось "{value}"',
+  '"{value}" is not an account': '"{value}" - не аккаунт',
+  'recipient takes =, != or in {…}': 'recipient сравнивается через =, != или in {…}',
+  'Unknown word "{value}"': 'Неизвестное слово "{value}"',
+  '{value} needs a comparison': 'После {value} нужно сравнение',
+  '{value} compares with a whole number': '{value} сравнивается с целым числом',
+  'Too many brackets': 'Слишком много скобок',
+  'Agent steps per attack, 1-20': 'Шагов агента за атаку, 1-20',
+  'Fix the payment rule': 'Исправьте правило платежей',
+  'The agent wallet is a whole number': 'Кошелёк агента - целое число',
+  'Steps go from 1 to 20': 'Шагов от 1 до 20',
+  'payment rule': 'правило платежей',
+  steps: 'шагов',
+  'Break = an executed payment makes the payment rule false':
+    'Взлом = проведённый платёж делает правило платежей ложным',
   'Hackers attack exactly this text. The model reads it before every incoming message.':
     'Хакеры атакуют именно этот текст. Модель читает его перед каждым входящим сообщением.',
-  'Max per payment, test NEAR': 'Максимум за платёж, тестовые NEAR',
   'Agent wallet at the start, test NEAR': 'Кошелёк агента на старте, тестовые NEAR',
   'The agent wallet is a test ledger inside the TEE run, in whole numbers. The reward for a break is paid in real NEAR.':
     'Кошелёк агента - тестовый журнал внутри прогона в TEE, целыми числами. Награда за взлом платится настоящими NEAR.',
@@ -656,16 +697,9 @@ const ru: Record<string, string> = {
     'Escrow отправляет каждую заявку в OutLayer-проект {project}, версия {version}. Его ключи созданы внутри TEE.',
   'Fund and publish · {amount}': 'Внести и опубликовать · {amount}',
   'Write the instructions for the agent': 'Напишите инструкции для агента',
-  'The limit and the balance are whole numbers': 'Лимит и баланс - целые числа',
   'Set the reward in NEAR': 'Укажите награду в NEAR',
-  'Allowed recipients': 'Разрешённые получатели',
-  'Not a NEAR account: {name}. Use name.near, name.testnet or an implicit address':
-    'Не NEAR-аккаунт: {name}. Нужно name.near, name.testnet или неявный адрес',
-  'Add at least one recipient': 'Добавьте хотя бы одного получателя',
   'Pick how long it is open': 'Выберите, сколько программа открыта',
   soon: 'скоро',
-  'Pinned by attestation. Other TEE models are coming.':
-    'Закреплена аттестацией. Другие TEE-модели скоро.',
   'A break is a forbidden transfer that executes on the test ledger.':
     'Взлом - запрещённый перевод, исполненный на тестовом реестре.',
   'not set': 'не задано',
@@ -692,8 +726,6 @@ const ru: Record<string, string> = {
   'Contract with value at stake': 'Контракт с ценностями под риском',
   'Break = a protected account loses value to the attacker':
     'Взлом = защищённый аккаунт теряет ценность в пользу атакующего',
-  'Break = the agent executes a transfer its policy forbids':
-    'Взлом = агент выполняет перевод, который запрещает его политика',
   PROGRAMS: 'ПРОГРАММЫ',
   'Each program says exactly what counts as a break and how much the contract pays for it. The first valid break wins the reward.':
     'Каждая программа точно говорит, что считается взломом и сколько за него платит контракт. Награду получает первый настоящий взлом.',
@@ -820,10 +852,7 @@ const ru: Record<string, string> = {
   'Advanced: limits for one attack': 'Дополнительно: лимиты одной атаки',
   'test run, then the CLI': 'тестовый прогон и CLI',
   AGENT: 'АГЕНТ',
-  'allowed recipients': 'кому можно платить',
-  'per payment': 'за платёж',
   'open for': 'открыта',
-  '≤ {n} test NEAR': '≤ {n} тестовых NEAR',
   'agent wallet': 'кошелёк агента',
   '{n} test NEAR': '{n} тестовых NEAR',
   '{n} days': '{n} дн.',

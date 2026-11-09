@@ -17,13 +17,12 @@ export interface Meta {
   claim_limits: Record<string, number>;
   bounty_storage_deposit: string;
   storage_byte_cost: string;
-  model: string;
-  model_policy_hash: string;
+  models: Record<string, string>;
 }
 export interface TargetConfig {
   model: string;
   prompt: string;
-  policy: { allowedRecipients: string[]; maxTransfer: string };
+  policy: { rule: string } | { allowedRecipients: string[]; maxTransfer: string };
   initialBalance: string;
   enforcePolicy: boolean;
   maxSteps: number;
@@ -53,15 +52,20 @@ export interface Env extends Ports {
   setTeam(draft: TeamDraft): void;
 }
 
-const deployments: Record<Network, { contract: string; model: string; model_policy_hash: string }> =
-  {
-    testnet: {
-      contract: 'pwnbounty-409601.testnet',
-      model: 'Qwen/Qwen3.8-27B',
-      model_policy_hash: '4903e892169b6638b8c9c2f1fffc0fb3da6b6a486ac744cdef113f2f5ec8c94c',
+const deployments: Record<Network, { contract: string; models: Record<string, string> }> = {
+  testnet: {
+    contract: 'pwnbounty-d1c276.testnet',
+    models: {
+      'Qwen/Qwen3.8-27B': '4903e892169b6638b8c9c2f1fffc0fb3da6b6a486ac744cdef113f2f5ec8c94c',
+      'Qwen/Qwen3.6-35B-A3B-FP8':
+        'e9a5614e8319001c7c5ee93f72ddf3c8125bb5873b08c7d0468e971f914db0c1',
+      'deepseek-ai/DeepSeek-V4.1-Flash-1017':
+        'f4cb3a86759dad7a84cffa2c9a1ce6bfec665a12e85c768aabc16c98f7ed93c6',
+      'z-ai/glm-5.3-flash': 'e601ad158ba7f898f66f1ced184e55ed5a3b79840df0e9d8903b5cb2d4c456ce',
     },
-    mainnet: { contract: '', model: '', model_policy_hash: '' },
-  };
+  },
+  mainnet: { contract: '', models: {} },
+};
 
 const kindOf = (raw: string): Program['kind'] =>
   'model' in (JSON.parse(raw) as object) ? 'agent' : 'world';
@@ -131,7 +135,7 @@ export class ChainVerifier implements VerifierApi {
 export async function loadMeta(): Promise<Meta> {
   const network: Network =
     new URLSearchParams(location.search).get('network') === 'mainnet' ? 'mainnet' : 'testnet';
-  const { contract, model, model_policy_hash } = deployments[network];
+  const { contract, models } = deployments[network];
   if (!contract) throw new Error('No escrow is deployed on this network yet');
   const config = await new Chain(network, contract).config();
   if (config.network !== network || !config.verifier) {
@@ -150,8 +154,7 @@ export async function loadMeta(): Promise<Meta> {
     claim_limits: config.claim_limits,
     bounty_storage_deposit: config.bounty_storage_deposit,
     storage_byte_cost: config.storage_byte_cost,
-    model,
-    model_policy_hash,
+    models,
   };
 }
 

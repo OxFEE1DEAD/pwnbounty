@@ -525,7 +525,7 @@ export function Docs() {
             <code>
               {meta.runner.project} · {meta.runner.version.slice(0, 8)}
             </code>
-            <span>{meta.model}</span>
+            <span>{t('{n} TEE models', { n: String(Object.keys(meta.models).length) })}</span>
           </div>
           <div className="table-row muted">
             <span>mainnet</span>

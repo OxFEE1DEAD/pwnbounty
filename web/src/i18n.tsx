@@ -756,7 +756,7 @@ const ru: Record<string, string> = {
   'by {owner} · {where}': 'от {owner} · {where}',
   'Have a contract or an agent you want hackers to attack?':
     'Есть контракт или агент, который стоит атаковать хакерам?',
-  'For projects →': 'Для проектов →',
+  'Publish a program': 'Опубликовать программу',
   'Resubmit →': 'Отправить снова →',
   'Every claim, read from the contract.': 'Все заявки, прочитанные из контракта.',
   'earned, paid only': 'получено, только выплаченное',

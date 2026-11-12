@@ -765,8 +765,8 @@ function Catalog({ visible }: { visible: boolean }) {
       </div>
       <div className="card invite">
         <span>{t('Have a contract or an agent you want hackers to attack?')}</span>
-        <a className="button secondary" href="#/projects">
-          {t('For projects →')}
+        <a className="button secondary" href="#/projects/new">
+          {t('Publish a program')}
         </a>
       </div>
     </div>

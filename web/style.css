@@ -293,6 +293,7 @@ main[data-side='bug'] .tag.open { color: var(--hack-ink); background: var(--hack
 .top nav a[href='#/projects'] .icon { color: var(--info); }
 main[data-side='tools'] .button:not(.secondary) { color: var(--inv-ink); background: var(--info); border-color: var(--info); }
 main[data-side='tools'] .chip.current { border-color: var(--info); }
+main[data-side] .invite .button.secondary { color: var(--info); border-color: var(--info); }
 .node.project .icon { color: var(--info); }
 .node.hacker .icon { color: var(--hack); }
 .node.verifier .icon { color: var(--ok); }

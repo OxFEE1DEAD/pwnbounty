@@ -16,7 +16,7 @@ import {
 } from './env.js';
 import type { ChainReader, HunterClaim } from './ports.js';
 import { Icon, type IconName } from './icons.js';
-import { LangProvider, useT } from './i18n.js';
+import { useT } from './i18n.js';
 import { Hunt } from './hunt.js';
 import { Launch } from './launch.js';
 import { MyProgramsPage, Projects } from './projects.js';
@@ -440,8 +440,4 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')!).render(
-  <LangProvider>
-    <App />
-  </LangProvider>,
-);
+createRoot(document.getElementById('root')!).render(<App />);

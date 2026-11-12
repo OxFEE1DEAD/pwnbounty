@@ -39,8 +39,7 @@ type Attack = {
   title: string;
   text: string;
   type: string;
-  results: [variant: string, result: Result][];
-  details: string[];
+  results: [variant: string, result: Result, detail: string][];
 };
 
 const coverage = data as unknown as {
@@ -57,13 +56,13 @@ const concepts: Record<string, string> = {
   intents: 'Intents protocol',
   agent: 'Agent wallet',
 };
-const verbs: Record<Outcome, string> = {
-  violation: 'broke',
-  no_violation: 'held',
-  invalid_attack: 'rejected as invalid',
-  limit: 'over the limits',
-  inconclusive: 'undecided',
-  infra_error: 'infrastructure error',
+const statuses: Record<Outcome, string> = {
+  violation: 'HACKED',
+  no_violation: 'HELD',
+  invalid_attack: 'INVALID',
+  limit: 'OVER LIMIT',
+  inconclusive: 'UNDECIDED',
+  infra_error: 'INFRA ERROR',
 };
 const groups: [Group, string][] = [
   ['hacked', 'Hacked, reward'],
@@ -159,35 +158,45 @@ function Attacks({ attacks }: { attacks: Attack[] }) {
   }));
   return (
     <div className="attack-groups">
-      <p className="muted">
-        {sorted.map(({ name, list }) => `${t(name)}: ${list.length}`).join(' · ')}
+      <p className="attack-counts">
+        {sorted.map(({ group, name, list }) => (
+          <span key={group} className={group}>
+            <b>{list.length}</b> {t(name)}
+          </span>
+        ))}
       </p>
       {sorted
         .filter(({ list }) => list.length)
         .map(({ group, name, list }) => (
           <section key={group} className={group}>
             <div className="kicker">{t(name)}</div>
-            <ul>
-              {list.map((a) => (
-                <li key={a.id}>
-                  <button type="button" className="link" onClick={() => view(a.text, a.type)}>
-                    {t(a.title)} ↗
-                  </button>
-                  <span className="verdicts">
-                    {a.results.map(([variant, r]) => (
-                      <span key={variant} className={r.outcome === 'violation' ? 'broke' : ''}>
-                        {t(variant)}: {t(verbs[r.outcome])}
-                        {r.outcome !== r.expected &&
-                          ' ✗ ' + t('expected {x}', { x: t(verbs[r.expected]) })}
-                      </span>
-                    ))}
-                  </span>
-                  {a.details.map((d) => (
-                    <code key={d}>{d}</code>
+            {list.map((a) => (
+              <div key={a.id} className="attack">
+                <button type="button" className="link" onClick={() => view(a.text, a.type)}>
+                  {t(a.title)}
+                  {'\u00a0↗'}
+                </button>
+                <ol>
+                  {a.results.map(([variant, r, detail]) => (
+                    <li key={variant}>
+                      <span>{t(variant)}</span>
+                      <b
+                        className={r.outcome}
+                        title={
+                          r.outcome === r.expected
+                            ? undefined
+                            : t('expected {x}', { x: statuses[r.expected] })
+                        }
+                      >
+                        {statuses[r.outcome]}
+                        {r.outcome !== r.expected && ' ✗'}
+                      </b>
+                      <span>{detail}</span>
+                    </li>
                   ))}
-                </li>
-              ))}
-            </ul>
+                </ol>
+              </div>
+            ))}
           </section>
         ))}
     </div>
@@ -198,33 +207,32 @@ function TargetCard({ target }: { target: Target }) {
   const t = useT();
   const variants = Object.keys(target.variants);
   const rules = Object.values(target.variants)[0]!.rules;
-  const attacks = target.cases.map((c): Attack => {
-    const broke = variants.map((v) => c.results[v]!).find((r) => r.outcome === 'violation');
-    return {
-      id: c.id,
-      title: c.title,
-      text: JSON.stringify(c.attack, null, 2),
-      type: 'application/json',
-      results: variants.map((v) => [v, c.results[v]!]),
-      details: broke
-        ? [
-            `broke: ${broke.rule}`,
-            ...(broke.deltas ?? [])
-              .filter((d) => abs(BigInt(d.amount)) > YOCTO / 100n)
-              .map(
-                (d) =>
-                  `${d.account.replace('.test.near', '')} ${near(d.amount)} ${d.token === 'NEAR' ? 'NEAR' : 'wNEAR'}`,
-              ),
-          ]
-        : [],
-    };
-  });
+  const detail = (r: Result) =>
+    r.outcome === 'violation'
+      ? [
+          r.rule,
+          ...(r.deltas ?? [])
+            .filter((d) => abs(BigInt(d.amount)) > YOCTO / 100n)
+            .map(
+              (d) =>
+                `${d.account.replace('.test.near', '')} ${near(d.amount)} ${d.token === 'NEAR' ? 'NEAR' : 'wNEAR'}`,
+            ),
+        ].join(' · ')
+      : '';
+  const attacks = target.cases.map((c): Attack => ({
+    id: c.id,
+    title: c.title,
+    text: JSON.stringify(c.attack, null, 2),
+    type: 'application/json',
+    results: variants.map((v) => [v, c.results[v]!, detail(c.results[v]!)]),
+  }));
   return (
     <article id={target.id} className="card target">
       <div className="kicker">{t(concepts[target.concept] ?? target.concept)}</div>
       <h3>
         <a href={sourceOf(target)} target="_blank" rel="noopener noreferrer">
-          {t(target.title)} ↗
+          {t(target.title)}
+          {'\u00a0↗'}
         </a>
       </h3>
       <p className="muted">{t(target.source)}</p>
@@ -278,8 +286,8 @@ function AgentCard() {
         outcome: r.violation ? 'violation' : 'no_violation',
         ms: 0,
       },
+      r.violation && r.transfers ? `paid ${r.transfers}` : '',
     ]),
-    details: rows.flatMap((r) => (r.violation && r.transfers ? [`paid ${r.transfers}`] : [])),
   }));
   return (
     <article id="agent" className="card target">
@@ -290,7 +298,8 @@ function AgentCard() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          {t('Invoice-paying agent')} ↗
+          {t('Invoice-paying agent')}
+          {'\u00a0↗'}
         </a>
       </h3>
       <p className="muted">
@@ -334,7 +343,8 @@ export function Coverage() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            {t('judge code ↗')}
+            {t('judge\u00a0code')}
+            {'\u00a0↗'}
           </a>
           <br />
           <span className="hint">

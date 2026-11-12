@@ -1,6 +1,6 @@
-import type { CSSProperties } from 'react';
 import { canonical, digest } from './crypto.js';
 import { useT } from './i18n.js';
+import { repository } from './landing.js';
 import data from './checks.json';
 
 type Outcome =
@@ -24,7 +24,24 @@ type Target = {
   methods?: Record<string, string[]>;
   cases: { id: string; title: string; attack: unknown; results: Record<string, Result> }[];
 };
-type AgentRow = { id: string; kind: string; config: string; expected: string; violation: boolean };
+type AgentRow = {
+  id: string;
+  kind: string;
+  config: string;
+  expected: string;
+  violation: boolean;
+  invoice: string;
+  transfers?: string;
+};
+type Group = 'hacked' | 'fixed' | 'held';
+type Attack = {
+  id: string;
+  title: string;
+  text: string;
+  type: string;
+  results: [variant: string, result: Result][];
+  details: string[];
+};
 
 const coverage = data as unknown as {
   engine: { judge: string; sandbox: string };
@@ -40,13 +57,22 @@ const concepts: Record<string, string> = {
   intents: 'Intents protocol',
   agent: 'Agent wallet',
 };
-const outcomes: Record<Outcome, string> = {
-  violation: 'Break proved - reward',
-  no_violation: 'No break - zero',
-  invalid_attack: 'Not a valid attack',
-  limit: 'Over the limits',
-  inconclusive: 'Could not decide',
-  infra_error: 'Infrastructure error',
+const verbs: Record<Outcome, string> = {
+  violation: 'broke',
+  no_violation: 'held',
+  invalid_attack: 'rejected as invalid',
+  limit: 'over the limits',
+  inconclusive: 'undecided',
+  infra_error: 'infrastructure error',
+};
+const groups: [Group, string][] = [
+  ['hacked', 'Hacked, reward'],
+  ['fixed', 'Fixed after break'],
+  ['held', 'Not hacked'],
+];
+const sources: Record<string, string> = {
+  vault: 'contract/vault',
+  'agent-wallet': 'contract/policy-wallet',
 };
 const ruleNames: Record<string, string> = {
   take: 'attacker gains what a protected account loses',
@@ -105,34 +131,65 @@ export function RuleList({ spec }: { spec: Spec }) {
   );
 }
 
-const agentMatched = coverage.agent.cases.filter((r) => String(r.violation) === r.expected).length;
+const groupOf = (results: Attack['results']): Group =>
+  results.at(-1)![1].outcome === 'violation'
+    ? 'hacked'
+    : results.some(([, r]) => r.outcome === 'violation')
+      ? 'fixed'
+      : 'held';
 
-function Pill({ result }: { result: Result }) {
-  const t = useT();
-  const ok = result.outcome === result.expected;
-  return (
-    <span
-      className={`pill ${result.outcome}`}
-      title={ok ? '' : t('Expected: {x}', { x: result.expected })}
-    >
-      {t(outcomes[result.outcome])} {ok ? '✓' : '✗'}
-    </span>
-  );
+function sourceOf(target: Target): string {
+  const code = Object.values(target.variants)[0]!
+    .codes.filter((c) => c.account)
+    .at(-1);
+  if (!code) return `${repository}/tree/main/${sources[target.id] ?? 'fixtures'}`;
+  return `https://${code.network === 'testnet' ? 'testnet.' : ''}nearblocks.io/address/${code.account}`;
 }
 
-function Deltas({ result }: { result: Result }) {
+function view(text: string, type: string) {
+  window.open(URL.createObjectURL(new Blob([text], { type })), '_blank', 'noopener');
+}
+
+function Attacks({ attacks }: { attacks: Attack[] }) {
   const t = useT();
-  const shown = (result.deltas ?? []).filter((d) => abs(BigInt(d.amount)) > YOCTO / 100n);
-  if (!shown.length && !result.rule) return null;
+  const sorted = groups.map(([group, name]) => ({
+    group,
+    name,
+    list: attacks.filter((a) => groupOf(a.results) === group),
+  }));
   return (
-    <div className="deltas">
-      {result.rule && <code>{t('broke: {rule}', { rule: result.rule })}</code>}
-      {shown.map((d) => (
-        <code key={d.account + d.token}>
-          {d.account.replace('.test.near', '')} {near(d.amount)}{' '}
-          {d.token === 'NEAR' ? 'NEAR' : 'wNEAR'}
-        </code>
-      ))}
+    <div className="attack-groups">
+      <p className="muted">
+        {sorted.map(({ name, list }) => `${t(name)}: ${list.length}`).join(' · ')}
+      </p>
+      {sorted
+        .filter(({ list }) => list.length)
+        .map(({ group, name, list }) => (
+          <section key={group} className={group}>
+            <div className="kicker">{t(name)}</div>
+            <ul>
+              {list.map((a) => (
+                <li key={a.id}>
+                  <button type="button" className="link" onClick={() => view(a.text, a.type)}>
+                    {t(a.title)} ↗
+                  </button>
+                  <span className="verdicts">
+                    {a.results.map(([variant, r]) => (
+                      <span key={variant} className={r.outcome === 'violation' ? 'broke' : ''}>
+                        {t(variant)}: {t(verbs[r.outcome])}
+                        {r.outcome !== r.expected &&
+                          ' ✗ ' + t('expected {x}', { x: t(verbs[r.expected]) })}
+                      </span>
+                    ))}
+                  </span>
+                  {a.details.map((d) => (
+                    <code key={d}>{d}</code>
+                  ))}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
     </div>
   );
 }
@@ -141,10 +198,35 @@ function TargetCard({ target }: { target: Target }) {
   const t = useT();
   const variants = Object.keys(target.variants);
   const rules = Object.values(target.variants)[0]!.rules;
+  const attacks = target.cases.map((c): Attack => {
+    const broke = variants.map((v) => c.results[v]!).find((r) => r.outcome === 'violation');
+    return {
+      id: c.id,
+      title: c.title,
+      text: JSON.stringify(c.attack, null, 2),
+      type: 'application/json',
+      results: variants.map((v) => [v, c.results[v]!]),
+      details: broke
+        ? [
+            `broke: ${broke.rule}`,
+            ...(broke.deltas ?? [])
+              .filter((d) => abs(BigInt(d.amount)) > YOCTO / 100n)
+              .map(
+                (d) =>
+                  `${d.account.replace('.test.near', '')} ${near(d.amount)} ${d.token === 'NEAR' ? 'NEAR' : 'wNEAR'}`,
+              ),
+          ]
+        : [],
+    };
+  });
   return (
     <article id={target.id} className="card target">
       <div className="kicker">{t(concepts[target.concept] ?? target.concept)}</div>
-      <h3>{t(target.title)}</h3>
+      <h3>
+        <a href={sourceOf(target)} target="_blank" rel="noopener noreferrer">
+          {t(target.title)} ↗
+        </a>
+      </h3>
       <p className="muted">{t(target.source)}</p>
       <div className="break-rules">
         <span className="kicker">{t('A break is')}</span>
@@ -157,31 +239,13 @@ function TargetCard({ target }: { target: Target }) {
           ))}
         </ul>
       </div>
-      <div className="matrix" style={{ '--n': variants.length } as CSSProperties}>
-        <span className="head">{t('Attack')}</span>
-        {variants.map((v) => (
-          <span key={v} className="head">
-            {t(v)}
-          </span>
-        ))}
-        {target.cases.map((c) => (
-          <div key={c.id} className="matrix-row">
-            <span>{t(c.title)}</span>
-            {variants.map((v) => (
-              <div key={v}>
-                <Pill result={c.results[v]!} />
-                <Deltas result={c.results[v]!} />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+      <Attacks attacks={attacks} />
       <div className="hash">
         {variants.map((v) => (
           <button
             key={v}
             type="button"
-            className="chip"
+            className="link"
             title={target.hashes[v]}
             onClick={() =>
               download(
@@ -190,7 +254,7 @@ function TargetCard({ target }: { target: Target }) {
               )
             }
           >
-            {t(v)} · {target.hashes[v]!.slice(0, 12)}… ↓
+            {t('{v} program', { v: t(v) })} · {target.hashes[v]!.slice(0, 12)}… ↓
           </button>
         ))}
       </div>
@@ -202,48 +266,51 @@ function AgentCard() {
   const t = useT();
   const byCase = new Map<string, AgentRow[]>();
   for (const row of coverage.agent.cases) byCase.set(row.id, [...(byCase.get(row.id) ?? []), row]);
+  const attacks = [...byCase].map(([id, rows]): Attack => ({
+    id,
+    title: id,
+    text: rows[0]!.invoice,
+    type: 'text/plain',
+    results: rows.map((r) => [
+      r.config,
+      {
+        expected: r.expected === 'true' ? 'violation' : 'no_violation',
+        outcome: r.violation ? 'violation' : 'no_violation',
+        ms: 0,
+      },
+    ]),
+    details: rows.flatMap((r) => (r.violation && r.transfers ? [`paid ${r.transfers}`] : [])),
+  }));
   return (
     <article id="agent" className="card target">
       <div className="kicker">{t('AI payment agent')}</div>
-      <h3>{t('Invoice-paying agent')}</h3>
+      <h3>
+        <a
+          href={`${repository}/blob/main/fixtures/cases.json`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t('Invoice-paying agent')} ↗
+        </a>
+      </h3>
       <p className="muted">
         {t('The model reads an invoice and calls a pay tool on a test ledger.')}
       </p>
-      <ul className="rule-list">
-        <li>
-          <b>transfer</b> {t('an executed payment breaks the frozen recipient or limit')}
-        </li>
-      </ul>
-      <p className="muted">
-        {t('{n} invoices × 2 configs, {m} as expected', {
-          n: String(byCase.size),
-          m: `${agentMatched}/${coverage.agent.cases.length}`,
-        })}
-      </p>
-      <div className="matrix" style={{ '--n': coverage.agent.variants.length } as CSSProperties}>
-        <span className="head">{t('Invoice')}</span>
-        {coverage.agent.variants.map((v) => (
-          <span key={v} className="head">
-            {t(v)}
-          </span>
-        ))}
-        {[...byCase].map(([id, rows]) => (
-          <div key={id} className="matrix-row">
-            <span>{id}</span>
-            {rows.map((r) => (
-              <Pill
-                key={r.config}
-                result={{
-                  expected: r.expected === 'true' ? 'violation' : 'no_violation',
-                  outcome: r.violation ? 'violation' : 'no_violation',
-                  ms: 0,
-                }}
-              />
-            ))}
-          </div>
-        ))}
+      <div className="break-rules">
+        <span className="kicker">{t('A break is')}</span>
+        <ul className="rule-list">
+          <li>
+            <b>transfer</b> {t('an executed payment breaks the frozen recipient or limit')}
+          </li>
+        </ul>
       </div>
-      <p className="hint">{t('Stub model: checks the checker, not the model.')}</p>
+      <Attacks attacks={attacks} />
+      <p className="hint">
+        {t(
+          'Stub model: checks the checker, not the model. Runs with real models and TEE attestations are on',
+        )}{' '}
+        <a href="#/programs">{t('the live programs')}</a>.
+      </p>
     </article>
   );
 }
@@ -254,13 +321,29 @@ export function Coverage() {
     <section id="coverage" className="band">
       <div className="section-head">
         <div>
-          <div className="eyebrow">{t('WHAT WE CAN TEST TODAY')}</div>
-          <h2>{t('Known attacks, real results.')}</h2>
+          <div className="eyebrow">{t('TEST CORPUS')}</div>
+          <h2>{t('Our test attacks, replayed.')}</h2>
         </div>
         <p>
           {t(
-            'We replay known attacks on a copy of each target. A vulnerable build should break, a fixed one should hold.',
-          )}
+            'Attacks we wrote to test the checker, not incidents from the wild. Each one replays on a local copy of the target: a vulnerable build has to break, a fixed one has to hold.',
+          )}{' '}
+          <a href="#/incidents">{t('Real incidents')}</a> ·{' '}
+          <a
+            href={`${repository}/blob/main/verifier/src/world/judge.ts`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('judge code ↗')}
+          </a>
+          <br />
+          <span className="hint">
+            {t('Recorded {date} on {platform}, sandbox {sandbox}.', {
+              date: coverage.measured.slice(0, 10),
+              platform: coverage.platform,
+              sandbox: coverage.engine.sandbox,
+            })}
+          </span>
         </p>
       </div>
       <div className="targets">

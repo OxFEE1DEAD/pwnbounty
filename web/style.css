@@ -417,17 +417,23 @@ main[data-side] .button.off { color: var(--muted); background: var(--panel); bor
 .break-rules .rule-list { margin: 4px 0 0; }
 .break-rules .rule-list li:last-child { border-bottom: 0; }
 
-.matrix { display: grid; grid-template-columns: 1.4fr repeat(var(--n), 1fr); gap: 0 12px; margin-top: 16px; font-size: 14px; }
-.matrix-row { display: contents; }
-.matrix-row > * { padding: 10px 0; border-top: 1px solid var(--line); min-width: 0; }
-.matrix .head { font: 12px var(--pixel); letter-spacing: 1px; color: var(--muted); text-transform: uppercase; padding-bottom: 6px; }
-
 .pill { display: inline-block; font-size: 12px; padding: 2px 8px; border: 1px solid var(--line); color: var(--muted); }
-.pill.violation { color: var(--inv-ink); background: var(--inv-bg); border-color: var(--inv-bg); }
+.pill.violation { color: var(--hack); border-color: var(--hack); }
 .pill.invalid_attack, .pill.limit { color: var(--warn); border-color: var(--warn); }
 .pill.inconclusive, .pill.infra_error { color: var(--fail); border-color: var(--fail); }
-.deltas { display: grid; gap: 2px; margin-top: 6px; }
-.deltas code { font-size: 11px; color: var(--muted); }
+.attack-groups { margin-top: 16px; }
+.attack-groups > p { margin: 0 0 8px; font-size: 13px; }
+.attack-groups section { margin-top: 14px; padding-left: 14px; border-left: 2px solid var(--line); }
+.attack-groups section.hacked { border-left-color: var(--hack); }
+.attack-groups section.fixed { border-left-color: var(--info); }
+.attack-groups section.hacked .kicker { color: var(--hack); }
+.attack-groups section.fixed .kicker { color: var(--info); }
+.attack-groups ul { margin: 6px 0 0; padding: 0; list-style: none; }
+.attack-groups li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.attack-groups li:first-child { border-top: 0; }
+.attack-groups .verdicts { display: flex; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 12px; }
+.attack-groups .verdicts .broke { color: var(--hack); }
+.attack-groups li code { font-size: 11px; color: var(--muted); }
 .hash { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px !important; margin-top: 12px; }
 
 .wizard-steps { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 8px; margin: 32px 0 28px; padding: 0; list-style: none; }
@@ -746,10 +752,6 @@ summary { cursor: pointer; font-weight: 600; }
   .section-head p { margin-top: 12px; }
   .band { padding: 48px 0; }
   .flow { grid-template-columns: repeat(3, 1fr); row-gap: 12px; }
-  .matrix { grid-template-columns: repeat(var(--n), 1fr); }
-  .matrix > .head:first-child { display: none; }
-  .matrix-row > :first-child { grid-column: 1 / -1; padding-bottom: 0; }
-  .matrix-row > :not(:first-child) { border-top: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

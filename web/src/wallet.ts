@@ -4,6 +4,8 @@ import type { CreateProgram, Wallet } from './ports.js';
 
 const GAS = '100000000000000';
 const CLAIM_GAS = '300000000000000';
+const COMMIT_GAS = '10000000000000';
+const BATCHED_CLAIM_GAS = '290000000000000';
 const WALLETS_OUTSIDE_CSP = [
   'ledger',
   'near-mobile',
@@ -42,15 +44,15 @@ export class HunterWallet implements Wallet {
   }
   async submit(report: SealedReport, deposit: string, fee: string): Promise<string | undefined> {
     const signer = await this.hunter(report);
-    const outcomes = await signer.wallet.signAndSendTransactions({
+    const outcome = await signer.wallet.signAndSendTransaction({
       signerId: signer.account,
-      transactions: [
-        { receiverId: this.contract, actions: [this.commitAction(report, deposit)] },
-        { receiverId: this.contract, actions: [this.claimAction(report, fee)] },
+      receiverId: this.contract,
+      actions: [
+        this.commitAction(report, deposit),
+        this.claimAction(report, fee, BATCHED_CLAIM_GAS),
       ],
     });
-    if (failed(outcomes[0])) throw new Error('The transaction failed on NEAR');
-    return claimed(outcomes[1]);
+    return claimed(outcome);
   }
   async claim(report: SealedReport, fee: string): Promise<string | undefined> {
     const signer = await this.hunter(report);
@@ -76,15 +78,15 @@ export class HunterWallet implements Wallet {
       submission: report.submission,
       report_hash: report.report_hash,
     };
-    return functionCall('commit', args, GAS, yocto(deposit));
+    return functionCall('commit', args, COMMIT_GAS, yocto(deposit));
   }
-  private claimAction(report: SealedReport, fee: string) {
+  private claimAction(report: SealedReport, fee: string, gas = CLAIM_GAS) {
     const args = {
       bounty: report.bounty,
       submission: report.submission,
       ciphertext: report.ciphertext,
     };
-    return functionCall('claim', args, CLAIM_GAS, yocto(fee));
+    return functionCall('claim', args, gas, yocto(fee));
   }
   async retryPayment(bounty: string, hunter: string): Promise<void> {
     this.assertProgram(bounty);

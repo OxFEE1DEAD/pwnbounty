@@ -357,7 +357,7 @@ function Numbers({ data }: { data?: { entries: Entry[]; height: bigint } }) {
   const items: [string | undefined, string][] = [
     [stats && String(stats.total), 'programs launched'],
     [stats && String(stats.open), 'open right now'],
-    [stats && near(stats.paid), 'paid to hackers'],
+    [stats && near(stats.paid).replace(' NEAR', ''), 'NEAR paid to hackers'],
     [stats && String(stats.breaks), 'breaks proved'],
   ];
   return (

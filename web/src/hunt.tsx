@@ -82,7 +82,7 @@ const verdicts: Record<Outcome['kind'], string> = {
 const status = {
   encrypt: 'Sealing the invoice in this browser…',
   wallet:
-    'Confirm in your wallet: the commitment, then the encrypted invoice. The TEE check runs right after, up to 2 min.',
+    'Confirm one transaction in your wallet: the commitment and the encrypted invoice together. The TEE check runs right after, up to 2 min.',
   commit: 'Waiting for the commitment in finalized NEAR…',
   committed: 'Commitment confirmed in finalized NEAR. Press the button to run the check.',
   sandbox: 'The escrow sent the invoice to the OutLayer TEE. Waiting for the verdict, up to 2 min…',
@@ -969,7 +969,9 @@ async function attemptsOf(network: string, contract: string, bounty: string): Pr
 }
 
 function attemptOf(tx: FullTx, contract: string, bounty: string): Attempt | undefined {
-  const call = tx.transaction.actions[0]?.FunctionCall;
+  const calls = tx.transaction.actions.flatMap((action) => action.FunctionCall ?? []);
+  const call = calls.find((c) => c.method_name === 'claim') ?? calls[0];
+  const commit = calls.find((c) => c.method_name === 'commit');
   if (
     tx.transaction.receiver_id !== contract ||
     !call ||
@@ -1003,11 +1005,11 @@ function attemptOf(tx: FullTx, contract: string, bounty: string): Attempt | unde
           ? ['no verdict', '']
           : ['checking', 'muted'];
   const burnt = outcomes.reduce((sum, o) => sum + BigInt(o.outcome.tokens_burnt), 0n);
-  const stake = call.method_name === 'commit' && !panic ? BigInt(call.deposit) : 0n;
+  const stake = commit && !panic ? BigInt(commit.deposit) : 0n;
   return {
     hash: tx.transaction.hash,
     hunter: tx.transaction.signer_id,
-    method: call.method_name,
+    method: calls.map((c) => c.method_name).join(' + '),
     time: Number(BigInt(tx.execution_outcome.block_timestamp) / 1_000_000n),
     cost: burnt + BigInt(run?.payment_charged ?? 0) + stake,
     result: result!,
@@ -1051,7 +1053,7 @@ function Attempts({ rows, mine }: { rows: Attempt[]; mine?: string }) {
           </div>
           <div className="muted">
             <a href={chain.txUrl(row.hash)} target="_blank" rel="noopener noreferrer">
-              {t(row.method === 'claim' && !row.detail ? 'verdict ↗' : 'tx ↗')}
+              {t(row.method.endsWith('claim') && !row.detail ? 'verdict ↗' : 'tx ↗')}
             </a>
             {row.tee && (
               <a

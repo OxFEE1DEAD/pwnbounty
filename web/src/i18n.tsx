@@ -573,7 +573,7 @@ const ru: Record<string, string> = {
   'launch a bounty': 'запустить баунти',
   'programs launched': 'программ запущено',
   'open right now': 'открыто сейчас',
-  'paid to hackers': 'выплачено хакерам',
+  'NEAR paid to hackers': 'NEAR выплачено хакерам',
   'breaks proved': 'взломов доказано',
   'Live numbers': 'Живые цифры',
   'HOW IT WORKS': 'КАК ЭТО РАБОТАЕТ',
@@ -589,8 +589,8 @@ const ru: Record<string, string> = {
   'I saved sealed-report-{id}.json. It cannot be recreated after the deadline.':
     'Я сохранил sealed-report-{id}.json. После срока его не восстановить.',
   'Commit on NEAR · {deposit}': 'Записать в NEAR · {deposit}',
-  'Confirm in your wallet: the commitment, then the encrypted invoice. The TEE check runs right after, up to 2 min.':
-    'Подтвердите в кошельке: сначала коммит, затем зашифрованный инвойс. Проверка в TEE идёт сразу после, до 2 минут.',
+  'Confirm one transaction in your wallet: the commitment and the encrypted invoice together. The TEE check runs right after, up to 2 min.':
+    'Подтвердите в кошельке одну транзакцию: коммит и зашифрованный инвойс вместе. Проверка в TEE идёт сразу после, до 2 минут.',
   'The TEE check returned no verdict. Your commitment stays open: run the check again without a new commitment.':
     'Проверка в TEE не вернула вердикт. Коммит остаётся открытым: запустите проверку ещё раз, новый коммит не нужен.',
   'Your attempts on this program': 'Ваши попытки в этой программе',

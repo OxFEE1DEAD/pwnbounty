@@ -35,6 +35,12 @@ export type Step =
   | { op: 'call'; call: Call }
   | { op: 'key'; id: string; key: string; permission: KeyPermission };
 
+export interface Read {
+  name: string;
+  view: View;
+  decimals: number;
+}
+
 export interface Token {
   contract: string;
   rate: Yocto;
@@ -43,7 +49,7 @@ export interface Token {
 export type Rule =
   | { id: 'take'; threshold: Yocto }
   | { id: 'loss'; threshold: Yocto }
-  | { id: 'invariant'; text: string }
+  | { id: 'invariant'; text: string; reads?: Read[] }
   | {
       id: 'block';
       victim: Call;
@@ -148,6 +154,7 @@ export interface RunEvidence {
   status: 'complete' | 'limit' | 'invalid_attack' | 'pending' | 'infra_error';
   attacked?: VictimResult;
   control?: VictimResult;
+  reads?: Record<string, string>;
 }
 
 export interface Judgement {

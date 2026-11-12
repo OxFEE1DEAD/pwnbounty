@@ -2,8 +2,8 @@ import { Fragment } from 'react';
 import {
   atoms,
   holds,
-  invariantWords,
   parse,
+  withReads,
   paymentWords,
   type Rule,
   type RuleProblem,
@@ -150,7 +150,7 @@ const flavors = {
     legend: paymentLegend,
   },
   invariant: {
-    words: invariantWords,
+    words: withReads([]),
     label: 'Invariant',
     note: '· must stay true after the attack, a run that makes it false is a break',
     when: 'The invariant is checked once, on the chain state after the whole attack.',
@@ -166,15 +166,22 @@ const flavors = {
 
 export function RuleField({
   flavor = 'payment',
+  names = [],
   rule,
   onChange,
 }: {
   flavor?: keyof typeof flavors;
+  names?: string[];
   rule: string;
   onChange(rule: string): void;
 }) {
   const t = useT();
-  const { words, label, note: hint, when, conditions, legend } = flavors[flavor];
+  const base = flavors[flavor];
+  const { label, note: hint, when, legend } = base;
+  const words = names.length
+    ? { ...base.words, names: [...base.words.names, ...names] }
+    : base.words;
+  const conditions = [...base.conditions, ...names.map((name) => `${name} >= 1`)];
   const problem = ruleProblem(rule, words);
   const note = ruleNote(rule, words);
   const add = (block: string) => {
@@ -244,7 +251,8 @@ export function RuleField({
   );
 }
 
-export const invariantProblem = (text: string) => ruleProblem(text, invariantWords);
+export const invariantProblem = (text: string, names: string[] = []) =>
+  ruleProblem(text, withReads(names));
 
 export function Painted({ text }: { text: string }) {
   return text

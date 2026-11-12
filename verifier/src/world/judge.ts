@@ -1,5 +1,5 @@
 import type { Holding, Judgement, Role, RunEvidence, Snapshot } from '../../../protocol/program.ts';
-import { holds, invariantWords, parse } from '../../../protocol/rule.ts';
+import { holds, parse, withReads } from '../../../protocol/rule.ts';
 
 const terminal = {
   limit: 'limit',
@@ -21,6 +21,11 @@ function complete(s: Snapshot, tokens: string[]): boolean {
       s.holdings.filter((h) => h.token === token).reduce((sum, h) => sum + BigInt(h.amount), 0n) ===
       BigInt(s.supplies[token] ?? -1),
   );
+}
+
+function numberOf(text = ''): bigint | undefined {
+  const match = /^"?(-?\d{1,40})"?$|^(true|false)$/.exec(text.trim());
+  return match ? BigInt(match[2] ? match[2] === 'true' : match[1]!) : undefined;
 }
 
 function balances(s: Snapshot, account: string): Map<string, bigint> {
@@ -89,8 +94,17 @@ export function judge(e: RunEvidence): Judgement {
         return { outcome: 'violation', rule: 'take', deltas };
     }
     if (rule.id === 'invariant') {
-      const values = { attacker_gain: delta.attacker, protected_loss: -delta.protected };
-      if (!holds(parse(rule.text, invariantWords), values))
+      const values: Record<string, bigint> = {
+        attacker_gain: delta.attacker,
+        protected_loss: -delta.protected,
+      };
+      for (const read of rule.reads ?? []) {
+        const value = numberOf(e.reads?.[read.name]);
+        if (value === undefined) return inconclusive;
+        values[read.name] = value * 10n ** BigInt(24 - read.decimals);
+      }
+      const names = (rule.reads ?? []).map((read) => read.name);
+      if (!holds(parse(rule.text, withReads(names)), values))
         return { outcome: 'violation', rule: 'invariant', deltas };
     }
     if (rule.id === 'loss') {

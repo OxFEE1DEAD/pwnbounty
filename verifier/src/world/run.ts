@@ -97,6 +97,13 @@ export async function runProgram(
       receipts,
       status,
     };
+    const reads = spec.rules.flatMap((r) => (r.id === 'invariant' ? (r.reads ?? []) : []));
+    if (reads.length && status === 'complete')
+      evidence.reads = Object.fromEntries(
+        await Promise.all(
+          reads.map(async (r) => [r.name, await world.view(r.view).catch(() => '')]),
+        ),
+      );
     const block = spec.rules.find((r): r is Block => r.id === 'block');
     if (block && status === 'complete') {
       const height = await world.height();

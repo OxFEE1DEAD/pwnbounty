@@ -40,7 +40,9 @@ type Block = {
   claim: { contract: string; method: string; args: Json };
   expect: { account: string; token: string; amount: string };
 };
-type Invariant = { id: 'invariant'; text: string };
+type Read = { name: string; view: Block['claim']; decimals: number };
+type Invariant = { id: 'invariant'; text: string; reads?: Read[] };
+const reserved = ['and', 'or', 'not', 'in', 'recipient', 'attacker_gain', 'protected_loss'];
 type Rule = { id: 'take' | 'loss'; threshold: string } | Invariant | Block;
 type Limits = {
   txs: number;
@@ -255,7 +257,26 @@ function check(program: Program, sources: Record<string, Source>): Problem[] {
     out.push(['Make exactly one attacker account']);
   if (!program.rules.length) out.push(['Pick at least one rule']);
   const invariant = program.rules.find((rule): rule is Invariant => rule.id === 'invariant');
-  if (invariant && invariantProblem(invariant.text)) out.push(['Fix the invariant']);
+  const reads = invariant?.reads ?? [];
+  if (
+    reads.some(
+      (read, i) =>
+        !/^[a-z][a-z0-9_]{0,31}$/.test(read.name) ||
+        reserved.includes(read.name) ||
+        reads.findIndex((other) => other.name === read.name) !== i ||
+        !read.view.method ||
+        read.decimals > 24,
+    )
+  )
+    out.push(['Fix the values read after the attack']);
+  if (
+    invariant &&
+    invariantProblem(
+      invariant.text,
+      reads.map((read) => read.name),
+    )
+  )
+    out.push(['Fix the invariant']);
   const block = program.rules.find((rule): rule is Block => rule.id === 'block');
   if (block && (!ready(block.victim.signer, true) || !block.victim.method || !block.claim.method))
     out.push(['Fill in the withdrawal check']);
@@ -1143,8 +1164,18 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
             : [],
       )
       .join(' AND ');
-  const setInvariant = (text: string) =>
-    rules((all) => [{ id: 'invariant', text }, ...all.filter((rule) => rule.id === 'block')]);
+  const reads =
+    program.rules.find((rule): rule is Invariant => rule.id === 'invariant')?.reads ?? [];
+  const setInvariant = (text: string, next = reads) =>
+    rules((all) => [
+      { id: 'invariant', text, ...(next.length ? { reads: next } : {}) },
+      ...all.filter((rule) => rule.id === 'block'),
+    ]);
+  const setRead = (i: number, read?: Read) =>
+    setInvariant(
+      invariant,
+      read ? Object.assign([...reads], { [i]: read }) : reads.filter((_, j) => j !== i),
+    );
   const block = program.rules.find((rule): rule is Block => rule.id === 'block');
   const victim = scope.signers.find((id) => !codeOf.has(id)) ?? scope.signers[0] ?? '';
   const toggleBlock = () =>
@@ -1386,7 +1417,80 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
     <>
       <section className="card">
         <div className="kicker">{t('A BREAK IS')}</div>
-        <RuleField flavor="invariant" rule={invariant} onChange={setInvariant} />
+        <RuleField
+          flavor="invariant"
+          names={reads.map((read) => read.name)}
+          rule={invariant}
+          onChange={(text) => setInvariant(text)}
+        />
+        <div className="field">
+          {t('Values read after the attack')}
+          {reads.map((read, i) => (
+            <div key={i} className="args">
+              <div className="pair">
+                <label className="field">
+                  {t('Name in the invariant')}
+                  <input
+                    value={read.name}
+                    spellCheck={false}
+                    onChange={(e) => setRead(i, { ...read, name: e.target.value.toLowerCase() })}
+                  />
+                </label>
+                <label className="field">
+                  {t('Decimals')}
+                  <input
+                    value={String(read.decimals)}
+                    inputMode="numeric"
+                    onChange={(e) =>
+                      /^\d{1,2}$/.test(e.target.value) &&
+                      setRead(i, { ...read, decimals: Number(e.target.value) })
+                    }
+                  />
+                </label>
+              </div>
+              <Pick
+                label={t('Contract')}
+                value={read.view.contract}
+                options={scope.contracts}
+                onChange={(contract) => setRead(i, { ...read, view: { ...read.view, contract } })}
+              />
+              <MethodInput
+                label={t('View method')}
+                value={read.view.method}
+                methods={scope.methodsOf(read.view.contract)}
+                onChange={(method) => setRead(i, { ...read, view: { ...read.view, method } })}
+              />
+              <Args
+                value={read.view.args}
+                params={scope.methodsOf(read.view.contract)[read.view.method]?.params}
+                onChange={(args) => setRead(i, { ...read, view: { ...read.view, args } })}
+              />
+              <button type="button" className="link" onClick={() => setRead(i)}>
+                {t('Remove this value')}
+              </button>
+            </div>
+          ))}
+          <div className="samples">
+            <button
+              type="button"
+              className="chip"
+              onClick={() =>
+                setRead(reads.length, {
+                  name: `value_${reads.length + 1}`,
+                  view: { contract: scope.contracts[0] ?? '', method: '', args: {} },
+                  decimals: 24,
+                })
+              }
+            >
+              {t('+ Read a value with a view method')}
+            </button>
+          </div>
+          <span className="hint">
+            {t(
+              'Each value is read from the chain after the attack and becomes a word in the invariant. Decimals bring it to NEAR units: 24 for yoctoNEAR, 0 for a plain count.',
+            )}
+          </span>
+        </div>
         <label className="check">
           <input type="checkbox" checked={!!block} onChange={toggleBlock} />
           {t('also: a protected withdrawal stops working')}
@@ -1670,6 +1774,11 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
       </Summary>
       <Summary title="RULE">
         {invariant && <RuleCode rule={invariant} />}
+        {reads.map((read) => (
+          <p key={read.name} className="hint">
+            {read.name} = {read.view.contract}.{read.view.method || '…'}()
+          </p>
+        ))}
         {block && <p>{t('withdrawals keep working')}</p>}
       </Summary>
       <Summary>

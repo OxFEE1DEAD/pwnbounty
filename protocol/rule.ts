@@ -21,6 +21,11 @@ export const invariantWords: Words = {
   recipient: false,
 };
 
+export const withReads = (names: string[]): Words => ({
+  ...invariantWords,
+  names: [...invariantWords.names, ...names],
+});
+
 const word = /[A-Za-z0-9_.*-]/;
 const account = /^(?=.{2,64}$)[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
 const comparisons = ['=', '!=', '<', '<=', '>', '>='];

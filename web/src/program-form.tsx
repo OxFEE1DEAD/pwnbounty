@@ -668,8 +668,29 @@ function CodePick({
                 .catch((error) => notify(errorText(error), true));
             }}
           />
-          <span className="hint">{t('From cargo near abi: a field for every argument.')}</span>
+          <span className="hint">
+            {t(
+              'From cargo near abi: a field for every argument. Standard NEP-141, NEP-145 and NEP-171 methods get their fields without it.',
+            )}
+          </span>
         </label>
+      )}
+      {source && (
+        <details className="raw">
+          <summary>{t('or paste the ABI as text')}</summary>
+          <textarea
+            rows={6}
+            spellCheck={false}
+            placeholder='{"schema_version": "0.4.0", "body": {"functions": [...]}}'
+            onChange={(e) => {
+              try {
+                onAbi(readAbi(e.target.value));
+              } catch {
+                return;
+              }
+            }}
+          />
+        </details>
       )}
     </div>
   );
@@ -756,11 +777,14 @@ function StepCard({
     body = (
       <>
         <Pick
-          label={t('Deploy to')}
+          label={t('Contract account')}
           value={step.id}
           options={scope.signers}
           onChange={(id) => onChange({ ...step, id })}
         />
+        <span className="hint">
+          {t('The test account that holds this code. Accounts and balances are set in step 2.')}
+        </span>
         <CodePick
           source={scope.sources[step.code]}
           onPick={onCode}
@@ -881,8 +905,8 @@ function StepCard({
 
 export interface DraftProps {
   draft?: unknown;
+  number: number;
   onSave(name: string, data: unknown): void;
-  side: ReactNode;
 }
 
 export function useAutosave(name: string, data: unknown, onSave: DraftProps['onSave']) {
@@ -900,7 +924,6 @@ export function Wizard({
   at,
   onAt,
   aside,
-  side,
   problems,
   children,
 }: {
@@ -908,7 +931,6 @@ export function Wizard({
   at: number;
   onAt(at: number): void;
   aside: ReactNode;
-  side?: ReactNode;
   problems?: (string | undefined)[];
   children: ReactNode;
 }) {
@@ -980,18 +1002,15 @@ export function Wizard({
           </div>
           {blocked && <p className="error-text">{t(blocked)}</p>}
         </div>
-        <div className="side">
-          {side}
-          <aside className="summary" aria-label={t('Your program')}>
-            <div className="summary-head">
-              <span>{t('YOUR PROGRAM')}</span>
-              <span>
-                {at + 1}/{steps.length}
-              </span>
-            </div>
-            {aside}
-          </aside>
-        </div>
+        <aside className="summary" aria-label={t('Your program')}>
+          <div className="summary-head">
+            <span>{t('YOUR PROGRAM')}</span>
+            <span>
+              {at + 1}/{steps.length}
+            </span>
+          </div>
+          {aside}
+        </aside>
       </div>
     </>
   );
@@ -1026,7 +1045,7 @@ type WorldDraft = {
   reward: string;
 };
 
-export function WorldLaunch({ draft, onSave, side }: DraftProps) {
+export function WorldLaunch({ draft, onSave }: DraftProps) {
   const t = useT();
   const saved = draft as WorldDraft | undefined;
   const first = targets[0]!;
@@ -1041,6 +1060,7 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
   );
   const [fetched, setFetched] = useState<Record<string, number>>({});
   const [reward, setReward] = useState(saved?.reward ?? nearOf(5));
+  const [named, setNamed] = useState(!!saved);
   useAutosave(program.title, { start, program, sources, reward } satisfies WorldDraft, onSave);
   const [hashed, setHashed] = useState({ text: '', hash: '' });
   const [round, setRound] = useState(0);
@@ -1052,7 +1072,7 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
     const name = next && (variant ?? Object.keys(next.variants).at(-1)!);
     const spec = next ? (structuredClone(next.variants[name!]) as unknown as Program) : blank();
     setStart({ target: next?.id ?? '', variant: name ?? '' });
-    setProgram(spec);
+    setProgram(named ? { ...spec, title: program.title } : spec);
     setSources(sourcesOf(spec.codes, next?.methods));
     setRound((n) => n + 1);
   };
@@ -1290,25 +1310,33 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
   const screens = [
     <>
       <section className="card">
-        <div className="kicker">{t('FILL FROM')}</div>
-        <div className="samples">
-          {targets.map((x) => chip(x.id === start.target, x.title, () => open(x.id)))}
-          {chip(!start.target, 'Empty form', () => open(''))}
-        </div>
-        {target && Object.keys(target.variants).length > 1 && (
-          <div className="samples">
-            {Object.keys(target.variants).map((v) =>
-              chip(v === start.variant, v, () => open(target.id, v)),
-            )}
-          </div>
-        )}
         <label className="field">
           {t('Program name')}
           <input
             value={program.title}
-            onChange={(e) => setProgram((p) => ({ ...p, title: e.target.value }))}
+            maxLength={80}
+            onChange={(e) => {
+              setNamed(true);
+              setProgram((p) => ({ ...p, title: e.target.value }));
+            }}
           />
         </label>
+        <div className="field">
+          {t('Example contracts')}
+          <div className="samples">
+            {targets.flatMap((x) => {
+              const variants = Object.keys(x.variants);
+              return variants.map((v) =>
+                chip(
+                  x.id === start.target && v === start.variant,
+                  variants.length > 1 ? `${x.title} · ${v}` : x.title,
+                  () => open(x.id, v),
+                ),
+              );
+            })}
+            {chip(!start.target, 'Empty form', () => open(''))}
+          </div>
+        </div>
       </section>
       <div className="step-list">{list('deploy')}</div>
       <div className="row">
@@ -1814,7 +1842,6 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
       at={at}
       onAt={setAt}
       aside={aside}
-      side={side}
     >
       {screens[at]}
     </Wizard>

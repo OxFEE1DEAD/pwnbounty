@@ -86,7 +86,7 @@ type AgentDraft = {
   days: string;
 };
 
-function AgentLaunch({ draft, onSave, side }: DraftProps) {
+function AgentLaunch({ draft, number, onSave }: DraftProps) {
   const { meta, chain, wallet, account, connect, notify } = useEnv(),
     t = useT();
   const saved = draft as AgentDraft | undefined;
@@ -98,11 +98,6 @@ function AgentLaunch({ draft, onSave, side }: DraftProps) {
   const [model, setModel] = useState(saved?.model);
   const [reward, setReward] = useState(saved?.reward ?? '');
   const [days, setDays] = useState(saved?.days ?? '');
-  useAutosave(
-    name ?? '',
-    { name, link, prompt, rule, balance, model, reward, days } satisfies AgentDraft,
-    onSave,
-  );
   const [team, setTeam] = useState<string>();
   const [kept, setKept] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -125,10 +120,14 @@ function AgentLaunch({ draft, onSave, side }: DraftProps) {
   const program = canonical(config);
   const amount = yocto(reward);
   const period = BigInt(days || 0);
-  const fallback = account ? t("{owner}'s Bug Bounty", { owner: account }) : '';
+  const fallback = `#${number}${account ? ' ' + account : ''}`;
   const title = (name ?? fallback).trim();
-  const custom = title === fallback ? '' : title;
-  const about = custom || link.trim() ? custom + (link.trim() && '\n' + link.trim()) : undefined;
+  useAutosave(
+    title,
+    { name, link, prompt, rule, balance, model, reward, days } satisfies AgentDraft,
+    onSave,
+  );
+  const about = title || link.trim() ? title + (link.trim() && '\n' + link.trim()) : undefined;
   const bytes = new TextEncoder().encode(program + (about ?? '')).length;
   const deposit =
     amount &&
@@ -208,7 +207,7 @@ function AgentLaunch({ draft, onSave, side }: DraftProps) {
           <input
             value={name ?? fallback}
             maxLength={80}
-            placeholder={t("{owner}'s Bug Bounty", { owner: 'alias.near' })}
+            placeholder="#1 alias.near"
             onChange={(e) => setName(e.target.value)}
           />
         </label>
@@ -422,7 +421,6 @@ function AgentLaunch({ draft, onSave, side }: DraftProps) {
       at={at}
       onAt={setAt}
       aside={aside}
-      side={side}
       problems={problems}
     >
       {screens[at]}
@@ -430,7 +428,15 @@ function AgentLaunch({ draft, onSave, side }: DraftProps) {
   );
 }
 
-type Draft = { id: string; kind: Kind; name: string; saved: number; data: unknown };
+type Draft = {
+  id: string;
+  kind: Kind;
+  name: string;
+  number?: number;
+  saved: number;
+  data: unknown;
+};
+const nextNumber = (drafts: Draft[]) => Math.max(0, ...drafts.map((d) => d.number ?? 0)) + 1;
 const draftsKey = 'sealed-bounty/drafts/1';
 
 function readDrafts(): Draft[] {
@@ -456,43 +462,38 @@ function Drafts({
   onRemove(id: string): void;
 }) {
   const t = useT();
+  const [asked, setAsked] = useState<string>();
   return (
     <section className="drafts" aria-label={t('Drafts')}>
-      <div className="drafts-head">
-        <span>{t('DRAFTS')}</span>
-        <button type="button" className="link" onClick={onNew}>
-          {t('New program')}
-        </button>
-      </div>
-      {drafts.length ? (
-        <ul>
-          {drafts.map((draft) => (
-            <li key={draft.id} className={draft.id === current ? 'current' : ''}>
-              <button type="button" onClick={() => onOpen(draft)}>
-                <b>{draft.name || t('Untitled program')}</b>
-                <span>
-                  {t(draft.kind === 'agent' ? 'AI payment agent' : 'Smart contract')} ·{' '}
-                  {new Date(draft.saved).toLocaleString([], {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-              </button>
-              <button
-                type="button"
-                className="chip"
-                aria-label={t('Remove')}
-                onClick={() => onRemove(draft.id)}
-              >
-                ✕
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="hint">{t('Every edit is saved here as a draft, in this browser only.')}</p>
+      <span className="kicker">{t('DRAFTS')}</span>
+      {drafts.map((draft) =>
+        asked === draft.id ? (
+          <span key={draft.id} className="draft asked">
+            {t('Delete {name}?', { name: draft.name || t('Untitled program') })}
+            <button type="button" className="link" onClick={() => onRemove(draft.id)}>
+              {t('delete')}
+            </button>
+            <button type="button" className="link" onClick={() => setAsked(undefined)}>
+              {t('keep')}
+            </button>
+          </span>
+        ) : (
+          <span key={draft.id} className={'draft' + (draft.id === current ? ' current' : '')}>
+            <button type="button" onClick={() => onOpen(draft)}>
+              {draft.name || t('Untitled program')}
+              <span>{t(draft.kind === 'agent' ? 'agent' : 'contract')}</span>
+            </button>
+            <button type="button" aria-label={t('Delete')} onClick={() => setAsked(draft.id)}>
+              ✕
+            </button>
+          </span>
+        ),
+      )}
+      <button type="button" className="link" onClick={onNew}>
+        {t('+ New program')}
+      </button>
+      {!drafts.length && (
+        <span className="hint">{t('Every edit is saved as a draft, in this browser only.')}</span>
       )}
     </section>
   );
@@ -503,8 +504,9 @@ export function Launch() {
     t = useT();
   const [kind, setKind] = useState<Kind>('agent');
   const [drafts, setDrafts] = useState(readDrafts);
-  const [current, setCurrent] = useState<{ id: string; data?: unknown }>(() => ({
+  const [current, setCurrent] = useState<{ id: string; number: number; data?: unknown }>(() => ({
     id: crypto.randomUUID(),
+    number: nextNumber(drafts),
   }));
   useEffect(() => {
     try {
@@ -515,43 +517,40 @@ export function Launch() {
   }, [drafts]);
   const fresh = (next: Kind) => {
     setKind(next);
-    setCurrent({ id: crypto.randomUUID() });
+    setCurrent({ id: crypto.randomUUID(), number: nextNumber(drafts) });
   };
   const flow: DraftProps = {
     draft: current.data,
+    number: current.number,
     onSave: (name, data) =>
       setDrafts((all) => [
-        { id: current.id, kind, name, saved: Date.now(), data },
+        { id: current.id, kind, name, number: current.number, saved: Date.now(), data },
         ...all.filter((d) => d.id !== current.id),
       ]),
-    side: (
-      <Drafts
-        drafts={drafts}
-        current={current.id}
-        onOpen={(draft) => {
-          setKind(draft.kind);
-          setCurrent({ id: draft.id, data: draft.data });
-        }}
-        onNew={() => fresh(kind)}
-        onRemove={(id) => {
-          setDrafts((all) => all.filter((d) => d.id !== id));
-          if (id === current.id) fresh(kind);
-        }}
-      />
-    ),
   };
   return (
     <div className="wrap">
       <div className="hunt-head">
         <div className="eyebrow">{t('LAUNCH A PROGRAM')}</div>
         <h1>
-          {t(
-            kind === 'agent'
-              ? 'Put your agent under a bounty.'
-              : 'Put your contract under a bounty.',
-          )}
+          {t('Put your')} <span className={kind === 'agent' ? '' : 'muted'}>{t('agent')}</span>{' '}
+          {t('or')} <span className={kind === 'world' ? '' : 'muted'}>{t('contract')}</span>{' '}
+          {t('under a bounty.')}
         </h1>
         <KindTabs kind={kind} onChange={(next) => next !== kind && fresh(next)} />
+        <Drafts
+          drafts={drafts}
+          current={current.id}
+          onOpen={(draft) => {
+            setKind(draft.kind);
+            setCurrent({ id: draft.id, number: draft.number ?? 0, data: draft.data });
+          }}
+          onNew={() => fresh(kind)}
+          onRemove={(id) => {
+            setDrafts((all) => all.filter((d) => d.id !== id));
+            if (id === current.id) fresh(kind);
+          }}
+        />
       </div>
       {kind === 'agent' ? (
         <AgentLaunch key={current.id} {...flow} />

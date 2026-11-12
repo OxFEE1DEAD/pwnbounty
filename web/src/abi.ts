@@ -11,6 +11,57 @@ export interface Method {
 }
 export type Methods = Record<string, Method>;
 
+const text = (name: string, type = 'string'): Param => ({ name, type, text: true });
+const json = (name: string, type: string): Param => ({ name, type, text: false });
+const account = text('account_id', 'AccountId');
+const receiver = text('receiver_id', 'AccountId');
+const standard: Methods = {
+  ft_transfer: {
+    kind: 'call',
+    payable: true,
+    params: [receiver, text('amount', 'U128'), text('memo')],
+  },
+  ft_transfer_call: {
+    kind: 'call',
+    payable: true,
+    params: [receiver, text('amount', 'U128'), text('memo'), text('msg')],
+  },
+  ft_total_supply: { kind: 'view', params: [] },
+  ft_balance_of: { kind: 'view', params: [account] },
+  ft_metadata: { kind: 'view', params: [] },
+  storage_deposit: {
+    kind: 'call',
+    payable: true,
+    params: [account, json('registration_only', 'boolean')],
+  },
+  storage_withdraw: { kind: 'call', payable: true, params: [text('amount', 'U128')] },
+  storage_unregister: { kind: 'call', payable: true, params: [json('force', 'boolean')] },
+  storage_balance_of: { kind: 'view', params: [account] },
+  storage_balance_bounds: { kind: 'view', params: [] },
+  nft_transfer: {
+    kind: 'call',
+    payable: true,
+    params: [receiver, text('token_id', 'TokenId'), json('approval_id', 'u64'), text('memo')],
+  },
+  nft_transfer_call: {
+    kind: 'call',
+    payable: true,
+    params: [
+      receiver,
+      text('token_id', 'TokenId'),
+      json('approval_id', 'u64'),
+      text('memo'),
+      text('msg'),
+    ],
+  },
+  nft_token: { kind: 'view', params: [text('token_id', 'TokenId')] },
+  nft_total_supply: { kind: 'view', params: [] },
+  nft_tokens_for_owner: {
+    kind: 'view',
+    params: [account, text('from_index', 'U128'), json('limit', 'u64')],
+  },
+};
+
 type Schema = { type?: string | string[]; $ref?: string };
 interface Abi {
   body?: {
@@ -49,7 +100,7 @@ export function wasmMethods(bytes: Uint8Array): Methods {
         at += length;
         const kind = bytes[at++];
         leb();
-        if (kind === 0 && !name.startsWith('__')) methods[name] = {};
+        if (kind === 0 && !name.startsWith('__')) methods[name] = { ...standard[name] };
       }
     }
     at = end;

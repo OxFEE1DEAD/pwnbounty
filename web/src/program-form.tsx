@@ -858,11 +858,28 @@ function StepCard({
   );
 }
 
+export interface DraftProps {
+  draft?: unknown;
+  onSave(name: string, data: unknown): void;
+  side: ReactNode;
+}
+
+export function useAutosave(name: string, data: unknown, onSave: DraftProps['onSave']) {
+  const text = JSON.stringify(data);
+  const start = useRef(text);
+  useEffect(() => {
+    if (text === start.current) return;
+    start.current = '';
+    onSave(name, JSON.parse(text));
+  }, [name, text]);
+}
+
 export function Wizard({
   steps,
   at,
   onAt,
   aside,
+  side,
   problems,
   children,
 }: {
@@ -870,6 +887,7 @@ export function Wizard({
   at: number;
   onAt(at: number): void;
   aside: ReactNode;
+  side?: ReactNode;
   problems?: (string | undefined)[];
   children: ReactNode;
 }) {
@@ -941,15 +959,18 @@ export function Wizard({
           </div>
           {blocked && <p className="error-text">{t(blocked)}</p>}
         </div>
-        <aside className="summary" aria-label={t('Your program')}>
-          <div className="summary-head">
-            <span>{t('YOUR PROGRAM')}</span>
-            <span>
-              {at + 1}/{steps.length}
-            </span>
-          </div>
-          {aside}
-        </aside>
+        <div className="side">
+          {side}
+          <aside className="summary" aria-label={t('Your program')}>
+            <div className="summary-head">
+              <span>{t('YOUR PROGRAM')}</span>
+              <span>
+                {at + 1}/{steps.length}
+              </span>
+            </div>
+            {aside}
+          </aside>
+        </div>
       </div>
     </>
   );
@@ -977,19 +998,29 @@ export function Summary({
   );
 }
 
-export function WorldLaunch() {
+type WorldDraft = {
+  start: { target: string; variant: string };
+  program: Program;
+  sources: Record<string, Source>;
+  reward: string;
+};
+
+export function WorldLaunch({ draft, onSave, side }: DraftProps) {
   const t = useT();
+  const saved = draft as WorldDraft | undefined;
   const first = targets[0]!;
-  const [start, setStart] = useState({
-    target: first.id,
-    variant: Object.keys(first.variants).at(-1)!,
-  });
-  const [program, setProgram] = useState<Program>(
-    () => structuredClone(first.variants[start.variant]) as unknown as Program,
+  const [start, setStart] = useState(
+    () => saved?.start ?? { target: first.id, variant: Object.keys(first.variants).at(-1)! },
   );
-  const [sources, setSources] = useState(() => sourcesOf(program.codes, first.methods));
+  const [program, setProgram] = useState<Program>(
+    () => saved?.program ?? (structuredClone(first.variants[start.variant]) as unknown as Program),
+  );
+  const [sources, setSources] = useState(
+    () => saved?.sources ?? sourcesOf(program.codes, first.methods),
+  );
   const [fetched, setFetched] = useState<Record<string, number>>({});
-  const [reward, setReward] = useState(nearOf(5));
+  const [reward, setReward] = useState(saved?.reward ?? nearOf(5));
+  useAutosave(program.title, { start, program, sources, reward } satisfies WorldDraft, onSave);
   const [hashed, setHashed] = useState({ text: '', hash: '' });
   const [round, setRound] = useState(0);
   const [at, setAt] = useState(0);
@@ -1684,6 +1715,7 @@ export function WorldLaunch() {
       at={at}
       onAt={setAt}
       aside={aside}
+      side={side}
     >
       {screens[at]}
     </Wizard>

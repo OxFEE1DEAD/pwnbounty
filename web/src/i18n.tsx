@@ -876,6 +876,11 @@ const ru: Record<string, string> = {
   'Ready to publish.': 'Можно публиковать.',
   'the agent runs in the TEE on every attack': 'агент работает в TEE при каждой атаке',
   'Smart contract': 'Смарт-контракт',
+  Drafts: 'Черновики',
+  DRAFTS: 'ЧЕРНОВИКИ',
+  'Untitled program': 'Без названия',
+  'Every edit is saved here as a draft, in this browser only.':
+    'Каждая правка сохраняется здесь черновиком, только в этом браузере.',
   'every attack replays on a fresh chain': 'каждая атака прогоняется на свежей цепи',
   'fund the escrow': 'внести награду',
   'Fund and publish · {amount} NEAR': 'Внести и опубликовать · {amount} NEAR',

@@ -121,10 +121,12 @@ function Pill({ result }: { result: Result }) {
 }
 
 function Deltas({ result }: { result: Result }) {
+  const t = useT();
   const shown = (result.deltas ?? []).filter((d) => abs(BigInt(d.amount)) > YOCTO / 100n);
-  if (!shown.length) return null;
+  if (!shown.length && !result.rule) return null;
   return (
     <div className="deltas">
+      {result.rule && <code>{t('broke: {rule}', { rule: result.rule })}</code>}
       {shown.map((d) => (
         <code key={d.account + d.token}>
           {d.account.replace('.test.near', '')} {near(d.amount)}{' '}
@@ -144,8 +146,8 @@ function TargetCard({ target }: { target: Target }) {
       <div className="kicker">{t(concepts[target.concept] ?? target.concept)}</div>
       <h3>{t(target.title)}</h3>
       <p className="muted">{t(target.source)}</p>
-      <details open={location.hash.endsWith('/' + target.id)}>
-        <summary>{t('Show the {n} attacks', { n: String(target.cases.length) })}</summary>
+      <div className="break-rules">
+        <span className="kicker">{t('A break is')}</span>
         <ul className="rule-list">
           {rules.map((r) => (
             <li key={r.id}>
@@ -154,47 +156,44 @@ function TargetCard({ target }: { target: Target }) {
             </li>
           ))}
         </ul>
-        <div className="matrix" style={{ '--n': variants.length } as CSSProperties}>
-          <span className="head">{t('Attack')}</span>
-          {variants.map((v) => (
-            <span key={v} className="head">
-              {t(v)}
-            </span>
-          ))}
-          {target.cases.map((c) => (
-            <div key={c.id} className="matrix-row">
-              <details>
-                <summary>{t(c.title)}</summary>
-                <pre>{JSON.stringify(c.attack, null, 1)}</pre>
-              </details>
-              {variants.map((v) => (
-                <div key={v}>
-                  <Pill result={c.results[v]!} />
-                  <Deltas result={c.results[v]!} />
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div className="hash">
-          {variants.map((v) => (
-            <button
-              key={v}
-              type="button"
-              className="chip"
-              title={target.hashes[v]}
-              onClick={() =>
-                download(
-                  `${target.id}-${v.replace(' ', '-')}.program.json`,
-                  JSON.stringify(target.variants[v], null, 2),
-                )
-              }
-            >
-              {t(v)} · {target.hashes[v]!.slice(0, 12)}… ↓
-            </button>
-          ))}
-        </div>
-      </details>
+      </div>
+      <div className="matrix" style={{ '--n': variants.length } as CSSProperties}>
+        <span className="head">{t('Attack')}</span>
+        {variants.map((v) => (
+          <span key={v} className="head">
+            {t(v)}
+          </span>
+        ))}
+        {target.cases.map((c) => (
+          <div key={c.id} className="matrix-row">
+            <span>{t(c.title)}</span>
+            {variants.map((v) => (
+              <div key={v}>
+                <Pill result={c.results[v]!} />
+                <Deltas result={c.results[v]!} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="hash">
+        {variants.map((v) => (
+          <button
+            key={v}
+            type="button"
+            className="chip"
+            title={target.hashes[v]}
+            onClick={() =>
+              download(
+                `${target.id}-${v.replace(' ', '-')}.program.json`,
+                JSON.stringify(target.variants[v], null, 2),
+              )
+            }
+          >
+            {t(v)} · {target.hashes[v]!.slice(0, 12)}… ↓
+          </button>
+        ))}
+      </div>
     </article>
   );
 }
@@ -215,37 +214,35 @@ function AgentCard() {
           <b>transfer</b> {t('an executed payment breaks the frozen recipient or limit')}
         </li>
       </ul>
-      <details open={location.hash.endsWith('/agent')}>
-        <summary>
-          {t('{n} invoices × 2 configs, {m} as expected', {
-            n: String(byCase.size),
-            m: `${agentMatched}/${coverage.agent.cases.length}`,
-          })}
-        </summary>
-        <div className="matrix" style={{ '--n': coverage.agent.variants.length } as CSSProperties}>
-          <span className="head">{t('Invoice')}</span>
-          {coverage.agent.variants.map((v) => (
-            <span key={v} className="head">
-              {t(v)}
-            </span>
-          ))}
-          {[...byCase].map(([id, rows]) => (
-            <div key={id} className="matrix-row">
-              <span>{id}</span>
-              {rows.map((r) => (
-                <Pill
-                  key={r.config}
-                  result={{
-                    expected: r.expected === 'true' ? 'violation' : 'no_violation',
-                    outcome: r.violation ? 'violation' : 'no_violation',
-                    ms: 0,
-                  }}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      </details>
+      <p className="muted">
+        {t('{n} invoices × 2 configs, {m} as expected', {
+          n: String(byCase.size),
+          m: `${agentMatched}/${coverage.agent.cases.length}`,
+        })}
+      </p>
+      <div className="matrix" style={{ '--n': coverage.agent.variants.length } as CSSProperties}>
+        <span className="head">{t('Invoice')}</span>
+        {coverage.agent.variants.map((v) => (
+          <span key={v} className="head">
+            {t(v)}
+          </span>
+        ))}
+        {[...byCase].map(([id, rows]) => (
+          <div key={id} className="matrix-row">
+            <span>{id}</span>
+            {rows.map((r) => (
+              <Pill
+                key={r.config}
+                result={{
+                  expected: r.expected === 'true' ? 'violation' : 'no_violation',
+                  outcome: r.violation ? 'violation' : 'no_violation',
+                  ms: 0,
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
       <p className="hint">{t('Stub model: checks the checker, not the model.')}</p>
     </article>
   );

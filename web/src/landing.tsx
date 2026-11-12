@@ -303,14 +303,14 @@ function Hero() {
             <Icon name="bug" size={32} />
             <span>
               <b>{t('I HACK')}</b>
-              {t('find a program →')}
+              {t('find a program')}
             </span>
           </a>
           <a className="door-button secondary" href="#/projects">
             <Icon name="tools" size={32} />
             <span>
               <b>{t('I BUILD')}</b>
-              {t('launch a bounty →')}
+              {t('launch a bounty')}
             </span>
           </a>
         </div>
@@ -404,18 +404,18 @@ function HowItWorks() {
       <div className="flow-map">
         {node('project', 'tools', 'PROJECT', 'code, rule, reward')}
         {edge('pc', [
-          ['1', 'rule + reward →'],
-          ['5', '← no break: refund'],
+          ['1', 'rule + reward'],
+          ['5', 'no break: refund'],
         ])}
         {node('contract', 'lock', 'CONTRACT', 'escrow on NEAR')}
         {edge('ch', [
-          ['2', '← sealed hash'],
-          ['5', 'pays the break →', true],
+          ['2', 'sealed hash'],
+          ['5', 'pays the break', true],
         ])}
         {node('hacker', 'bug', 'HACKER', 'finds a break')}
-        {edge('hv', [['3', '← encrypted attack']])}
+        {edge('hv', [['3', 'encrypted attack']])}
         {node('verifier', 'play', 'VERIFIER', 'replays the attack')}
-        {edge('vc', [['4', '↑ signed verdict']])}
+        {edge('vc', [['4', 'signed verdict']])}
       </div>
     </section>
   );

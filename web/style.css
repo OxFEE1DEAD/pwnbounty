@@ -400,13 +400,14 @@ main[data-side='tools'] .chip.current { border-color: var(--info); }
 .incident-row .odds.yes { color: var(--ok); }
 .targets { display: grid; gap: 16px; padding-bottom: 48px; }
 .target h3 { margin: 4px 0; }
+.break-rules { margin-top: 16px; padding: 4px 14px; border-left: 2px solid var(--hack); }
+.break-rules .rule-list { margin: 4px 0 0; }
+.break-rules .rule-list li:last-child { border-bottom: 0; }
 
 .matrix { display: grid; grid-template-columns: 1.4fr repeat(var(--n), 1fr); gap: 0 12px; margin-top: 16px; font-size: 14px; }
 .matrix-row { display: contents; }
 .matrix-row > * { padding: 10px 0; border-top: 1px solid var(--line); min-width: 0; }
 .matrix .head { font: 12px var(--pixel); letter-spacing: 1px; color: var(--muted); text-transform: uppercase; padding-bottom: 6px; }
-.matrix summary { cursor: pointer; }
-.matrix pre { font-size: 11px; max-height: 260px; }
 
 .pill { display: inline-block; font-size: 12px; padding: 2px 8px; border: 1px solid var(--line); color: var(--muted); }
 .pill.violation { color: var(--inv-ink); background: var(--inv-bg); border-color: var(--inv-bg); }
@@ -455,7 +456,7 @@ input[aria-invalid='true'] { border-color: var(--fail); }
 .kv dd { margin: 0; overflow-wrap: anywhere; }
 .program-back { margin-top: 28px; }
 .program-hero { display: grid; gap: 12px; padding: 8px 0 28px; border-bottom: 1px solid var(--line); }
-.program-hero h1 { margin: 0; }
+.program-hero h1 { margin: 0; font-family: var(--mono); font-weight: 700; font-size: clamp(28px, 3.4vw, 42px); letter-spacing: 0; overflow-wrap: anywhere; }
 .project-link { display: inline-block; margin-top: 8px; color: var(--info); }
 .program-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
 .program-meta .reward { margin: 0; line-height: 1; }

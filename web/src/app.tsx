@@ -16,7 +16,7 @@ import {
 } from './env.js';
 import type { ChainReader, HunterClaim } from './ports.js';
 import { Icon, type IconName } from './icons.js';
-import { LangProvider, useLang, useT } from './i18n.js';
+import { LangProvider, useT } from './i18n.js';
 import { Hunt } from './hunt.js';
 import { Launch } from './launch.js';
 import { MyProgramsPage, Projects } from './projects.js';
@@ -36,7 +36,6 @@ interface Side {
   title: string;
   icon: IconName;
   href: string;
-  path: string;
   links: [string, string, Route[]][];
 }
 const stateLabels: Record<string, string> = {
@@ -50,7 +49,6 @@ const sides: Side[] = [
     title: 'FOR HACKERS',
     icon: 'bug',
     href: '#/programs',
-    path: 'find a program → send a sealed attack → get paid',
     links: [
       ['#/programs', 'Programs', ['programs', 'program']],
       ['#/me', 'My claims', ['me']],
@@ -61,7 +59,6 @@ const sides: Side[] = [
     title: 'FOR PROJECTS',
     icon: 'tools',
     href: '#/projects',
-    path: 'describe → test run → fund → read reports',
     links: [
       ['#/projects', 'Overview', ['projects']],
       ['#/projects/mine', 'My programs', ['mine']],
@@ -118,7 +115,6 @@ function Brand() {
 function Header({ route }: { route: Route }) {
   const { meta, account, connect, disconnect, notify } = useEnv(),
     t = useT();
-  const { lang, toggle } = useLang();
   const side = sideOf(route);
   const wallet = () => {
     if (account) location.hash = '#/me';
@@ -136,9 +132,6 @@ function Header({ route }: { route: Route }) {
             </a>
           ))}
         </nav>
-        <button type="button" className="lang" onClick={toggle} aria-label={t('Switch language')}>
-          {lang === 'en' ? 'EN / RU' : 'RU / EN'}
-        </button>
         <div className="wallet-box">
           <details className="net">
             <summary>
@@ -182,7 +175,6 @@ function Header({ route }: { route: Route }) {
               {t(label)}
             </a>
           ))}
-          <span className="route-line">{t(side.path)}</span>
         </nav>
       )}
     </>

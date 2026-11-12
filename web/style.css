@@ -150,9 +150,8 @@ pre {
 .subnav a { color: var(--muted); text-decoration: none; }
 .subnav a:hover, .subnav a.current { color: var(--ink); }
 .subnav .pixel { font-size: 12px; }
-.subnav .route-line { margin-left: auto; color: var(--muted); }
 
-.lang, .tag {
+.tag {
   font: 12px var(--pixel);
   letter-spacing: 1px;
   padding: 4px 8px;
@@ -163,7 +162,6 @@ pre {
   text-transform: uppercase;
 }
 
-.lang { height: 44px; padding: 0 12px; color: var(--ink); cursor: pointer; }
 .tag.open { color: var(--inv-ink); background: var(--inv-bg); border-color: var(--inv-bg); }
 .tag.paid { color: var(--bg); background: var(--ok); border-color: var(--ok); }
 .tag.retryable, .tag.pending, .tag.payout-pending { color: var(--warn); border-color: var(--warn); }
@@ -708,7 +706,6 @@ summary { cursor: pointer; font-weight: 600; }
 @media (max-width: 850px) {
   .top { padding: 12px 0; }
   .top nav { order: 3; width: 100%; margin: 0; gap: 16px; overflow-x: auto; }
-  .subnav .route-line { margin-left: 0; width: 100%; }
   .hero { grid-template-columns: 1fr; }
   .flow-map { display: flex; flex-direction: column; gap: 8px; }
   .flow-map .hv { margin: 0; border: 0; }

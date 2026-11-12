@@ -4,7 +4,6 @@ type Lang = 'en' | 'ru';
 type Vars = Record<string, string>;
 
 const ru: Record<string, string> = {
-  'Switch language': 'Сменить язык',
   'Main navigation': 'Основная навигация',
   'How it works': 'Как это работает',
   Coverage: 'Покрытие',
@@ -16,9 +15,6 @@ const ru: Record<string, string> = {
   Overview: 'Обзор',
   'My programs': 'Мои программы',
   'Launch a program': 'Запустить программу',
-  'find a program → send a sealed attack → get paid':
-    'выбери программу → отправь запечатанную атаку → получи награду',
-  'describe → test run → fund → read reports': 'опиши → прогони тест → пополни → читай отчёты',
   'My attempts': 'Мои заявки',
   'Hunt a bounty': 'Искать награду',
   'Connect wallet': 'Подключить кошелёк',
@@ -1010,15 +1006,6 @@ const ru: Record<string, string> = {
   Vault: 'Хранилище',
 };
 const prefixes = Object.keys(ru).filter((key) => /[ #]$/.test(key));
-const storageKey = 'sealed-bounty/lang/1';
-
-function initialLang(): Lang {
-  try {
-    const saved = localStorage.getItem(storageKey);
-    if (saved === 'en' || saved === 'ru') return saved;
-  } catch {}
-  return navigator.language.toLowerCase().startsWith('ru') ? 'ru' : 'en';
-}
 
 function translate(lang: Lang, value: string): string {
   if (lang === 'en') return value;
@@ -1038,18 +1025,14 @@ function fill(text: string, vars: Vars): string {
 const LangContext = createContext<{ lang: Lang; toggle(): void }>({ lang: 'en', toggle: () => {} });
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState(initialLang);
+  const [lang, setLang] = useState<Lang>('en');
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
   const toggle = useCallback(
     () =>
       setLang((current) => {
-        const next = current === 'en' ? 'ru' : 'en';
-        try {
-          localStorage.setItem(storageKey, next);
-        } catch {}
-        return next;
+        return current === 'en' ? 'ru' : 'en';
       }),
     [],
   );

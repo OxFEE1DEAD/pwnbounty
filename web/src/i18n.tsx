@@ -152,7 +152,6 @@ const ru: Record<string, string> = {
   'template build': 'сборка из шаблона',
   'Deployed contract': 'Задеплоенный контракт',
   'Copy its code': 'Взять его код',
-  'or a .wasm build': 'или сборка .wasm',
   'No contract is deployed on this account': 'На этом аккаунте нет контракта',
   'This file is not a .wasm build': 'Этот файл не сборка .wasm',
   protected: 'защищён',
@@ -374,8 +373,11 @@ const ru: Record<string, string> = {
   '+ token': '+ токен',
   'A template fills the same form. Change anything: code, accounts, setup calls, rules.':
     'Шаблон заполняет ту же форму. Менять можно всё: код, аккаунты, стартовые вызовы, правила.',
-  'ABI file from cargo near abi, optional: fields for every argument':
-    'ABI-файл из cargo near abi, по желанию: поле на каждый аргумент',
+  'ABI file (optional)': 'ABI-файл (необязательно)',
+  'From cargo near abi: a field for every argument.': 'Из cargo near abi: поле на каждый аргумент.',
+  'Account on NEAR': 'Аккаунт в NEAR',
+  '.wasm build': 'Сборка .wasm',
+  '.wasm file': 'Файл .wasm',
   Access: 'Доступ',
   Account: 'Аккаунт',
   'Actions per transaction': 'Действий в транзакции',
@@ -397,7 +399,7 @@ const ru: Record<string, string> = {
   'Gas per transaction, TGas': 'Газ на транзакцию, TGas',
   'Gas, TGas': 'Газ, TGas',
   'Give the program a name': 'Назовите программу',
-  'Init method, empty for none': 'Метод инициализации, пусто - без него',
+  'Init method (optional)': 'Метод инициализации (необязательно)',
   Key: 'Ключ',
   'Make exactly one attacker account': 'Нужен ровно один аккаунт атакующего',
   Method: 'Метод',
@@ -413,7 +415,7 @@ const ru: Record<string, string> = {
   'Program name': 'Название программы',
   "{owner}'s Bug Bounty": 'Баг-баунти {owner}',
   'Name the program': 'Назовите программу',
-  'Project site or GitHub, optional': 'Сайт проекта или GitHub, необязательно',
+  'Project site or GitHub (optional)': 'Сайт проекта или GitHub (необязательно)',
   'The link must start with https://': 'Ссылка должна начинаться с https://',
   Receipts: 'Квитанций',
   Receiver: 'Получатель',
@@ -654,18 +656,18 @@ const ru: Record<string, string> = {
     'Любой платёж оставляет это правило истинным, значит ни одна атака не выиграет',
   'No payment can keep this rule true. One payment has one recipient: list several with in {a, b} or OR, not AND.':
     'Ни один платёж не сделает это правило истинным. У платежа один получатель: перечисляйте нескольких через in {a, b} или OR, а не AND.',
-  'No payment can keep this rule true: any payment at all is a break.':
-    'Ни один платёж не сделает это правило истинным: любой платёж - уже взлом.',
+  'The agent may pay nobody: any payment at all is a break.':
+    'Агенту нельзя платить никому: любой платёж - уже взлом.',
   conditions: 'условия',
   combine: 'связки',
   'Rule syntax': 'Синтаксис правила',
   'The rule is checked after each payment the agent makes.':
     'Правило проверяется после каждого платежа агента.',
-  'All private NEAR AI Cloud models that can call tools today. Each one runs in an Intel TDX and NVIDIA GPU enclave, and the runner checks its attestation against a pinned policy before the first call.':
-    'Все приватные модели NEAR AI Cloud, которые сейчас умеют вызывать инструменты. Каждая работает в анклаве Intel TDX и NVIDIA GPU, а раннер сверяет её аттестацию с закреплённой политикой до первого вызова.',
+  'Private NEAR AI Cloud models with tool calls. Each runs in a TEE; the runner checks its attestation first.':
+    'Приватные модели NEAR AI Cloud с вызовом инструментов. Каждая работает в TEE, раннер сначала проверяет её аттестацию.',
   '{n} TEE models': '{n} TEE-моделей',
-  'Every executed payment must keep this true. A payment that makes it false is a break.':
-    'Каждый проведённый платёж должен оставлять это правило истинным. Платёж, который делает его ложным, - взлом.',
+  '· every executed payment must keep it true, one that makes it false is a break':
+    '· каждый проведённый платёж должен оставлять его истинным, платёж, который делает его ложным, - взлом',
   'size of the checked payment': 'размер проверяемого платежа',
   'sum of the attack payments up to the checked one, inclusive':
     'сумма платежей атаки до проверяемого включительно',

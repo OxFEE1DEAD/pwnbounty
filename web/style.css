@@ -300,6 +300,10 @@ main[data-side] .invite .button.secondary { color: var(--info); border-color: va
 .tabs button span { font-size: 12px; }
 .tabs button:hover { color: var(--ink); }
 .tabs button.current { color: var(--ink); border-bottom-color: var(--info); }
+.tabs.small { margin: 8px 0 4px; }
+.label-note { color: var(--muted); font-size: 12px; font-weight: 400; }
+.tabs.small button { padding: 8px 12px; }
+.tabs.small button b { font-size: 13px; }
 main[data-side] .button.off { color: var(--muted); background: var(--panel); border-color: var(--line); opacity: 1; }
 .instead { margin-top: 20px; padding: 16px 18px; border: 1px dashed var(--line); }
 .instead ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 14px; }

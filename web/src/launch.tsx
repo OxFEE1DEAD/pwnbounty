@@ -102,7 +102,12 @@ function RuleField({ rule, onChange }: { rule: string; onChange(rule: string): v
   };
   return (
     <div className="field">
-      {t('Payment rule')}
+      <span>
+        {t('Payment rule')}{' '}
+        <span className="label-note">
+          {t('· every executed payment must keep it true, one that makes it false is a break')}
+        </span>
+      </span>
       <div className="rule-editor">
         <pre aria-hidden="true">
           <Painted text={rule} />
@@ -116,19 +121,11 @@ function RuleField({ rule, onChange }: { rule: string; onChange(rule: string): v
           onChange={(e) => onChange(e.target.value)}
         />
       </div>
-      {problem ? (
-        <span className="error-text">{t(problem[0], { value: problem[1] ?? '' })}</span>
-      ) : (
-        <span className="hint">
-          {t(
-            'Every executed payment must keep this true. A payment that makes it false is a break.',
-          )}
-        </span>
-      )}
+      {problem && <span className="error-text">{t(problem[0], { value: problem[1] ?? '' })}</span>}
       {note && (
-        <span className="caution">
-          <Icon name="warn" size={14} />
-          {t(note)}
+        <span className={note[1] ? 'caution' : 'hint'}>
+          {note[1] && <Icon name="warn" size={14} />}
+          {t(note[0])}
         </span>
       )}
       <div className="rule-blocks">
@@ -333,7 +330,7 @@ function AgentLaunch() {
         </div>
         <span className="hint">
           {t(
-            'All private NEAR AI Cloud models that can call tools today. Each one runs in an Intel TDX and NVIDIA GPU enclave, and the runner checks its attestation against a pinned policy before the first call.',
+            'Private NEAR AI Cloud models with tool calls. Each runs in a TEE; the runner checks its attestation first.',
           )}{' '}
           <a href="https://cloud.near.ai/models" target="_blank" rel="noopener noreferrer">
             cloud.near.ai/models ↗
@@ -401,7 +398,7 @@ function AgentLaunch() {
           />
         </label>
         <label className="field">
-          {t('Project site or GitHub, optional')}
+          {t('Project site or GitHub (optional)')}
           <input
             value={link}
             maxLength={200}

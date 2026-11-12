@@ -210,13 +210,16 @@ export function ruleProblem(text: string): RuleProblem | undefined {
   }
 }
 
-export function ruleNote(text: string): string | undefined {
+export function ruleNote(text: string): [note: string, warn: boolean] | undefined {
   try {
     const result = outcomes(parse(text));
     if (!result || result.can.has(true)) return undefined;
     return result.recipients > 1
-      ? 'No payment can keep this rule true. One payment has one recipient: list several with in {a, b} or OR, not AND.'
-      : 'No payment can keep this rule true: any payment at all is a break.';
+      ? [
+          'No payment can keep this rule true. One payment has one recipient: list several with in {a, b} or OR, not AND.',
+          true,
+        ]
+      : ['The agent may pay nobody: any payment at all is a break.', false];
   } catch {
     return undefined;
   }

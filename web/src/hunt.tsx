@@ -537,7 +537,7 @@ function Details({
   const world = program.kind === 'world';
   const raw = program.kind === 'world' ? program.spec : program.config;
   const payment = program.kind === 'agent' ? ruleOf(program.config.policy) : '';
-  const warning = payment && (ruleProblem(payment)?.[0] ?? ruleNote(payment));
+  const warning = payment && (ruleProblem(payment)?.[0] ?? ruleNote(payment)?.[0]);
   return (
     <div className="details">
       <Row label="BREAK">

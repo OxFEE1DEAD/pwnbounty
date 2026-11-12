@@ -560,6 +560,7 @@ function CodePick({
     t = useT();
   const [account, setAccount] = useState('');
   const [busy, setBusy] = useState(false);
+  const [via, setVia] = useState<'account' | 'file'>('account');
   const pick = (work: Promise<Source>) => {
     setBusy(true);
     work.then(onPick, (error) => notify(errorText(error), true)).finally(() => setBusy(false));
@@ -580,40 +581,62 @@ function CodePick({
           {t('Methods found: {count}', { count: String(Object.keys(source.methods).length) })}
         </p>
       )}
-      <div className="code-pick">
+      <div className="tabs small" role="tablist">
+        {(
+          [
+            ['account', 'Deployed contract'],
+            ['file', '.wasm build'],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={via === value}
+            className={via === value ? 'current' : ''}
+            onClick={() => setVia(value)}
+          >
+            <b>{t(label)}</b>
+          </button>
+        ))}
+      </div>
+      {via === 'account' ? (
+        <div className="code-pick">
+          <label className="field">
+            {t('Account on NEAR')}
+            <input
+              placeholder="your-contract.near"
+              autoComplete="off"
+              value={account}
+              onChange={(e) => setAccount(e.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busy || !/^[a-z0-9._-]{2,64}$/.test(account.trim())}
+            onClick={() => pick(chainCode(account.trim()))}
+          >
+            {t('Copy its code')}
+          </button>
+        </div>
+      ) : (
         <label className="field">
-          {t('Deployed contract')}
+          {t('.wasm file')}
           <input
-            placeholder="your-contract.near"
-            autoComplete="off"
-            value={account}
-            onChange={(e) => setAccount(e.target.value)}
+            type="file"
+            accept=".wasm"
+            disabled={busy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) pick(wasmFile(file));
+            }}
           />
         </label>
-        <button
-          type="button"
-          className="button secondary"
-          disabled={busy || !/^[a-z0-9._-]{2,64}$/.test(account.trim())}
-          onClick={() => pick(chainCode(account.trim()))}
-        >
-          {t('Copy its code')}
-        </button>
-      </div>
-      <label className="field">
-        {t('or a .wasm build')}
-        <input
-          type="file"
-          accept=".wasm"
-          disabled={busy}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) pick(wasmFile(file));
-          }}
-        />
-      </label>
+      )}
       {source && (
         <label className="field">
-          {t('ABI file from cargo near abi, optional: fields for every argument')}
+          {t('ABI file (optional)')}
           <input
             type="file"
             accept=".json"
@@ -624,6 +647,7 @@ function CodePick({
                 .catch((error) => notify(errorText(error), true));
             }}
           />
+          <span className="hint">{t('From cargo near abi: a field for every argument.')}</span>
         </label>
       )}
     </div>
@@ -722,7 +746,7 @@ function StepCard({
           onAbi={(found) => onAbi(step.code, found)}
         />
         <MethodInput
-          label={t('Init method, empty for none')}
+          label={t('Init method (optional)')}
           value={step.init?.method ?? ''}
           methods={methods}
           onChange={(method) =>

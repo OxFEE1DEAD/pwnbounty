@@ -166,7 +166,6 @@ const ru: Record<string, string> = {
     'Охотники видят этот хеш в награде. Любое изменение кода, балансов или правил меняет его.',
   'Download program.json': 'Скачать program.json',
   'Download a sample attack': 'Скачать пример атаки',
-  'Test run on your machine': 'Пробный прогон у себя',
   'once: the CLI and a local NEAR chain (Node 22+)':
     'один раз: CLI и локальная сеть NEAR (Node 22+)',
   'test run: a fresh chain, your code, one attack, a verdict':
@@ -174,8 +173,6 @@ const ru: Record<string, string> = {
   'On Linux replace Darwin-arm64 with Linux-x86_64. The sample is a known attack from the results list; write your own in the same format.':
     'На Linux замените Darwin-arm64 на Linux-x86_64. Пример - известная атака из списка результатов; свою пишите в том же формате.',
   Publish: 'Публикация',
-  'Publishing needs the verifier keys, so in test mode the verifier operator runs it with your files. The reward goes to escrow and the program appears in the hacker catalog. Publishing with your wallet from this page is not available yet.':
-    'Для публикации нужны ключи верификатора, поэтому в тестовом режиме её запускает оператор с вашими файлами. Награда уходит в эскроу, программа появляется в каталоге для хакеров. Публикации своим кошельком с этой страницы пока нет.',
   'On-chain, not on faith.': 'В сети, а не на словах.',
   'Finalized NEAR state. Refreshes when the page loads.':
     'Подтверждённое состояние NEAR. Обновляется при загрузке страницы.',
@@ -647,8 +644,6 @@ const ru: Record<string, string> = {
   blocked: 'заблокировано',
   'Test balance after the run: {balance}': 'Тестовый баланс после прогона: {balance}',
   'Full report': 'Полный отчёт',
-  'AI payment agent · checked in the TEE': 'AI-агент оплаты · проверка в TEE',
-  'Contract · export for a local replay': 'Контракт · экспорт для локального прогона',
   "Your agent's system prompt": 'Системный промпт вашего агента',
   'Example agents and rules': 'Примеры агентов и правил',
   'Naive invoice payer': 'Наивный плательщик счетов',
@@ -869,7 +864,6 @@ const ru: Record<string, string> = {
   '1 token = … NEAR': '1 токен = … NEAR',
   'It pays without an attack, {token}': 'Выплата без атаки, {token}',
   'Advanced: limits for one attack': 'Дополнительно: лимиты одной атаки',
-  'test run, then the CLI': 'тестовый прогон и CLI',
   AGENT: 'АГЕНТ',
   'open for': 'открыта',
   'agent wallet': 'кошелёк агента',
@@ -878,7 +872,20 @@ const ru: Record<string, string> = {
   'program hash': 'хэш программы',
   'Still needed: {what}': 'Осталось: {what}',
   'Ready to publish.': 'Можно публиковать.',
-  'Ready to export.': 'Можно выгружать.',
+  'the agent runs in the TEE on every attack': 'агент работает в TEE при каждой атаке',
+  'Smart contract': 'Смарт-контракт',
+  'every attack replays on a fresh chain': 'каждая атака прогоняется на свежей цепи',
+  'fund the escrow': 'внести награду',
+  'Fund and publish · {amount} NEAR': 'Внести и опубликовать · {amount} NEAR',
+  'The reward goes to escrow. Every attack replays in the TEE on a fresh chain with your code, and the contract pays the first proved break.':
+    'Награда уходит в эскроу. Каждая атака прогоняется в TEE на свежей цепи с вашим кодом, и контракт платит за первый доказанный взлом.',
+  'ON TESTNET, INSTEAD': 'НА ТЕСТНЕТЕ ВМЕСТО ЭТОГО',
+  'Contract replays do not run in the TEE on testnet yet. The verifier operator publishes your program:':
+    'На тестнете прогон контрактов пока идёт не в TEE. Программу публикует оператор верификатора:',
+  'Download the program and a sample attack.': 'Скачайте программу и пример атаки.',
+  'Replay the attack on your machine.': 'Прогоните атаку у себя.',
+  'Send program.json to the verifier operator. They fund the escrow with your reward:':
+    'Отправьте program.json оператору верификатора. Он внесёт вашу награду в эскроу:',
   'reward, held in escrow': 'награда в эскроу',
   'program storage, not refundable': 'хранение программы, не возвращается',
   'open for attacks': 'открыта для атак',

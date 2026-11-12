@@ -1502,23 +1502,6 @@ export function WorldLaunch() {
           'Hunters see this hash on the bounty. Any change to code, balances or rules changes it.',
         )}
       </p>
-      <div className="row">
-        <button
-          type="button"
-          className="button"
-          disabled={problems.length > 0}
-          onClick={() => download(`${name}.program.json`, text)}
-        >
-          {t('Download program.json')}
-        </button>
-        <button
-          type="button"
-          className="button secondary"
-          onClick={() => download(`${name}.attack.json`, JSON.stringify(attack, null, 2))}
-        >
-          {t('Download a sample attack')}
-        </button>
-      </div>
       <details className="raw">
         <summary>program.json</summary>
         <JsonText
@@ -1532,20 +1515,59 @@ export function WorldLaunch() {
           }}
         />
       </details>
-      <h3>{t('Test run on your machine')}</h3>
-      <pre>{setup}</pre>
+      <button type="button" className="button off" disabled>
+        {t('Fund and publish · {amount} NEAR', { amount: toNear(reward) })}
+      </button>
       <p className="hint">
         {t(
-          'On Linux replace Darwin-arm64 with Linux-x86_64. The sample is a known attack from the results list; write your own in the same format.',
+          'The reward goes to escrow. Every attack replays in the TEE on a fresh chain with your code, and the contract pays the first proved break.',
         )}
       </p>
-      <h3>{t('Publish')}</h3>
-      <p>
-        {t(
-          'Publishing needs the verifier keys, so in test mode the verifier operator runs it with your files. The reward goes to escrow and the program appears in the hacker catalog. Publishing with your wallet from this page is not available yet.',
-        )}
-      </p>
-      <pre>{`BOUNTY_REWARD_YOCTO=${reward} npm run cli -- program-create ${name}.program.json`}</pre>
+      <div className="instead">
+        <div className="kicker">{t('ON TESTNET, INSTEAD')}</div>
+        <p>
+          {t(
+            'Contract replays do not run in the TEE on testnet yet. The verifier operator publishes your program:',
+          )}
+        </p>
+        <ol>
+          <li>
+            {t('Download the program and a sample attack.')}
+            <div className="row">
+              <button
+                type="button"
+                className="button secondary"
+                disabled={problems.length > 0}
+                onClick={() => download(`${name}.program.json`, text)}
+              >
+                {t('Download program.json')}
+              </button>
+              <button
+                type="button"
+                className="link"
+                onClick={() => download(`${name}.attack.json`, JSON.stringify(attack, null, 2))}
+              >
+                {t('Download a sample attack')}
+              </button>
+            </div>
+          </li>
+          <li>
+            {t('Replay the attack on your machine.')}
+            <pre>{setup}</pre>
+            <p className="hint">
+              {t(
+                'On Linux replace Darwin-arm64 with Linux-x86_64. The sample is a known attack from the results list; write your own in the same format.',
+              )}
+            </p>
+          </li>
+          <li>
+            {t(
+              'Send program.json to the verifier operator. They fund the escrow with your reward:',
+            )}
+            <pre>{`BOUNTY_REWARD_YOCTO=${reward} npm run cli -- program-create ${name}.program.json`}</pre>
+          </li>
+        </ol>
+      </div>
     </section>,
   ];
 
@@ -1621,7 +1643,7 @@ export function WorldLaunch() {
         <p className="hint">
           {problems[0]
             ? t('Still needed: {what}', { what: t(...problems[0]) })
-            : t('Ready to export.')}
+            : t('Ready to publish.')}
         </p>
       </Summary>
     </>
@@ -1633,7 +1655,7 @@ export function WorldLaunch() {
         ['Code', 'what gets attacked'],
         ['Who holds what', 'accounts, setup, keys'],
         ['Rule & reward', 'what counts as a break'],
-        ['Check', 'test run, then the CLI'],
+        ['Publish', 'fund the escrow'],
       ]}
       at={at}
       onAt={setAt}

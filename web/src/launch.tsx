@@ -63,22 +63,25 @@ function save(name: string, bytes: Uint8Array) {
   URL.revokeObjectURL(link.href);
 }
 
-function KindSwitch({ kind, onChange }: { kind: Kind; onChange(kind: Kind): void }) {
+function KindTabs({ kind, onChange }: { kind: Kind; onChange(kind: Kind): void }) {
   const t = useT();
-  const options: [Kind, string][] = [
-    ['agent', 'AI payment agent · checked in the TEE'],
-    ['world', 'Contract · export for a local replay'],
+  const options: [Kind, string, string][] = [
+    ['agent', 'AI payment agent', 'the agent runs in the TEE on every attack'],
+    ['world', 'Smart contract', 'every attack replays on a fresh chain'],
   ];
   return (
-    <div className="samples">
-      {options.map(([value, label]) => (
+    <div className="tabs" role="tablist">
+      {options.map(([value, label, hint]) => (
         <button
           key={value}
           type="button"
-          className={'chip' + (kind === value ? ' current' : '')}
+          role="tab"
+          aria-selected={kind === value}
+          className={kind === value ? 'current' : ''}
           onClick={() => onChange(value)}
         >
-          {t(label)}
+          <b>{t(label)}</b>
+          <span>{t(hint)}</span>
         </button>
       ))}
     </div>
@@ -520,7 +523,7 @@ export function Launch() {
               : 'Put your contract under a bounty.',
           )}
         </h1>
-        <KindSwitch kind={kind} onChange={setKind} />
+        <KindTabs kind={kind} onChange={setKind} />
       </div>
       {kind === 'agent' ? <AgentLaunch /> : <WorldLaunch />}
     </div>

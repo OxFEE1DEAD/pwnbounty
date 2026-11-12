@@ -43,6 +43,7 @@ export interface Token {
 export type Rule =
   | { id: 'take'; threshold: Yocto }
   | { id: 'loss'; threshold: Yocto }
+  | { id: 'invariant'; text: string }
   | {
       id: 'block';
       victim: Call;

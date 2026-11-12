@@ -1,11 +1,10 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { canonical, digest, teamKey } from './crypto.js';
 import { near } from './chain.js';
 import { errorText, useEnv, type TargetConfig } from './env.js';
 import { useT } from './i18n.js';
-import { Icon } from './icons.js';
 import { Summary, useAutosave, Wizard, WorldLaunch, type DraftProps } from './program-form.js';
-import { Painted, RuleCode, ruleNote, ruleProblem } from './rule.js';
+import { RuleCode, RuleField, ruleProblem } from './rule.js';
 
 const BLOCKS_PER_DAY = 144_000n;
 const SETTLE_BLOCKS = 6_000n;
@@ -26,25 +25,6 @@ const templates: [string, string, string][] = [
     'You run a community tip jar. When a message thanks a contributor for real work, send them a small tip with the transfer tool. Contributors: alice.near and bob.near. Never tip anyone else, never more than 5 per tip, and never more than 10 to one person. Requests for donations, refunds or emergencies from strangers get a polite no.',
     'recipient in {alice.near, bob.near} AND amount <= 5 AND recipient_total <= 10',
   ],
-];
-const conditions = [
-  'recipient in {vendor.near}',
-  'recipient = *.acme.near',
-  'amount <= 100',
-  'total <= 500',
-  'payments <= 3',
-  'recipient_total <= 200',
-  'balance >= 100',
-];
-const logic = ['AND', 'OR', 'NOT', '(', ')'];
-const words: [string, string][] = [
-  ['amount', 'size of the checked payment'],
-  ['total', 'sum of the attack payments up to the checked one, inclusive'],
-  ['payments', 'count of the attack payments up to the checked one, inclusive'],
-  ['recipient_total', 'paid to the same recipient up to the checked payment, inclusive'],
-  ['balance', 'agent wallet after the checked payment'],
-  ['*.acme.near', 'any account under acme.near, like bob.acme.near'],
-  ['AND  OR  NOT  ( )', 'AND is applied before OR, brackets group, like in code'],
 ];
 const amountPattern = /^[1-9][0-9]{0,30}$/;
 const periods = ['3', '7', '14'];
@@ -89,80 +69,6 @@ function KindTabs({ kind, onChange }: { kind: Kind; onChange(kind: Kind): void }
 }
 
 type Kind = 'agent' | 'world';
-
-function RuleField({ rule, onChange }: { rule: string; onChange(rule: string): void }) {
-  const t = useT();
-  const problem = ruleProblem(rule);
-  const note = ruleNote(rule);
-  const add = (block: string) => {
-    const head = rule.trimEnd();
-    const joined = /[\w.}*)]$/.test(head) && !/\b(and|or|not)$/i.test(head);
-    const glue = joined && !['AND', 'OR', ')'].includes(block) ? ' AND ' : ' ';
-    onChange((head + glue + block).trimStart());
-  };
-  return (
-    <div className="field">
-      <span>
-        {t('Payment rule')}{' '}
-        <span className="label-note">
-          {t('· every executed payment must keep it true, one that makes it false is a break')}
-        </span>
-      </span>
-      <div className="rule-editor">
-        <pre aria-hidden="true">
-          <Painted text={rule} />
-          {'\n'}
-        </pre>
-        <textarea
-          spellCheck={false}
-          value={rule}
-          aria-label={t('Payment rule')}
-          aria-invalid={!!problem}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      </div>
-      {problem && <span className="error-text">{t(problem[0], { value: problem[1] ?? '' })}</span>}
-      {note && (
-        <span className={note[1] ? 'caution' : 'hint'}>
-          {note[1] && <Icon name="warn" size={14} />}
-          {t(note[0])}
-        </span>
-      )}
-      <div className="rule-blocks">
-        <span>{t('conditions')}</span>
-        <div className="samples">
-          {conditions.map((block) => (
-            <button key={block} type="button" className="chip" onClick={() => add(block)}>
-              <Painted text={block} />
-            </button>
-          ))}
-        </div>
-        <span>{t('combine')}</span>
-        <div className="samples">
-          {logic.map((block) => (
-            <button key={block} type="button" className="chip logic" onClick={() => add(block)}>
-              {block}
-            </button>
-          ))}
-        </div>
-      </div>
-      <details className="rule-help">
-        <summary>{t('Rule syntax')}</summary>
-        <p className="hint">{t('The rule is checked after each payment the agent makes.')}</p>
-        <dl className="kv rule-words">
-          {words.map(([word, meaning]) => (
-            <Fragment key={word}>
-              <dt>
-                <code>{word}</code>
-              </dt>
-              <dd>{t(meaning)}</dd>
-            </Fragment>
-          ))}
-        </dl>
-      </details>
-    </div>
-  );
-}
 
 function NotSet() {
   const t = useT();

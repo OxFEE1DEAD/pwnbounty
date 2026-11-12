@@ -7,6 +7,7 @@ import { Icon } from './icons.js';
 import { repository } from './landing.js';
 import { readAbi, wasmMethods, type Methods, type Param } from './abi.js';
 import { download, programDigest, targets, type Spec } from './checks.js';
+import { invariantProblem, RuleCode, RuleField } from './rule.js';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type Role = 'attacker' | 'protected' | 'neutral' | 'system';
@@ -39,7 +40,8 @@ type Block = {
   claim: { contract: string; method: string; args: Json };
   expect: { account: string; token: string; amount: string };
 };
-type Rule = { id: 'take' | 'loss'; threshold: string } | Block;
+type Invariant = { id: 'invariant'; text: string };
+type Rule = { id: 'take' | 'loss'; threshold: string } | Invariant | Block;
 type Limits = {
   txs: number;
   actionsPerTx: number;
@@ -87,7 +89,6 @@ const standard: Record<string, Param[]> = {
   storage_deposit: strings('account_id'),
 };
 const ACCOUNT = /^[a-z0-9]+(?:[-_][a-z0-9]+)*\.test\.near$/;
-const FLOOR = '100000000000000000000000';
 const roles: Role[] = ['protected', 'neutral'];
 const rpcs = { mainnet: 'https://free.rpc.fastnear.com', testnet: 'https://test.rpc.fastnear.com' };
 const sandbox =
@@ -141,10 +142,7 @@ const blank = (): Program => ({
   tokens: [],
   attackerKeys: 1,
   privileged: [],
-  rules: [
-    { id: 'take', threshold: FLOOR },
-    { id: 'loss', threshold: FLOOR },
-  ],
+  rules: [{ id: 'invariant', text: 'protected_loss <= 0.1' }],
   limits: {
     txs: 4,
     actionsPerTx: 8,
@@ -256,6 +254,8 @@ function check(program: Program, sources: Record<string, Source>): Problem[] {
   if ([...made.values()].filter((role) => role === 'attacker').length !== 1)
     out.push(['Make exactly one attacker account']);
   if (!program.rules.length) out.push(['Pick at least one rule']);
+  const invariant = program.rules.find((rule): rule is Invariant => rule.id === 'invariant');
+  if (invariant && invariantProblem(invariant.text)) out.push(['Fix the invariant']);
   const block = program.rules.find((rule): rule is Block => rule.id === 'block');
   if (block && (!ready(block.victim.signer, true) || !block.victim.method || !block.claim.method))
     out.push(['Fill in the withdrawal check']);
@@ -1130,32 +1130,42 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
     setProgram((p) => ({ ...p, steps: change(p.steps) }));
   const rules = (change: (rules: Rule[]) => Rule[]) =>
     setProgram((p) => ({ ...p, rules: change(p.rules) }));
-  const has = (id: Rule['id']) => program.rules.some((rule) => rule.id === id);
-  const threshold =
-    program.rules.flatMap((rule) => (rule.id === 'block' ? [] : [rule.threshold]))[0] ?? FLOOR;
+  const invariant =
+    program.rules.find((rule): rule is Invariant => rule.id === 'invariant')?.text ??
+    program.rules
+      .flatMap((rule) =>
+        rule.id === 'take'
+          ? [
+              `NOT (attacker_gain > ${toNear(rule.threshold)} AND protected_loss > ${toNear(rule.threshold)})`,
+            ]
+          : rule.id === 'loss'
+            ? [`protected_loss <= ${toNear(rule.threshold)}`]
+            : [],
+      )
+      .join(' AND ');
+  const setInvariant = (text: string) =>
+    rules((all) => [{ id: 'invariant', text }, ...all.filter((rule) => rule.id === 'block')]);
   const block = program.rules.find((rule): rule is Block => rule.id === 'block');
   const victim = scope.signers.find((id) => !codeOf.has(id)) ?? scope.signers[0] ?? '';
-  const toggle = (id: Rule['id']) =>
+  const toggleBlock = () =>
     rules((all) =>
-      all.some((rule) => rule.id === id)
-        ? all.filter((rule) => rule.id !== id)
+      block
+        ? all.filter((rule) => rule.id !== 'block')
         : [
             ...all,
-            id === 'block'
-              ? {
-                  id,
-                  victim: {
-                    signer: victim,
-                    receiver: scope.contracts[0] ?? '',
-                    method: '',
-                    args: {},
-                    deposit: '0',
-                    gas: gasOf(100),
-                  },
-                  claim: { contract: scope.contracts[0] ?? '', method: '', args: {} },
-                  expect: { account: victim, token: 'NEAR', amount: '0' },
-                }
-              : { id, threshold },
+            {
+              id: 'block',
+              victim: {
+                signer: victim,
+                receiver: scope.contracts[0] ?? '',
+                method: '',
+                args: {},
+                deposit: '0',
+                gas: gasOf(100),
+              },
+              claim: { contract: scope.contracts[0] ?? '', method: '', args: {} },
+              expect: { account: victim, token: 'NEAR', amount: '0' },
+            },
           ],
     );
   const setBlock = (next: Block) =>
@@ -1245,7 +1255,6 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
       {t(label)}
     </button>
   );
-  const ruleNames = { take: 'theft', loss: 'any loss', block: 'withdrawal blocked' };
 
   const screens = [
     <>
@@ -1377,28 +1386,11 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
     <>
       <section className="card">
         <div className="kicker">{t('A BREAK IS')}</div>
+        <RuleField flavor="invariant" rule={invariant} onChange={setInvariant} />
         <label className="check">
-          <input type="checkbox" checked={has('take')} onChange={() => toggle('take')} />
-          {t('attacker gains what a protected account loses')}
+          <input type="checkbox" checked={!!block} onChange={toggleBlock} />
+          {t('also: a protected withdrawal stops working')}
         </label>
-        <label className="check">
-          <input type="checkbox" checked={has('loss')} onChange={() => toggle('loss')} />
-          {t('a protected account loses value')}
-        </label>
-        <label className="check">
-          <input type="checkbox" checked={!!block} onChange={() => toggle('block')} />
-          {t('a protected withdrawal stops working')}
-        </label>
-        <Amount
-          label={t('Ignore moves smaller than (NEAR)')}
-          unit={NEAR}
-          value={threshold}
-          onChange={(value) =>
-            rules((all) =>
-              all.map((rule) => (rule.id === 'block' ? rule : { ...rule, threshold: value })),
-            )
-          }
-        />
         {block && (
           <div className="args">
             <p className="hint">
@@ -1677,10 +1669,8 @@ export function WorldLaunch({ draft, onSave, side }: DraftProps) {
         )}
       </Summary>
       <Summary title="RULE">
-        <p>
-          {program.rules.map((rule) => t(ruleNames[rule.id])).join(', ') || '…'} ·{' '}
-          {t('ignore < {amount} NEAR', { amount: toNear(threshold) })}
-        </p>
+        {invariant && <RuleCode rule={invariant} />}
+        {block && <p>{t('withdrawals keep working')}</p>}
       </Summary>
       <Summary>
         <dl className="kv">

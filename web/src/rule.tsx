@@ -1,152 +1,23 @@
+import { Fragment } from 'react';
+import {
+  atoms,
+  holds,
+  invariantWords,
+  parse,
+  paymentWords,
+  type Rule,
+  type RuleProblem,
+  type Words,
+} from '../../protocol/rule.js';
 import type { TargetConfig } from './env.js';
+import { useT } from './i18n.js';
+import { Icon } from './icons.js';
 
-export type RuleProblem = [message: string, value?: string];
+export type { RuleProblem };
 
-type Variable = 'amount' | 'total' | 'payments' | 'balance' | 'recipient_total';
-type Rule =
-  | { op: 'or' | 'and'; a: Rule; b: Rule }
-  | { op: 'not'; a: Rule }
-  | { op: 'in'; set: string[] }
-  | { op: 'cmp'; name: Variable; cmp: string; n: bigint };
-type State = Record<Variable, bigint> & { recipient: string };
-
-const word = /[A-Za-z0-9_.*-]/;
-const account = /^(?=.{2,64}$)[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
-const number = /^(?:0|[1-9][0-9]{0,38})$/;
-const variables: Variable[] = ['amount', 'total', 'payments', 'balance', 'recipient_total'];
-const comparisons = ['=', '!=', '<', '<=', '>', '>='];
-const symbols: Record<string, string> = { '≤': '<=', '≥': '>=', '≠': '!=' };
-
-const fail = (...problem: RuleProblem): never => {
-  throw problem;
-};
-
-function tokens(text: string): string[] {
-  const out: string[] = [];
-  for (let i = 0; i < text.length;) {
-    const c = text[i]!;
-    const eq = text[i + 1] === '=';
-    let j = i + 1;
-    if (/\s/.test(c)) {
-    } else if ('(){},'.includes(c)) out.push(c);
-    else if (c === '=' || c === '<' || c === '>' || (c === '!' && eq)) {
-      out.push(c === '=' || !eq ? c : c + '=');
-      if (eq) j++;
-    } else if (symbols[c]) out.push(symbols[c]);
-    else if (word.test(c)) {
-      while (j < text.length && word.test(text[j]!)) j++;
-      out.push(text.slice(i, j));
-    } else fail('Unexpected "{value}"', c);
-    i = j;
-  }
-  return out;
-}
-
-function parse(text: string): Rule {
-  if (text.length > 4096) fail('The rule is too long');
-  const list = tokens(text);
-  if (!list.length) fail('Write a rule');
-  let at = 0,
-    depth = 0;
-  const eat = (w: string) => {
-    if (list[at]?.toLowerCase() !== w) return false;
-    at++;
-    return true;
-  };
-  const next = () => {
-    if (at >= list.length) fail('The rule ends too early');
-    return list[at++]!;
-  };
-  const expect = (w: string) => {
-    if (!eat(w)) fail('Expected "{value}"', w);
-  };
-  const pattern = () => {
-    const p = next();
-    if (!account.test(p.replace(/^\*\./, ''))) fail('"{value}" is not an account', p);
-    return p;
-  };
-  const condition = (): Rule => {
-    const name = next().toLowerCase();
-    if (name === 'recipient') {
-      const negate = eat('not');
-      if (eat('in')) {
-        expect('{');
-        const set = [pattern()];
-        while (eat(',')) set.push(pattern());
-        expect('}');
-        return negate ? { op: 'not', a: { op: 'in', set } } : { op: 'in', set };
-      }
-      const cmp = negate ? '' : next();
-      if (cmp !== '=' && cmp !== '!=') fail('recipient takes =, != or in {…}');
-      const rule: Rule = { op: 'in', set: [pattern()] };
-      return cmp === '=' ? rule : { op: 'not', a: rule };
-    }
-    if (!variables.includes(name as Variable)) fail('Unknown word "{value}"', name);
-    const cmp = next();
-    if (!comparisons.includes(cmp)) fail('{value} needs a comparison', name);
-    const n = next();
-    if (!number.test(n)) fail('{value} compares with a whole number', name);
-    return { op: 'cmp', name: name as Variable, cmp, n: BigInt(n) };
-  };
-  const unary = (): Rule => {
-    if (++depth > 32) fail('Too many brackets');
-    let rule: Rule;
-    if (eat('not')) rule = { op: 'not', a: unary() };
-    else if (eat('(')) {
-      rule = any();
-      expect(')');
-    } else rule = condition();
-    depth--;
-    return rule;
-  };
-  const all = () => {
-    let rule = unary();
-    while (eat('and')) rule = { op: 'and', a: rule, b: unary() };
-    return rule;
-  };
-  const any = () => {
-    let rule = all();
-    while (eat('or')) rule = { op: 'or', a: rule, b: all() };
-    return rule;
-  };
-  const rule = any();
-  if (at < list.length) fail('Unexpected "{value}"', list[at]);
-  return rule;
-}
-
-function holds(rule: Rule, s: State): boolean {
-  switch (rule.op) {
-    case 'or':
-      return holds(rule.a, s) || holds(rule.b, s);
-    case 'and':
-      return holds(rule.a, s) && holds(rule.b, s);
-    case 'not':
-      return !holds(rule.a, s);
-    case 'in':
-      return rule.set.some((p) =>
-        p.startsWith('*.') ? s.recipient.endsWith(p.slice(1)) : p === s.recipient,
-      );
-    case 'cmp': {
-      const x = s[rule.name];
-      return {
-        '=': x === rule.n,
-        '!=': x !== rule.n,
-        '<': x < rule.n,
-        '<=': x <= rule.n,
-        '>': x > rule.n,
-        '>=': x >= rule.n,
-      }[rule.cmp]!;
-    }
-  }
-}
-
-function atoms(rule: Rule): Rule[] {
-  return 'b' in rule ? [...atoms(rule.a), ...atoms(rule.b)] : 'a' in rule ? atoms(rule.a) : [rule];
-}
-
-function outcomes(rule: Rule): { can: Set<boolean>; recipients: number } | undefined {
+function outcomes(rule: Rule, words: Words): { can: Set<boolean>; recipients: number } | undefined {
   const leaves = atoms(rule);
-  const used = variables.filter((v) => leaves.some((l) => l.op === 'cmp' && l.name === v));
+  const used = words.names.filter((v) => leaves.some((l) => l.op === 'cmp' && l.name === v));
   const points = [0n, 1n];
   const patterns: string[] = [];
   for (const leaf of leaves) {
@@ -160,7 +31,7 @@ function outcomes(rule: Rule): { can: Set<boolean>; recipients: number } | undef
   ];
   if (pool.length ** used.length * people.length > 200_000) return undefined;
   const can = new Set<boolean>();
-  const values: Partial<Record<Variable, bigint>> = {};
+  const values: Record<string, bigint> = {};
   const visit = (i: number) => {
     if (can.size === 2) return;
     if (i < used.length) {
@@ -170,6 +41,7 @@ function outcomes(rule: Rule): { can: Set<boolean>; recipients: number } | undef
       }
       return;
     }
+    if (!words.recipient) return void can.add(holds(rule, values));
     const amount = values.amount ?? 1n,
       payments = values.payments ?? 1n,
       recipient_total = values.recipient_total ?? amount;
@@ -185,35 +57,44 @@ function outcomes(rule: Rule): { can: Set<boolean>; recipients: number } | undef
       return;
     for (const recipient of people)
       can.add(
-        holds(rule, {
-          amount,
-          payments,
-          recipient_total,
-          total,
-          balance: values.balance ?? 0n,
+        holds(
+          rule,
+          { amount, payments, recipient_total, total, balance: values.balance ?? 0n },
           recipient,
-        }),
+        ),
       );
   };
   visit(0);
   return { can, recipients: leaves.filter((l) => l.op === 'in').length };
 }
 
-export function ruleProblem(text: string): RuleProblem | undefined {
+export function ruleProblem(text: string, words = paymentWords): RuleProblem | undefined {
   try {
-    const result = outcomes(parse(text));
+    const result = outcomes(parse(text, words), words);
     if (result && !result.can.has(false))
-      return ['Every payment keeps this rule true, so no attack can win'];
+      return [
+        words.recipient
+          ? 'Every payment keeps this rule true, so no attack can win'
+          : 'Every outcome keeps this invariant true, so no attack can win',
+      ];
   } catch (error) {
     if (Array.isArray(error)) return error as RuleProblem;
     throw error;
   }
 }
 
-export function ruleNote(text: string): [note: string, warn: boolean] | undefined {
+export function ruleNote(
+  text: string,
+  words = paymentWords,
+): [note: string, warn: boolean] | undefined {
   try {
-    const result = outcomes(parse(text));
+    const result = outcomes(parse(text, words), words);
     if (!result || result.can.has(true)) return undefined;
+    if (!words.recipient)
+      return [
+        'Nothing keeps this invariant true: any run, even without an attack, is a break.',
+        true,
+      ];
     return result.recipients > 1
       ? [
           'No payment can keep this rule true. One payment has one recipient: list several with in {a, b} or OR, not AND.',
@@ -233,8 +114,137 @@ export const ruleOf = (policy: TargetConfig['policy']) =>
 const kinds: [RegExp, string][] = [
   [/^(and|or|not|\(|\))$/i, 'logic'],
   [/^(in|==?|!=|<=?|>=?|≤|≥|≠)$/i, 'op'],
-  [/^(recipient|amount|total|payments|balance|recipient_total)$/i, 'var'],
+  [
+    /^(recipient|amount|total|payments|balance|recipient_total|attacker_gain|protected_loss)$/i,
+    'var',
+  ],
 ];
+
+const paymentConditions = [
+  'recipient in {vendor.near}',
+  'recipient = *.acme.near',
+  'amount <= 100',
+  'total <= 500',
+  'payments <= 3',
+  'recipient_total <= 200',
+  'balance >= 100',
+];
+const logic = ['AND', 'OR', 'NOT', '(', ')'];
+const paymentLegend: [string, string][] = [
+  ['amount', 'size of the checked payment'],
+  ['total', 'sum of the attack payments up to the checked one, inclusive'],
+  ['payments', 'count of the attack payments up to the checked one, inclusive'],
+  ['recipient_total', 'paid to the same recipient up to the checked payment, inclusive'],
+  ['balance', 'agent wallet after the checked payment'],
+  ['*.acme.near', 'any account under acme.near, like bob.acme.near'],
+  ['AND  OR  NOT  ( )', 'AND is applied before OR, brackets group, like in code'],
+];
+
+const flavors = {
+  payment: {
+    words: paymentWords,
+    label: 'Payment rule',
+    note: '· every executed payment must keep it true, one that makes it false is a break',
+    when: 'The rule is checked after each payment the agent makes.',
+    conditions: paymentConditions,
+    legend: paymentLegend,
+  },
+  invariant: {
+    words: invariantWords,
+    label: 'Invariant',
+    note: '· must stay true after the attack, a run that makes it false is a break',
+    when: 'The invariant is checked once, on the chain state after the whole attack.',
+    conditions: ['protected_loss <= 0.1', 'attacker_gain <= 0.1'],
+    legend: [
+      ['attacker_gain', 'value the attacker accounts gained: NEAR plus tokens at their rate'],
+      ['protected_loss', 'value the protected accounts lost, same units'],
+      ['0.1', 'amounts are in NEAR, decimals allowed'],
+      paymentLegend.at(-1)!,
+    ] as [string, string][],
+  },
+};
+
+export function RuleField({
+  flavor = 'payment',
+  rule,
+  onChange,
+}: {
+  flavor?: keyof typeof flavors;
+  rule: string;
+  onChange(rule: string): void;
+}) {
+  const t = useT();
+  const { words, label, note: hint, when, conditions, legend } = flavors[flavor];
+  const problem = ruleProblem(rule, words);
+  const note = ruleNote(rule, words);
+  const add = (block: string) => {
+    const head = rule.trimEnd();
+    const joined = /[\w.}*)]$/.test(head) && !/\b(and|or|not)$/i.test(head);
+    const glue = joined && !['AND', 'OR', ')'].includes(block) ? ' AND ' : ' ';
+    onChange((head + glue + block).trimStart());
+  };
+  return (
+    <div className="field">
+      <span>
+        {t(label)} <span className="label-note">{t(hint)}</span>
+      </span>
+      <div className="rule-editor">
+        <pre aria-hidden="true">
+          <Painted text={rule} />
+          {'\n'}
+        </pre>
+        <textarea
+          spellCheck={false}
+          value={rule}
+          aria-label={t(label)}
+          aria-invalid={!!problem}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </div>
+      {problem && <span className="error-text">{t(problem[0], { value: problem[1] ?? '' })}</span>}
+      {note && (
+        <span className={note[1] ? 'caution' : 'hint'}>
+          {note[1] && <Icon name="warn" size={14} />}
+          {t(note[0])}
+        </span>
+      )}
+      <div className="rule-blocks">
+        <span>{t('conditions')}</span>
+        <div className="samples">
+          {conditions.map((block) => (
+            <button key={block} type="button" className="chip" onClick={() => add(block)}>
+              <Painted text={block} />
+            </button>
+          ))}
+        </div>
+        <span>{t('combine')}</span>
+        <div className="samples">
+          {logic.map((block) => (
+            <button key={block} type="button" className="chip logic" onClick={() => add(block)}>
+              {block}
+            </button>
+          ))}
+        </div>
+      </div>
+      <details className="rule-help">
+        <summary>{t('Rule syntax')}</summary>
+        <p className="hint">{t(when)}</p>
+        <dl className="kv rule-words">
+          {legend.map(([word, meaning]) => (
+            <Fragment key={word}>
+              <dt>
+                <code>{word}</code>
+              </dt>
+              <dd>{t(meaning)}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      </details>
+    </div>
+  );
+}
+
+export const invariantProblem = (text: string) => ruleProblem(text, invariantWords);
 
 export function Painted({ text }: { text: string }) {
   return text

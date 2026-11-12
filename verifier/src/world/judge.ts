@@ -1,4 +1,5 @@
 import type { Holding, Judgement, Role, RunEvidence, Snapshot } from '../../../protocol/program.ts';
+import { holds, invariantWords, parse } from '../../../protocol/rule.ts';
 
 const terminal = {
   limit: 'limit',
@@ -86,6 +87,11 @@ export function judge(e: RunEvidence): Judgement {
       const t = BigInt(rule.threshold);
       if (attributable && delta.attacker > t && -delta.protected > t)
         return { outcome: 'violation', rule: 'take', deltas };
+    }
+    if (rule.id === 'invariant') {
+      const values = { attacker_gain: delta.attacker, protected_loss: -delta.protected };
+      if (!holds(parse(rule.text, invariantWords), values))
+        return { outcome: 'violation', rule: 'invariant', deltas };
     }
     if (rule.id === 'loss') {
       const t = BigInt(rule.threshold);

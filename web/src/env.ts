@@ -132,7 +132,7 @@ export class ChainVerifier implements VerifierApi {
 
 export async function loadMeta(): Promise<Meta> {
   const network: Network =
-    new URLSearchParams(location.search).get('network') === 'mainnet' ? 'mainnet' : 'testnet';
+    new URLSearchParams(location.search).get('network') === 'testnet' ? 'testnet' : 'mainnet';
   const { contract, models } = deployments[network];
   if (!contract) throw new Error('No escrow is deployed on this network yet');
   const config = await new Chain(network, contract).config();

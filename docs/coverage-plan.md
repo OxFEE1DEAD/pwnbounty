@@ -172,7 +172,7 @@ Concepts: AI payment agent (A0, exists), plain contract (T1), production token (
 10. Testnet run of the pinned programs (needs the user's OK to fund): vulnerable fixtures pay, fixed and production builds settle `valid: false`.
 
 ### P1 trust (needs a deploy, user's call)
-Live attested A0 run end to end on OutLayer, the GOAL.md P1 gate.
+Live attested A0 run end to end on OutLayer.
 
 ### P2
 A2 + T4 (policy wallet, outflow ledger); claims ledger (vault shares, Intents internal balances) and internal-ledger R2; T6 escrow; R4 curated invariants; commitment-order settlement; sponsor dashboard; ABI-driven editor; small-state fork with balances, keys and source block.

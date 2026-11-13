@@ -41,7 +41,7 @@ Hack with free test NEAR (any NEAR wallet on testnet, NEAR from https://near-fau
 
 | What | Value |
 |---|---|
-| Track | AI Security & Defense (`security`); also fits Privacy & Private AI (`privacy`) |
+| Tracks | AI Security & Defense (`security`), Privacy & Private AI (`privacy`) |
 | Built | all code in the hackathon window: first commit 2026-10-27, after the 2026-10-19 announcement; no earlier project, no other chain |
 | Hints used | TEE ATTESTATION: every verdict is an OutLayer Intel TDX run, and the runner checks the NEAR AI model attestation before inference. AGENT SECURITY: spending rules are a small policy language checked after every executed payment. FUNCTION CALL KEYS: the contract test corpus attacks an agent wallet with a full access key and with a scoped function call key. PRIVATE AI, NEAR AI CLOUD: the agent runs on TEE-attested NEAR AI Cloud models over an encrypted channel; attacks and reports stay encrypted |
 | NEAR stack | own escrow contract on mainnet and testnet, [OutLayer](https://outlayer.ai/) (TEE execution, secrets, attestations), [NEAR AI Cloud](https://cloud.near.ai) (private models), [NEAR Connect](https://docs.near.org/tools/near-connect) (wallets), FastNEAR RPC |

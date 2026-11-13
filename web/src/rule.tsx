@@ -215,26 +215,26 @@ export function RuleField({
           {t(note[0])}
         </span>
       )}
-      <div className="rule-blocks">
-        <span>{t('conditions')}</span>
-        <div className="samples">
-          {conditions.map((block) => (
-            <button key={block} type="button" className="chip" onClick={() => add(block)}>
-              <Painted text={block} />
-            </button>
-          ))}
-        </div>
-        <span>{t('combine')}</span>
-        <div className="samples">
-          {logic.map((block) => (
-            <button key={block} type="button" className="chip logic" onClick={() => add(block)}>
-              {block}
-            </button>
-          ))}
-        </div>
-      </div>
       <details className="rule-help">
-        <summary>{t('Rule syntax')}</summary>
+        <summary>{t('Build the rule from blocks')}</summary>
+        <div className="rule-blocks">
+          <span>{t('conditions')}</span>
+          <div className="samples">
+            {conditions.map((block) => (
+              <button key={block} type="button" className="chip" onClick={() => add(block)}>
+                <Painted text={block} />
+              </button>
+            ))}
+          </div>
+          <span>{t('combine')}</span>
+          <div className="samples">
+            {logic.map((block) => (
+              <button key={block} type="button" className="chip logic" onClick={() => add(block)}>
+                {block}
+              </button>
+            ))}
+          </div>
+        </div>
         <p className="hint">{t(when)}</p>
         <dl className="kv rule-words">
           {legend.map(([word, meaning]) => (

@@ -72,7 +72,7 @@ type Kind = 'agent' | 'world';
 
 function NotSet() {
   const t = useT();
-  return <span className="error-text">{t('not set')}</span>;
+  return <span className="muted">{t('not set')}</span>;
 }
 
 type AgentDraft = {
@@ -97,7 +97,7 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
   const [balance, setBalance] = useState(saved?.balance ?? '1000');
   const [model, setModel] = useState(saved?.model);
   const [reward, setReward] = useState(saved?.reward ?? '');
-  const [days, setDays] = useState(saved?.days ?? '');
+  const [days, setDays] = useState(saved?.days ?? '7');
   const [team, setTeam] = useState<string>();
   const [kept, setKept] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -247,38 +247,43 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
         </span>
       </label>
       <RuleField rule={rule} onChange={setRule} />
-      <label className="field">
-        {t('Agent wallet at the start, test NEAR')}
-        <input value={balance} inputMode="numeric" onChange={(e) => setBalance(e.target.value)} />
-        <span className="hint">
-          {t(
-            'The agent wallet is a test ledger inside the TEE run, in whole numbers. The reward for a break is paid in real NEAR.',
-          )}
-        </span>
-      </label>
-      <div className="field">
-        {t('Model')}
-        <div className="samples">
-          {models.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className={'chip' + (name === chosen ? ' current' : '')}
-              onClick={() => setModel(name)}
-            >
-              {name}
-            </button>
-          ))}
+      <details className="raw">
+        <summary>
+          {t('Model and test wallet · {model}, {n} test NEAR', { model: chosen, n: balance })}
+        </summary>
+        <label className="field">
+          {t('Agent wallet at the start, test NEAR')}
+          <input value={balance} inputMode="numeric" onChange={(e) => setBalance(e.target.value)} />
+          <span className="hint">
+            {t(
+              'The agent wallet is a test ledger inside the TEE run, in whole numbers. The reward for a break is paid in real NEAR.',
+            )}
+          </span>
+        </label>
+        <div className="field">
+          {t('Model')}
+          <div className="samples">
+            {models.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className={'chip' + (name === chosen ? ' current' : '')}
+                onClick={() => setModel(name)}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+          <span className="hint">
+            {t(
+              'Private NEAR AI Cloud models with tool calls. Each runs in a TEE; the runner checks its attestation first.',
+            )}{' '}
+            <a href="https://cloud.near.ai/models" target="_blank" rel="noopener noreferrer">
+              cloud.near.ai/models ↗
+            </a>
+          </span>
         </div>
-        <span className="hint">
-          {t(
-            'Private NEAR AI Cloud models with tool calls. Each runs in a TEE; the runner checks its attestation first.',
-          )}{' '}
-          <a href="https://cloud.near.ai/models" target="_blank" rel="noopener noreferrer">
-            cloud.near.ai/models ↗
-          </a>
-        </span>
-      </div>
+      </details>
     </section>,
     <>
       <section className="card">

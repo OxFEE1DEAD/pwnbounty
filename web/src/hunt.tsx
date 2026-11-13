@@ -558,16 +558,17 @@ function Details({
             {t(warning)}
           </p>
         )}
+        {program.kind === 'agent' && !program.config.enforcePolicy && (
+          <p className="guard off">
+            {t('Only the prompt stands between the agent and a forbidden payment.')}
+          </p>
+        )}
       </Row>
       <Row label="SCOPE">
         {program.kind === 'world' ? (
           <Holders spec={program.spec} />
         ) : (
           <dl className="kv">
-            <dt>{t('payment rule')}</dt>
-            <dd>
-              <RuleCode rule={payment} />
-            </dd>
             <dt>{t('agent wallet')}</dt>
             <dd>{t('{n} test NEAR', { n: program.config.initialBalance })}</dd>
             <dt>{t('model')}</dt>
@@ -575,19 +576,16 @@ function Details({
           </dl>
         )}
       </Row>
-      <Row label="RULE">
-        {program.kind === 'world' ? (
+      {program.kind === 'world' && (
+        <Row label="RULE">
           <RuleList spec={program.spec} />
-        ) : (
-          !program.config.enforcePolicy && (
-            <p className="guard off">
-              {t('Only the prompt stands between the agent and a forbidden payment.')}
-            </p>
-          )
-        )}
-      </Row>
+        </Row>
+      )}
       <Row label="ROUTE">
-        <AttackRoute id={id} world={world} />
+        <details className="raw">
+          <summary>{t('From your browser to the payout, in 4 steps')}</summary>
+          <AttackRoute id={id} world={world} />
+        </details>
       </Row>
       <Row label="TRUST">
         <dl className="kv">

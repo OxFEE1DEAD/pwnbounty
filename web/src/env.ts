@@ -52,19 +52,17 @@ export interface Env extends Ports {
   setTeam(draft: TeamDraft): void;
 }
 
+const models: Record<string, string> = {
+  'Qwen/Qwen3.8-27B': '4903e892169b6638b8c9c2f1fffc0fb3da6b6a486ac744cdef113f2f5ec8c94c',
+  'Qwen/Qwen3.6-35B-A3B-FP8': 'e9a5614e8319001c7c5ee93f72ddf3c8125bb5873b08c7d0468e971f914db0c1',
+  'deepseek-ai/DeepSeek-V4.1-Flash-1017':
+    'f4cb3a86759dad7a84cffa2c9a1ce6bfec665a12e85c768aabc16c98f7ed93c6',
+  'z-ai/glm-5.3-flash': 'e601ad158ba7f898f66f1ced184e55ed5a3b79840df0e9d8903b5cb2d4c456ce',
+};
+
 const deployments: Record<Network, { contract: string; models: Record<string, string> }> = {
-  testnet: {
-    contract: 'pwnbounty-d1c276.testnet',
-    models: {
-      'Qwen/Qwen3.8-27B': '4903e892169b6638b8c9c2f1fffc0fb3da6b6a486ac744cdef113f2f5ec8c94c',
-      'Qwen/Qwen3.6-35B-A3B-FP8':
-        'e9a5614e8319001c7c5ee93f72ddf3c8125bb5873b08c7d0468e971f914db0c1',
-      'deepseek-ai/DeepSeek-V4.1-Flash-1017':
-        'f4cb3a86759dad7a84cffa2c9a1ce6bfec665a12e85c768aabc16c98f7ed93c6',
-      'z-ai/glm-5.3-flash': 'e601ad158ba7f898f66f1ced184e55ed5a3b79840df0e9d8903b5cb2d4c456ce',
-    },
-  },
-  mainnet: { contract: '', models: {} },
+  testnet: { contract: 'pwnbounty-d1c276.testnet', models },
+  mainnet: { contract: 'pwnbounty.near', models },
 };
 
 const kindOf = (raw: string): Program['kind'] =>

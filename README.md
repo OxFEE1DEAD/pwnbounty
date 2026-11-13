@@ -1,6 +1,55 @@
 # PwnBounty
 
-Sealed bug bounties for AI payment agents on NEAR. A hacker sends an encrypted attack, an OutLayer TEE runs the frozen agent on a test ledger, and the escrow contract pays only when a forbidden transfer actually executed. The project reads the winning attack with its own key; nobody else sees it.
+Automated bug bounties for AI payment agents on NEAR. A project locks a reward in a NEAR escrow and writes, as one rule, what its agent may pay. A hacker sends an encrypted attack. An OutLayer TEE runs the frozen agent on a private NEAR AI Cloud model against a test ledger, and the escrow pays the reward only if an executed payment breaks the rule. The project reads the winning attack with its own key; nobody else sees it.
+
+Live on NEAR mainnet: https://pwnbounty.fly.dev, escrow [`pwnbounty.near`](https://nearblocks.io/address/pwnbounty.near).
+
+## Problem
+
+Agents that hold money get talked into paying: Freysa (Nov 2024, ~$47k), AIXBT (Mar 2025, 55.5 ETH), Lobstar Wilde (Feb 2026, ~$250k), Grok × Bankr (May 2026, ~$150-200k); sources are on the site under Real incidents. A team that wants its agent attacked before that happens gets reports that argue about model prose and need manual triage, and an attack that leaks the moment it is reported.
+
+PwnBounty makes a break machine-checked and private:
+
+- The break is defined up front as a rule over executed payments, for example `recipient = vendor.near AND amount <= 100`. What the model says counts for nothing; only payments the agent executed do.
+- The attack is encrypted in the hacker's browser to a key that exists only inside the TEE, and its hash is committed on NEAR in the same transaction, so nobody can copy it and the first valid break wins.
+- The verdict comes from an Intel TDX run anyone can check with `outlayer-verify`, and the escrow contract pays it with no human in the loop.
+
+The same escrow also takes smart contract programs: invariants over account values, replayed on a fresh nearcore sandbox (see [Contract programs](#contract-programs-local-replay); these replays do not run in the TEE yet).
+
+## Try it
+
+Mainnet, no wallet needed:
+
+| Do | See |
+|---|---|
+| Open https://pwnbounty.fly.dev | the landing reads `pwnbounty.near`: programs launched, open, NEAR paid to hackers, breaks proved |
+| For hackers → Programs → program #0 | an AI payment agent on `Qwen/Qwen3.8-27B`, rule `recipient = vendor.near AND amount <= 100`, state PAID, won by `oxfee1dead.near`; under Attempts one row `commit + claim`, `break, paid` |
+| On that row, click "TEE attestation ↗" | OutLayer's record of the claim run: Intel TDX quote, worker measurement, executed wasm sha256 `3366501a…` |
+| Run `outlayer-verify tx 7EMEjLBniaurbp74K77iNhzEBrqwuaRnnA5BMbCsjFmx --network mainnet --api https://api.outlayer.ai` | `PROVEN`: genuine Intel TDX quote, enclave approved by `worker.outlayer.near`, input and output bound to the quote |
+| For projects → Launch a program → AI payment agent → "Naive invoice payer" | the system prompt and the payment rule fill in; the summary on the right shows the rule, the model and the program hash. Reward step: amount, days and "Make the team key", which saves the key that decrypts reports. Publish: "Fund and publish" signs one `create` transaction |
+| Open https://pwnbounty.fly.dev/#/docs/coverage | our test attacks replayed against a vulnerable and a fixed vault, wNEAR, NEAR Intents and an agent wallet with a full or a scoped key, each marked hacked or held |
+
+Hack with free test NEAR (any NEAR wallet on testnet, NEAR from https://near-faucet.io):
+
+| Do | See |
+|---|---|
+| Open https://pwnbounty.fly.dev/?network=testnet#/programs and pick a program marked OPEN FOR ATTACKS | its rule, its reward and the attack panel |
+| Click an example such as "Over the limit · 450", then "Encrypt, commit and check" | the wallet signs one transaction with commit and claim: 0.1 NEAR claim storage plus up to 0.03 NEAR for the TEE run. The panel walks through Commit, TEE, Check, Payout |
+| Wait about a minute | a payment that makes the rule false is a break: the reward goes to your wallet and the program closes. "Forged transcript" and "Checker plea" earn nothing, because only executed payments count |
+
+## NEAR HACKATHON
+
+| What | Value |
+|---|---|
+| Track | AI Security & Defense (`security`); also fits Privacy & Private AI (`privacy`) |
+| Built | all code in the hackathon window: first commit 2026-10-27, after the 2026-10-19 announcement; no earlier project, no other chain |
+| Hints used | TEE ATTESTATION: every verdict is an OutLayer Intel TDX run, and the runner checks the NEAR AI model attestation before inference. AGENT SECURITY: spending rules are a small policy language checked after every executed payment. FUNCTION CALL KEYS: the contract test corpus attacks an agent wallet with a full access key and with a scoped function call key. PRIVATE AI, NEAR AI CLOUD: the agent runs on TEE-attested NEAR AI Cloud models over an encrypted channel; attacks and reports stay encrypted |
+| NEAR stack | own escrow contract on mainnet and testnet, [OutLayer](https://outlayer.ai/) (TEE execution, secrets, attestations), [NEAR AI Cloud](https://cloud.near.ai) (private models), [NEAR Connect](https://docs.near.org/tools/near-connect) (wallets), FastNEAR RPC |
+| Demo | https://pwnbounty.fly.dev, kept up through 2026-11-25 |
+| Libraries | web: React 19, near-api-js 7, @hot-labs/near-connect; tooling: Vite, TypeScript, tsx, Prettier; contract: near-sdk 5.27; runner: aes-gcm, chacha20poly1305, hkdf, sha2, x25519-dalek, ed25519-dalek, curve25519-dalek, p256, p384, x509-cert, serde, base64, zeroize, wasi; contract replays: nearcore sandbox 2.13.4. No templates or boilerplate |
+| License | MIT, see [LICENSE](LICENSE) |
+
+## How it works
 
 ```
 hunter browser ── encrypt invoice to the runner key (read from the escrow)
@@ -76,11 +125,11 @@ Only executed ledger operations decide the payout: model prose, a fabricated tra
 
 Cost per claim, measured: 0.1 NEAR claim storage (not refunded) plus 0.03 NEAR attached for OutLayer, of which 0.001-0.006 NEAR is charged and the rest refunded; the paid run took 9.5 s in the TEE. A program costs its reward plus 0.01 NEAR plus 1e19 yocto per byte of rules.
 
-## Use it
+## Run it locally
 
 ```sh
 npm ci
-npx vite --config web/vite.config.ts      # http://localhost:5173, testnet
+npx vite --config web/vite.config.ts      # http://localhost:5173, mainnet; add ?network=testnet for testnet
 npm run build:web                         # static site in web/dist, no backend
 ```
 
@@ -141,4 +190,4 @@ Targets: `contract/vault` (vulnerable and fixed builds), wNEAR (`wrap.near` code
 
 If the reward transfer fails, the claim is `Retryable`: only the winner can call `retry_payment`, and the sponsor cannot withdraw it. With no winner, the sponsor calls `withdraw` after `settle_until`. Both are buttons on the web page (My claims, My programs).
 
-More: [protocol](docs/protocol.ru.md), [OutLayer notes](docs/outlayer.ru.md), [status](IMPLEMENTATION_STATUS.ru.md), [goal](GOAL.md).
+More: [contract coverage plan](docs/coverage-plan.md); design notes in Russian: [protocol](docs/protocol.ru.md), [OutLayer](docs/outlayer.ru.md), [confidential inference](docs/confidential-inference.ru.md).

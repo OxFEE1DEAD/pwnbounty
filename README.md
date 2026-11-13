@@ -6,8 +6,8 @@ Sealed bug bounties for AI payment agents on NEAR. A hacker sends an encrypted a
 hunter browser ── encrypt invoice to the runner key (read from the escrow)
   │ commit(report_hash) + claim(ciphertext)        one transaction, two actions
   ▼
-escrow pwnbounty-d1c276.testnet ── request_execution ──▶ outlayer.testnet
-  │                                                    project oxfee1dead.testnet/pwnbounty
+escrow pwnbounty.near ─────────── request_execution ──▶ outlayer.near
+  │                                                    project oxfee1dead.near/pwnbounty
   │                                                    wasm sha256 3366501a…19f9b9ca
   │                                                    ├ decrypt the invoice inside the TEE
   │                                                    ├ check the NEAR AI model attestation
@@ -18,12 +18,14 @@ escrow pwnbounty-d1c276.testnet ── request_execution ──▶ outlayer.test
   └ invalid → reward stays, claim storage is spent
 ```
 
-## Live on testnet
+## Live on mainnet
 
 | What | Value |
 |---|---|
-| Escrow | [`pwnbounty-d1c276.testnet`](https://testnet.nearblocks.io/address/pwnbounty-d1c276.testnet), code hash `HHsmWFGZ…HUCHFvz` = local `contract` build after `wasm-opt`; older evidence rows ran on earlier escrows of the same code |
-| Runner | OutLayer project `oxfee1dead.testnet/pwnbounty`, wasm sha256 `3366501a0bee320397049cb582e22cee27eb294acda9f8f5610719d121f9b9ca` = local `tee-runner` release build |
+| Site | [pwnbounty.fly.dev](https://pwnbounty.fly.dev), mainnet by default; testnet with `?network=testnet` |
+| Escrow | [`pwnbounty.near`](https://nearblocks.io/address/pwnbounty.near), code hash `HHsmWFGZ…HUCHFvz` = local `contract` build after `wasm-opt` |
+| Runner | OutLayer project `oxfee1dead.near/pwnbounty`, wasm sha256 `3366501a0bee320397049cb582e22cee27eb294acda9f8f5610719d121f9b9ca` = local `tee-runner` release build |
+| Testnet | escrow [`pwnbounty-d1c276.testnet`](https://testnet.nearblocks.io/address/pwnbounty-d1c276.testnet) with the same code hash, project `oxfee1dead.testnet/pwnbounty` with the same runner build; older testnet evidence rows ran on earlier escrows of the same code |
 | Models | every private [NEAR AI Cloud](https://cloud.near.ai/models) model with tool calls: `Qwen/Qwen3.8-27B` (`4903e892…`), `Qwen/Qwen3.6-35B-A3B-FP8` (`e9a5614e…`), `deepseek-ai/DeepSeek-V4.1-Flash-1017` (`f4cb3a86…`), `z-ai/glm-5.3-flash` (`e601ad15…`). Each program pins one policy hash; the pins live in `fixtures/model-policy/` |
 | Secrets | NEAR AI key, the runner's own hash and the model policies in OutLayer secrets, readable only by this build and only through the escrow |
 
@@ -45,6 +47,15 @@ The project writes what the agent may pay as one rule. The TEE checks it after e
 | `AND`, `OR`, `NOT`, `( )` | `AND` binds before `OR`, as in code |
 
 Numbers are whole test NEAR. `payments = 0` means "pay nobody". The launch form tries every case that matters: a rule no payment can satisfy gets a warning (two recipients joined with `AND` is the usual slip), and a rule no payment can break cannot be published.
+
+## Evidence (mainnet, 13.11.2026)
+
+Both runs pass `outlayer-verify tx <hash> --network mainnet --api https://api.outlayer.ai` (`PROVEN`: genuine Intel TDX quote, enclave approved by `worker.outlayer.near`, input and output bound to the quote).
+
+| Do | See |
+|---|---|
+| Provision the escrow: the runner makes the verifier keys inside the TEE | OutLayer task 1375002, tx [`75ngb8GD…`](https://nearblocks.io/txns/75ngb8GDN9rzfSWCapgx7ngk52wQmC2sF9FHrFSjegNt) |
+| Program #0, AI payment agent on `Qwen/Qwen3.8-27B`, rule `recipient = vendor.near AND amount <= 100`, reward 1 NEAR; commit and claim in one transaction from the web page with a browser wallet | `valid=true`, 1 NEAR paid to `oxfee1dead.near`, program state `Paid`. OutLayer task 1375215, claim [`7EMEjLBn…`](https://nearblocks.io/txns/7EMEjLBniaurbp74K77iNhzEBrqwuaRnnA5BMbCsjFmx) |
 
 ## Evidence (testnet, 05.11.2026)
 
@@ -109,7 +120,7 @@ The release builds give the hashes in the table above on the build machine; a bu
 - The escrow pins the runner build and the OutLayer project version; a claim cannot pick another code or model.
 - The runner checks the NEAR AI attestation (Intel TDX quote, NVIDIA NRAS) against the model policy hash frozen in the program before any inference. NEAR AI serves one model key from several builds at once; the runner retries until an instance matches the pin, but the gateway may route the encrypted call to another instance holding the same key.
 - The verdict on chain carries hashes only; the disclosure is encrypted to the team key and stored by the escrow.
-- Not covered: mainnet, signing in a real wallet popup (the web tests used an injected test wallet), contract programs (below) in the TEE.
+- Not covered: contract programs (below) in the TEE.
 
 ## Contract programs: local replay
 

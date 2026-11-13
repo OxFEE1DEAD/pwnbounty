@@ -1703,10 +1703,10 @@ export function WorldLaunch({ draft, onSave }: DraftProps) {
         )}
       </p>
       <div className="instead">
-        <div className="kicker">{t('ON TESTNET, INSTEAD')}</div>
+        <div className="kicker">{t('FOR NOW, INSTEAD')}</div>
         <p>
           {t(
-            'Contract replays do not run in the TEE on testnet yet. The verifier operator publishes your program:',
+            'Contract replays do not run in the TEE yet. The verifier operator publishes your program:',
           )}
         </p>
         <ol>

@@ -526,12 +526,14 @@ function Details({
   id,
   program,
   attempts,
+  closed,
 }: {
   id: string;
   program: Program;
   attempts?: Attempt[];
+  closed: boolean;
 }) {
-  const { chain, meta } = useEnv(),
+  const { chain } = useEnv(),
     t = useT();
   const { bounty } = program;
   const world = program.kind === 'world';
@@ -581,12 +583,14 @@ function Details({
           <RuleList spec={program.spec} />
         </Row>
       )}
-      <Row label="ROUTE">
-        <details className="raw">
-          <summary>{t('From your browser to the payout, in 4 steps')}</summary>
-          <AttackRoute id={id} world={world} />
-        </details>
-      </Row>
+      {!closed && (
+        <Row label="ROUTE">
+          <details className="raw">
+            <summary>{t('From your browser to the payout, in 4 steps')}</summary>
+            <AttackRoute id={id} world={world} />
+          </details>
+        </Row>
+      )}
       <Row label="TRUST">
         <dl className="kv">
           <dt>{t('escrow')}</dt>
@@ -610,21 +614,33 @@ function Details({
           {t('How to check a verdict →')}
         </a>
       </Row>
-      <Row label="ATTEMPTS">
-        <p className="muted">
-          {attempts
-            ? t('Transactions: {n} · hunters: {k}.', {
-                n: String(attempts.length),
-                k: String(new Set(attempts.map((row) => row.hunter)).size),
-              })
-            : t('Loading chain data…')}{' '}
-          <a href={chain.accountUrl(meta.contract)} target="_blank" rel="noopener noreferrer">
-            {t('All escrow transactions ↗')}
-          </a>
-        </p>
-        {attempts && attempts.length > 0 && <Attempts rows={attempts} />}
-      </Row>
+      {!closed && (
+        <Row label="ATTEMPTS">
+          <AllAttempts rows={attempts} />
+        </Row>
+      )}
     </div>
+  );
+}
+
+function AllAttempts({ rows }: { rows?: Attempt[] }) {
+  const { chain, meta } = useEnv(),
+    t = useT();
+  return (
+    <>
+      <p className="muted">
+        {rows
+          ? t('Transactions: {n} · hunters: {k}.', {
+              n: String(rows.length),
+              k: String(new Set(rows.map((row) => row.hunter)).size),
+            })
+          : t('Loading chain data…')}{' '}
+        <a href={chain.accountUrl(meta.contract)} target="_blank" rel="noopener noreferrer">
+          {t('All escrow transactions ↗')}
+        </a>
+      </p>
+      {rows && rows.length > 0 && <Attempts rows={rows} />}
+    </>
   );
 }
 
@@ -1022,15 +1038,48 @@ function attemptOf(tx: FullTx, contract: string, bounty: string): Attempt | unde
 const attestation = (network: string, tx: string) =>
   `https://${network === 'testnet' ? 'testnet-' : ''}api.outlayer.ai/attestations/by-tx/${tx}`;
 
+function TeeLinks({ tx }: { tx: string }) {
+  const { meta } = useEnv(),
+    t = useT();
+  const job = useAsync(
+    () =>
+      fetch(attestation(meta.network, tx))
+        .then((response) => (response.ok ? response.json() : undefined))
+        .then((record?: { task_id?: number }) => record?.task_id),
+    [tx],
+  );
+  const json = attestation(meta.network, tx);
+  return (
+    <>
+      <a
+        href={
+          job.value
+            ? `https://app.outlayer.ai/attestation/${job.value}?network=${meta.network}`
+            : json
+        }
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {t('TEE attestation ↗')}
+      </a>
+      {job.value && (
+        <a href={json} target="_blank" rel="noopener noreferrer">
+          {t('JSON ↗')}
+        </a>
+      )}
+    </>
+  );
+}
+
 function Attempts({ rows, mine }: { rows: Attempt[]; mine?: string }) {
-  const { meta, chain, account } = useEnv(),
+  const { chain, account } = useEnv(),
     t = useT();
   const shown = mine ? rows.filter((row) => row.hunter === mine) : rows;
   if (!shown.length) return <p className="muted">{t('No attempts yet.')}</p>;
   return (
     <ul className="attempts">
       {shown.map((row) => (
-        <li key={row.hash}>
+        <li key={row.hash} className={row.tone === 'win' ? 'won' : undefined}>
           <div>
             <span className="muted">
               {new Date(row.time).toLocaleString([], {
@@ -1053,15 +1102,7 @@ function Attempts({ rows, mine }: { rows: Attempt[]; mine?: string }) {
             <a href={chain.txUrl(row.hash)} target="_blank" rel="noopener noreferrer">
               {t(row.method.endsWith('claim') && !row.detail ? 'verdict ↗' : 'tx ↗')}
             </a>
-            {row.tee && (
-              <a
-                href={attestation(meta.network, row.hash)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('TEE attestation ↗')}
-              </a>
-            )}
+            {row.tee && <TeeLinks tx={row.hash} />}
             {row.detail && <span>{row.detail}</span>}
           </div>
         </li>
@@ -1071,7 +1112,7 @@ function Attempts({ rows, mine }: { rows: Attempt[]; mine?: string }) {
 }
 
 function VerdictCard({ outcome, tx, rule, busy, onRetry, onRerun, onAgain }: VerdictProps) {
-  const { chain, meta } = useEnv(),
+  const { chain } = useEnv(),
     t = useT(),
     link = receipt(chain, tx);
   const vars = {
@@ -1090,11 +1131,7 @@ function VerdictCard({ outcome, tx, rule, busy, onRetry, onRerun, onAgain }: Ver
             {t('verdict ↗')}
           </a>
         )}
-        {link && (
-          <a href={attestation(meta.network, tx!)} target="_blank" rel="noopener noreferrer">
-            {t('TEE attestation ↗')}
-          </a>
-        )}
+        {link && <TeeLinks tx={tx!} />}
         {outcome.kind === 'failed' && onRerun && (
           <button type="button" className="button" disabled={busy} onClick={onRerun}>
             {t('Run the check again')}
@@ -1172,6 +1209,8 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
   const attackable =
     data?.standing === 'open' ||
     (report?.bounty === id && data?.entry.bounty.state === 'Available');
+  const winner = data?.entry.bounty.winner;
+  const win = attempts.value?.find((row) => row.tone === 'win' && row.hunter === winner);
   return (
     <div className="wrap">
       <a className="back program-back" href="#/programs">
@@ -1251,18 +1290,26 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
         <div className="program-grid">
           <div>
             {data.program ? (
-              <Details id={id} program={data.program} attempts={attempts.value} />
+              <Details
+                id={id}
+                program={data.program}
+                attempts={attempts.value}
+                closed={!attackable}
+              />
             ) : (
               <p className="muted">
                 {t('Rules could not be loaded: {problem}', { problem: t(data.problem ?? '') })}
               </p>
             )}
-            <TrustNotice />
+            {attackable && <TrustNotice />}
           </div>
-          <aside className="summary submit" aria-label={t('Submit an attack')}>
+          <aside
+            className="summary submit"
+            aria-label={t(attackable ? 'Submit an attack' : 'Result')}
+          >
             <div className="summary-head">
-              <span>{t('SUBMIT AN ATTACK')}</span>
-              <span>{attackable ? `${phase + 1}/4` : t('closed')}</span>
+              <span>{t(attackable ? 'SUBMIT AN ATTACK' : 'RESULT')}</span>
+              <span>{attackable ? `${phase + 1}/4` : t(standingLabels[data.standing])}</span>
             </div>
             {attackable ? (
               <>
@@ -1342,14 +1389,30 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                 </div>
               </>
             ) : (
-              <div className="summary-block">
-                <p>
-                  {data.entry.bounty.winner
-                    ? t('Closed: {account} won it.', { account: data.entry.bounty.winner })
-                    : t('This program is closed for new attacks.')}
-                </p>
-                {!report && <LoadReport busy={busy} load={flow.load} />}
-              </div>
+              <>
+                <div className="summary-block">
+                  <p>
+                    {winner
+                      ? t('Winner: {account} · {reward}', {
+                          account: winner,
+                          reward: near(data.entry.bounty.reward),
+                        })
+                      : t('Closed without a winner.')}
+                  </p>
+                  {win && (
+                    <p className="links">
+                      <a href={env.chain.txUrl(win.hash)} target="_blank" rel="noopener noreferrer">
+                        {t('verdict and payout ↗')}
+                      </a>
+                      <TeeLinks tx={win.hash} />
+                    </p>
+                  )}
+                  {!winner && !report && <LoadReport busy={busy} load={flow.load} />}
+                </div>
+                <div className="summary-block txs">
+                  <AllAttempts rows={attempts.value} />
+                </div>
+              </>
             )}
             {started && (
               <div className="summary-block">
@@ -1373,7 +1436,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                 )}
               </div>
             )}
-            {env.account && attempts.value && (
+            {attackable && env.account && attempts.value && (
               <details className="summary-block txs" open>
                 <summary>{t('Your attempts on this program')}</summary>
                 <Attempts rows={attempts.value} mine={env.account} />

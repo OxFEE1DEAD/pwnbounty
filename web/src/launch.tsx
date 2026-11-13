@@ -256,7 +256,7 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
           <input value={balance} inputMode="numeric" onChange={(e) => setBalance(e.target.value)} />
           <span className="hint">
             {t(
-              'The agent wallet is a test ledger inside the TEE run, in whole numbers. The reward for a break is paid in real NEAR.',
+              'The agent wallet is a test ledger inside the TEE run, in whole numbers. The reward for a break is paid on chain from the escrow.',
             )}
           </span>
         </label>
@@ -409,9 +409,11 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
             <code>{hash ? `${hash.slice(0, 8)}…${hash.slice(-4)}` : '…'}</code>
           </dd>
         </dl>
-        <p className="hint">
-          {problem ? t('Still needed: {what}', { what: t(problem) }) : t('Ready to publish.')}
-        </p>
+        {created === undefined && (
+          <p className="hint">
+            {problem ? t('Still needed: {what}', { what: t(problem) }) : t('Ready to publish.')}
+          </p>
+        )}
       </Summary>
     </>
   );

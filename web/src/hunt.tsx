@@ -624,8 +624,7 @@ function Details({
 }
 
 function AllAttempts({ rows }: { rows?: Attempt[] }) {
-  const { chain, meta } = useEnv(),
-    t = useT();
+  const t = useT();
   return (
     <>
       <p className="muted">
@@ -634,10 +633,7 @@ function AllAttempts({ rows }: { rows?: Attempt[] }) {
               n: String(rows.length),
               k: String(new Set(rows.map((row) => row.hunter)).size),
             })
-          : t('Loading chain data…')}{' '}
-        <a href={chain.accountUrl(meta.contract)} target="_blank" rel="noopener noreferrer">
-          {t('All escrow transactions ↗')}
-        </a>
+          : t('Loading chain data…')}
       </p>
       {rows && rows.length > 0 && <Attempts rows={rows} />}
     </>
@@ -1144,7 +1140,7 @@ function VerdictCard({ outcome, tx, rule, busy, onRetry, onRerun, onAgain }: Ver
         )}
         {(outcome.kind === 'no-reward' || outcome.kind === 'failed') && (
           <button type="button" className="link" onClick={onAgain}>
-            {t('Try another invoice')}
+            {t('Try another attack')}
           </button>
         )}
       </div>
@@ -1245,9 +1241,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
             <span className="muted">
               {data.standing === 'open'
                 ? t('closes in {time}', { time: timeLeft(data.entry, data.height) })
-                : data.entry.bounty.winner
-                  ? t('won by {account}', { account: data.entry.bounty.winner })
-                  : t('no winner')}
+                : !winner && t('no winner')}
             </span>
             <span className="program-actions">
               <button
@@ -1305,11 +1299,11 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
           </div>
           <aside
             className="summary submit"
-            aria-label={t(attackable ? 'Submit an attack' : 'Result')}
+            aria-label={t(attackable ? 'Submit an attack' : winner ? 'Winner' : 'Attempts')}
           >
             <div className="summary-head">
-              <span>{t(attackable ? 'SUBMIT AN ATTACK' : 'RESULT')}</span>
-              <span>{attackable ? `${phase + 1}/4` : t(standingLabels[data.standing])}</span>
+              <span>{t(attackable ? 'SUBMIT AN ATTACK' : winner ? 'WINNER' : 'ATTEMPTS')}</span>
+              {attackable && <span>{phase + 1}/4</span>}
             </div>
             {attackable ? (
               <>
@@ -1390,25 +1384,35 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
               </>
             ) : (
               <>
-                <div className="summary-block">
-                  <p>
-                    {winner
-                      ? t('Winner: {account} · {reward}', {
-                          account: winner,
-                          reward: near(data.entry.bounty.reward),
-                        })
-                      : t('Closed without a winner.')}
-                  </p>
-                  {win && (
-                    <p className="links">
-                      <a href={env.chain.txUrl(win.hash)} target="_blank" rel="noopener noreferrer">
-                        {t('verdict and payout ↗')}
-                      </a>
-                      <TeeLinks tx={win.hash} />
-                    </p>
-                  )}
-                  {!winner && !report && <LoadReport busy={busy} load={flow.load} />}
-                </div>
+                {winner && (
+                  <div className="summary-block">
+                    <a
+                      className="winner"
+                      href={env.chain.accountUrl(winner)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {winner} ↗
+                    </a>
+                    {win && (
+                      <p className="links">
+                        <a
+                          href={env.chain.txUrl(win.hash)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {t(data.standing === 'paid' ? 'verdict and payout ↗' : 'verdict ↗')}
+                        </a>
+                        <TeeLinks tx={win.hash} />
+                      </p>
+                    )}
+                  </div>
+                )}
+                {!winner && !report && (
+                  <div className="summary-block">
+                    <LoadReport busy={busy} load={flow.load} />
+                  </div>
+                )}
                 <div className="summary-block txs">
                   <AllAttempts rows={attempts.value} />
                 </div>
@@ -1436,7 +1440,7 @@ export function Hunt({ visible, program: id }: { visible: boolean; program?: str
                 )}
               </div>
             )}
-            {attackable && env.account && attempts.value && (
+            {attackable && attempts.value?.some((row) => row.hunter === env.account) && (
               <details className="summary-block txs" open>
                 <summary>{t('Your attempts on this program')}</summary>
                 <Attempts rows={attempts.value} mine={env.account} />

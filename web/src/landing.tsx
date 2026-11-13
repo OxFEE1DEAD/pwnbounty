@@ -527,12 +527,6 @@ export function Docs() {
             </code>
             <span>{t('{n} TEE models', { n: String(Object.keys(meta.models).length) })}</span>
           </div>
-          <div className="table-row muted">
-            <span>mainnet</span>
-            <span>{t('not deployed')}</span>
-            <span>-</span>
-            <span>-</span>
-          </div>
         </div>
         <p className="hint">
           {t('The escrow pins the runner build; every program pins the model policy hash.')}

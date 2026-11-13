@@ -186,7 +186,8 @@ function claimStatus(
   bounty: Bounty | undefined,
   hunter: string,
 ): string {
-  if (!commitment.settled) return 'Waiting for the verdict';
+  if (!commitment.settled)
+    return bounty?.state === 'Available' ? 'Waiting for the verdict' : 'Program closed';
   if (!commitment.verdict?.valid) return 'No break, no reward';
   if (bounty?.winner !== hunter) return 'Valid, but another hunter was first';
   return stateLabels[bounty.state] ?? bounty.state;

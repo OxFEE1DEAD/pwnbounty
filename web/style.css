@@ -810,5 +810,6 @@ summary { cursor: pointer; font-weight: 600; }
 .attempts .win { color: var(--hack); font-weight: 700; }
 .attempts li.won { padding-left: 10px; border-left: 2px solid var(--hack); }
 .summary-block .links { display: flex; flex-wrap: wrap; gap: 2px 12px; }
+.summary-block .winner { font-size: 16px; font-weight: 700; color: var(--hack); }
 .samples { align-items: baseline; }
 .ok-text { color: var(--ok); }

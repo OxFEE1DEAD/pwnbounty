@@ -1138,7 +1138,7 @@ export function WorldLaunch({ draft, onSave }: DraftProps) {
       };
   const setup = [
     '# ' + t('once: the CLI and a local NEAR chain (Node 22+)'),
-    `git clone ${repository} && cd sealed-bounty && npm ci`,
+    `git clone ${repository} && cd pwnbounty && npm ci`,
     `curl -L ${sandbox} | tar -xz`,
     'export NEAR_SANDBOX_BIN=$PWD/near-sandbox',
     '# ' + t('test run: a fresh chain, your code, one attack, a verdict'),

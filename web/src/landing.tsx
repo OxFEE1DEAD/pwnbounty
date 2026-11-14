@@ -5,7 +5,7 @@ import { useAsync, useEnv, type Meta } from './env.js';
 import { useT } from './i18n.js';
 import { Icon, type IconName } from './icons.js';
 
-export const repository = 'https://github.com/OxFEE1DEAD/sealed-bounty';
+export const repository = 'https://github.com/OxFEE1DEAD/pwnbounty';
 
 const lead = 'No triage. A machine replays the attack, the contract pays the verdict.';
 const notes = {

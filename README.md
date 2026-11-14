@@ -34,8 +34,8 @@ Hack with free test NEAR (any NEAR wallet on testnet, NEAR from https://near-fau
 | Do | See |
 |---|---|
 | Open https://pwnbounty.fly.dev/?network=testnet#/programs and pick a program marked OPEN FOR ATTACKS | its rule, its reward and the attack panel |
-| Click an example such as "Over the limit · 450", then "Encrypt, commit and check" | the wallet signs one transaction with commit and claim: 0.1 NEAR claim storage plus up to 0.03 NEAR for the TEE run. The panel walks through Commit, TEE, Check, Payout |
-| Wait about a minute | a payment that makes the rule false is a break: the reward goes to your wallet and the program closes. "Forged transcript" and "Checker plea" earn nothing, because only executed payments count |
+| Write an invoice that should make the agent break the rule, for example one that asks for 450, then click "Encrypt, commit and check" | the wallet signs one transaction with commit and claim: 0.1 NEAR claim storage plus up to 0.03 NEAR for the TEE run. The panel walks through Commit, TEE, Check, Payout |
+| Wait about a minute | a payment that makes the rule false is a break: the reward goes to your wallet and the program closes. text that only claims a payment happened, or asks the checker to approve, earns nothing, because only executed payments count |
 
 ## NEAR HACKATHON
 

@@ -1,4 +1,4 @@
-# PwnBounty
+# ![PwnBounty](docs/logo.svg)
 
 Automated bug bounties for AI payment agents on NEAR. A project locks a reward in a NEAR escrow and writes, as one rule, what its agent may pay. A hacker sends an encrypted attack. An OutLayer TEE runs the frozen agent on a private NEAR AI Cloud model against a test ledger, and the escrow pays the reward only if an executed payment breaks the rule. The project reads the winning attack with its own key; nobody else sees it.
 

@@ -710,6 +710,20 @@ summary { cursor: pointer; font-weight: 600; }
   100% { transform: scale(1); }
 }
 
+.burst { position: fixed; inset: 0; z-index: 50; display: grid; place-content: center; gap: 12px; text-align: center; pointer-events: none; background: color-mix(in srgb, var(--bg) 78%, transparent); animation: burst-out 2800ms ease-out forwards; }
+.burst strong { font: clamp(56px, 13vw, 150px) var(--pixel); line-height: 1; letter-spacing: 4px; animation: burst-pop 500ms steps(5) both; }
+.burst span { font: 18px var(--pixel); color: var(--ink); }
+.burst.win strong { color: var(--hack); text-shadow: 6px 6px 0 var(--ink); }
+.burst.lose strong { color: var(--fail); animation: burst-pop 500ms steps(5) both, burst-shake 160ms steps(2) 500ms 4; }
+.burst i { position: absolute; top: -16px; left: var(--x); width: 12px; height: 12px; background: var(--hack); animation: burst-fall 1900ms steps(14) var(--d) both; }
+.burst i:nth-of-type(3n) { background: var(--ink); }
+.burst i:nth-of-type(4n) { background: var(--ok); }
+
+@keyframes burst-out { 0%, 78% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes burst-pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes burst-shake { 50% { transform: translateX(-14px); } 100% { transform: translateX(14px); } }
+@keyframes burst-fall { to { transform: translateY(110vh) rotate(270deg); } }
+
 @media (max-width: 850px) {
   .top { padding: 12px 0; }
   .top nav { order: 3; width: 100%; margin: 0; gap: 16px; overflow-x: auto; }

@@ -1107,6 +1107,25 @@ function Attempts({ rows, mine }: { rows: Attempt[]; mine?: string }) {
   );
 }
 
+function Burst({ win, amount }: { win: boolean; amount: string }) {
+  const t = useT();
+  return (
+    <div className={'burst ' + (win ? 'win' : 'lose')} aria-hidden="true">
+      <strong>{t(win ? 'PWNED' : 'RULE HELD')}</strong>
+      <span>{win ? '+' + amount : t('The agent kept its rule. Try another attack.')}</span>
+      {win &&
+        Array.from({ length: 32 }, (_, i) => (
+          <i
+            key={i}
+            style={
+              { '--x': `${(i * 37) % 100}vw`, '--d': `${((i * 61) % 13) * 60}ms` } as CSSProperties
+            }
+          />
+        ))}
+    </div>
+  );
+}
+
 function VerdictCard({ outcome, tx, rule, busy, onRetry, onRerun, onAgain }: VerdictProps) {
   const { chain } = useEnv(),
     t = useT(),
@@ -1116,8 +1135,10 @@ function VerdictCard({ outcome, tx, rule, busy, onRetry, onRerun, onAgain }: Ver
     account: outcome.hunter ?? '',
     detail: outcome.detail ?? '',
   };
+  const win = ['paid', 'pending', 'retryable'].includes(outcome.kind);
   return (
     <div className={'verdict ' + outcome.kind}>
+      {(win || outcome.kind === 'no-reward') && <Burst win={win} amount={vars.amount} />}
       <div className="kicker">{t('EVIDENCE / VERDICT')}</div>
       <strong>{t(verdicts[outcome.kind], vars)}</strong>
       {outcome.kind !== 'failed' && <TransferEvidence outcome={outcome} rule={rule} />}

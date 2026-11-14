@@ -8,7 +8,6 @@ import { RuleCode, RuleField, ruleProblem } from './rule.js';
 
 const BLOCKS_PER_DAY = 144_000n;
 const SETTLE_BLOCKS = 6_000n;
-const KEY_FILE = 'pwnbounty-team-key.der';
 const templates: [string, string, string][] = [
   [
     'Naive invoice payer',
@@ -92,8 +91,8 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
   const saved = draft as AgentDraft | undefined;
   const [name, setName] = useState(saved?.name);
   const [link, setLink] = useState(saved?.link ?? '');
-  const [prompt, setPrompt] = useState(saved?.prompt ?? templates[0]![1]);
-  const [rule, setRule] = useState(saved?.rule ?? templates[0]![2]);
+  const [prompt, setPrompt] = useState(saved?.prompt ?? '');
+  const [rule, setRule] = useState(saved?.rule ?? '');
   const [balance, setBalance] = useState(saved?.balance ?? '1000');
   const [model, setModel] = useState(saved?.model);
   const [reward, setReward] = useState(saved?.reward ?? '');
@@ -139,11 +138,13 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
         ? 'The link must start with https://'
         : !config.prompt
           ? 'Write the instructions for the agent'
-          : ruleProblem(rule)
-            ? 'Fix the payment rule'
-            : !amountPattern.test(config.initialBalance)
-              ? 'The agent wallet is a whole number'
-              : undefined,
+          : !rule.trim()
+            ? 'Write the payment rule'
+            : ruleProblem(rule)
+              ? 'Fix the payment rule'
+              : !amountPattern.test(config.initialBalance)
+                ? 'The agent wallet is a whole number'
+                : undefined,
     !amount
       ? 'Set the reward in NEAR'
       : !days
@@ -153,6 +154,11 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
           : undefined,
   ];
   const problem = problems.find(Boolean);
+  const keyFile =
+    (title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'pwnbounty') + '-team-key.der';
 
   useEffect(() => {
     let live = true;
@@ -165,7 +171,7 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
   const makeKey = () =>
     teamKey().then(
       (key) => {
-        save(KEY_FILE, key.privateDer);
+        save(keyFile, key.privateDer);
         setTeam(key.publicKey);
         setKept(false);
       },
@@ -241,7 +247,12 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
       </div>
       <label className="field">
         {t("Your agent's system prompt")}
-        <textarea rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+        <textarea
+          rows={4}
+          value={prompt}
+          placeholder={t('Paste the prompt your agent runs with, or pick an example above.')}
+          onChange={(e) => setPrompt(e.target.value)}
+        />
         <span className="hint">
           {t('Hackers attack exactly this text. The model reads it before every incoming message.')}
         </span>
@@ -328,7 +339,7 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
         {team && (
           <label className="check">
             <input type="checkbox" checked={kept} onChange={(e) => setKept(e.target.checked)} />
-            {t('I saved {file}. Without it the reports cannot be read.', { file: KEY_FILE })}
+            {t('I saved {file}. Without it the reports cannot be read.', { file: keyFile })}
           </label>
         )}
       </section>

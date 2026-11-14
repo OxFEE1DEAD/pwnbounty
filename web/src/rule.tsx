@@ -182,7 +182,7 @@ export function RuleField({
     ? { ...base.words, names: [...base.words.names, ...names] }
     : base.words;
   const conditions = [...base.conditions, ...names.map((name) => `${name} >= 1`)];
-  const problem = ruleProblem(rule, words);
+  const problem = rule.trim() ? ruleProblem(rule, words) : undefined;
   const note = ruleNote(rule, words);
   const add = (block: string) => {
     const head = rule.trimEnd();

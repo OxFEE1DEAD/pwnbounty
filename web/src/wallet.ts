@@ -125,6 +125,10 @@ export class HunterWallet implements Wallet {
   private async signer(): Promise<{ wallet: NearWalletBase; account: string } | undefined> {
     const connected = await this.connector.getConnectedWallet().catch(() => undefined);
     const account = connected?.accounts[0]?.accountId;
+    if (connected && account?.endsWith(this.network === 'mainnet' ? '.testnet' : '.near')) {
+      await this.connector.disconnect(connected.wallet).catch(() => undefined);
+      return undefined;
+    }
     return connected && account ? { wallet: connected.wallet, account } : undefined;
   }
   private async call(

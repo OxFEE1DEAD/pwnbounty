@@ -76,7 +76,7 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
   const [link, setLink] = useState(saved?.link ?? '');
   const [prompt, setPrompt] = useState(saved?.prompt ?? '');
   const [rule, setRule] = useState(saved?.rule ?? '');
-  const [balance, setBalance] = useState(saved?.balance ?? '1000');
+  const [balance] = useState(saved?.balance ?? '1000');
   const [model, setModel] = useState(saved?.model);
   const [reward, setReward] = useState(saved?.reward ?? '');
   const [days, setDays] = useState(saved?.days ?? '7');
@@ -223,43 +223,29 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
         </span>
       </label>
       <RuleField rule={rule} onChange={setRule} />
-      <details className="raw">
-        <summary>
-          {t('Model and test wallet · {model}, {n} test NEAR', { model: chosen, n: balance })}
-        </summary>
-        <label className="field">
-          {t('Agent wallet at the start, test NEAR')}
-          <input value={balance} inputMode="numeric" onChange={(e) => setBalance(e.target.value)} />
-          <span className="hint">
-            {t(
-              'The agent wallet is a test ledger inside the TEE run, in whole numbers. The reward for a break is paid on chain from the escrow.',
-            )}
-          </span>
-        </label>
-        <div className="field">
-          {t('Model')}
-          <div className="samples">
-            {models.map((name) => (
-              <button
-                key={name}
-                type="button"
-                className={'chip' + (name === chosen ? ' current' : '')}
-                onClick={() => setModel(name)}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-          <span className="hint">
-            {t(
-              'Private NEAR AI Cloud models with tool calls. Each runs in a TEE; the runner checks its attestation first.',
-            )}{' '}
-            <a href="https://cloud.near.ai/models" target="_blank" rel="noopener noreferrer">
-              cloud.near.ai/models ↗
-            </a>
-          </span>
+      <div className="field">
+        {t('Model')}
+        <div className="samples">
+          {models.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className={'chip' + (name === chosen ? ' current' : '')}
+              onClick={() => setModel(name)}
+            >
+              {name}
+            </button>
+          ))}
         </div>
-      </details>
+        <span className="hint">
+          {t(
+            'Private NEAR AI Cloud models with tool calls. Each runs in a TEE; the runner checks its attestation first.',
+          )}{' '}
+          <a href="https://cloud.near.ai/models" target="_blank" rel="noopener noreferrer">
+            cloud.near.ai/models ↗
+          </a>
+        </span>
+      </div>
     </section>,
     <>
       <section className="card">
@@ -362,8 +348,6 @@ function AgentLaunch({ draft, number, onSave }: DraftProps) {
         <dl className="kv">
           <dt>{t('payment rule')}</dt>
           <dd>{ruleProblem(rule) ? <NotSet /> : <RuleCode rule={rule.trim()} />}</dd>
-          <dt>{t('agent wallet')}</dt>
-          <dd>{t('{n} test NEAR', { n: balance })}</dd>
           <dt>{t('model')}</dt>
           <dd>{chosen}</dd>
         </dl>

@@ -234,7 +234,7 @@ export function RuleField({
         </div>
       </div>
       <details className="rule-help">
-        <summary>{t('What the words mean')}</summary>
+        <summary>{t('Rule syntax')}</summary>
         <p className="hint">{t(when)}</p>
         <dl className="kv rule-words">
           {legend.map(([word, meaning]) => (
